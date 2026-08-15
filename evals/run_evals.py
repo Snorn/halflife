@@ -121,11 +121,24 @@ class DepthVerdict(BaseModel):
     reasoning: str = Field(description="One or two sentences on what gave the level away.")
 
 
-class OverlapVerdict(BaseModel):
-    restates_earlier_material: bool = Field(
-        description="True if the later piece re-explains something the earlier piece established."
+class OverlapFinding(BaseModel):
+    sentence: str = Field(
+        description="The full sentence from the later piece, verbatim — not a fragment."
     )
-    examples: list[str] = Field(description="Quoted phrases that are re-explained. Empty if none.")
+    earlier_material: str = Field(
+        description="What the earlier piece established that this sentence touches."
+    )
+    form: str = Field(description='Either "reference" or "restatement".')
+    why: str = Field(description="One sentence justifying that classification.")
+
+
+class OverlapVerdict(BaseModel):
+    findings: list[OverlapFinding] = Field(
+        description=(
+            "Every passage in the later piece touching material the earlier piece established, "
+            "classified. Empty if the later piece does not touch the earlier one at all."
+        )
+    )
 
 
 _DEPTH_JUDGE_SYSTEM = f"""\
@@ -137,11 +150,42 @@ knows and what it therefore skips — not by how long or how technical it sounds
 """
 
 _OVERLAP_JUDGE_SYSTEM = """\
-You check a series of micro-learning issues for redundancy. The series is cumulative: a later
-issue may refer to earlier material in passing to build on it, but it must not teach it again.
+You check a series of micro-learning issues for one specific fault: earlier material being
+*taught again*. The series is cumulative, so a later issue invoking earlier material is normal,
+expected, and correct. Report nothing else.
 
-Referring in a clause ("since the dispatcher terminates TLS itself, ...") is correct and is NOT
-redundancy. Explaining the same thing a second time is redundancy, even if the wording differs.
+Classify every passage in the later piece that touches material the earlier piece established:
+
+* **reference** — the earlier material is invoked in service of a claim the earlier piece did not
+  make. It appears as a subordinate clause, an aside, or a compressed enumeration, and the
+  sentence exists to say something new. Words like "still", "since", "because" often mark it.
+  A reference is CORRECT. It is not a fault, and must not be reported as one.
+* **restatement** — the passage exists to explain the earlier material again. A reader who had
+  read the earlier issue would learn nothing from it. Typically a paragraph, a walkthrough, or a
+  sequence of steps laid out as though new.
+
+Worked examples, all taken from real output:
+
+reference — "A connect failure is an immediate, cheap, local signal — the server is taken out of
+nomination and the request goes to another candidate, safe to retry because nothing has been sent
+to the client yet." Retry-safety was established earlier; here it is one clause supporting a new
+contrast between crashed and sick backends.
+
+reference — "FillObjectMetaSystemFields still resolves generateName and still assigns a UID, so
+validating webhooks see a fully identified object that will never exist." "Still" refers back;
+the new payload is what that costs an external inventory.
+
+reference — "A --dry-run=server request runs the entire chain — every mutating webhook serially,
+reinvocation included, every policy, every validating webhook concurrently — and returns the fully
+admitted object to the client." The chain order is earlier material compressed into one aside; the
+sentence exists to assert that dry-run does not skip admission.
+
+restatement — a paragraph walking through the admission phases in order and explaining what each
+one does, when the earlier issue already did exactly that.
+
+Quote the **full sentence**, never a fragment: a fragment cannot be classified, by you or by
+anyone reading your output. When genuinely torn, classify as reference — wrongly calling correct
+cumulative writing a defect is the more costly error.
 """
 
 
@@ -253,12 +297,12 @@ def run_depth(client: Meter) -> int:
             ),
             output_model=OverlapVerdict,
         ).parsed
-        status = "REPEATS" if overlap.restates_earlier_material else "disjoint"
-        if overlap.restates_earlier_material:
-            repeats += 1
-        print(f"  depth {lo} vs {hi}: {status}")
-        for example in overlap.examples[:3]:
-            print(f"      - {example}")
+        repeats += min(
+            1,
+            _report_overlap(
+                overlap, earlier=f"the depth-{lo} piece", later=f"the depth-{hi} piece"
+            ),
+        )
 
     print("\nper-depth results — read this, not the aggregate:")
     hits = total = 0
@@ -291,6 +335,27 @@ def run_depth(client: Meter) -> int:
 
 
 # --------------------------------------------------------------------------- continuity
+
+
+def _restatements(verdict: OverlapVerdict) -> list[OverlapFinding]:
+    """Only re-teaching counts. References are the series working as intended."""
+    return [f for f in verdict.findings if f.form.strip().lower().startswith("restate")]
+
+
+def _report_overlap(verdict: OverlapVerdict, *, earlier: str, later: str, indent: str = "  ") -> int:
+    restated = _restatements(verdict)
+    refs = len(verdict.findings) - len(restated)
+    if restated:
+        print(f"{indent}[REPEATS] {later} re-explains {earlier}:")
+        for finding in restated[:3]:
+            print(f"{indent}    {finding.sentence.strip()[:220]}")
+            print(f"{indent}      -> {finding.why.strip()}")
+        return len(restated)
+    print(
+        f"{indent}{later} builds on {earlier} without re-teaching it "
+        f"({refs} reference{'' if refs == 1 else 's'})."
+    )
+    return 0
 
 
 def _judge_pairs(count: int) -> list[tuple[int, int]]:
@@ -365,13 +430,9 @@ def run_continuity(client: Meter, topics: list[str] | None = None) -> int:
                 ),
                 output_model=OverlapVerdict,
             ).parsed
-            if verdict.restates_earlier_material:
-                failures += 1
-                print(f"  [REPEATS] issue {later} re-explains issue {earlier}:")
-                for example in verdict.examples[:3]:
-                    print(f"      - {example}")
-            else:
-                print(f"  issue {later} does not re-explain issue {earlier}.")
+            failures += _report_overlap(
+                verdict, earlier=f"issue {earlier}", later=f"issue {later}"
+            )
 
         print(f"  ledger grew to {len(ledger)} points")
 
