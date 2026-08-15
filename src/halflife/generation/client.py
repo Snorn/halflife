@@ -13,6 +13,7 @@ Notes on the model surface (claude-opus-5), because they are easy to get wrong:
 
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 from dataclasses import dataclass
@@ -44,6 +45,23 @@ class GenerationResult(Generic[T]):
     output_tokens: int | None
 
 
+class MissingCredentials(GenerationError):
+    """No API key, auth token, or `ant auth login` profile could be resolved."""
+
+
+def _sdk_supports_fallbacks(client: anthropic.Anthropic) -> bool:
+    """Feature-detect rather than catching the failure.
+
+    Catching TypeError to discover this was a trap: the SDK also raises
+    TypeError when it cannot resolve credentials, so a missing key looked
+    exactly like an old SDK.
+    """
+    try:
+        return "fallbacks" in inspect.signature(client.beta.messages.create).parameters
+    except (TypeError, ValueError):  # pragma: no cover - signature not introspectable
+        return False
+
+
 class GenerationClient:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
@@ -51,7 +69,7 @@ class GenerationClient:
         if settings.anthropic_api_key:
             kwargs["api_key"] = settings.anthropic_api_key
         self._client = anthropic.Anthropic(**kwargs)
-        self._use_fallbacks = True
+        self._use_fallbacks = _sdk_supports_fallbacks(self._client)
 
     def generate(
         self,
@@ -112,16 +130,31 @@ class GenerationClient:
     def _call(self, params: dict):
         """Prefer the beta endpoint so refusals get re-served by a fallback model.
 
-        The fallbacks parameter is a beta surface; if it is rejected, fall back
-        to the plain endpoint for the rest of the process rather than failing
-        the user's generation over it.
+        If the *server* rejects the fallbacks beta, drop it for the rest of the
+        process rather than failing the user's generation over it. Any other
+        bad request is a real error and is raised.
         """
-        if self._use_fallbacks:
-            try:
-                return self._client.beta.messages.create(
-                    **params, betas=[_FALLBACK_BETA], fallbacks="default"
-                )
-            except (anthropic.BadRequestError, TypeError) as exc:
-                log.warning("Server-side fallbacks unavailable, continuing without them: %s", exc)
-                self._use_fallbacks = False
-        return self._client.messages.create(**params)
+        try:
+            if self._use_fallbacks:
+                try:
+                    return self._client.beta.messages.create(
+                        **params, betas=[_FALLBACK_BETA], fallbacks="default"
+                    )
+                except anthropic.BadRequestError as exc:
+                    if "fallback" not in str(exc).lower():
+                        raise
+                    log.warning(
+                        "Server rejected the fallbacks beta, continuing without it: %s", exc
+                    )
+                    self._use_fallbacks = False
+            return self._client.messages.create(**params)
+        except TypeError as exc:
+            # The SDK reports unresolvable credentials as a TypeError from
+            # header validation, which is otherwise a very confusing traceback.
+            if "authentication" in str(exc).lower():
+                raise MissingCredentials(
+                    "No Anthropic credentials found. Set ANTHROPIC_API_KEY in your "
+                    "environment, or HALFLIFE_ANTHROPIC_API_KEY in .env, or run "
+                    "`ant auth login`."
+                ) from exc
+            raise

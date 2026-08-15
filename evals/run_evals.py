@@ -31,7 +31,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from halflife.config import get_settings  # noqa: E402
 from halflife.generation import continuity  # noqa: E402
-from halflife.generation.client import GenerationClient  # noqa: E402
+from halflife.generation.client import GenerationClient, GenerationError  # noqa: E402
 from halflife.generation.prompts import microlearning  # noqa: E402
 from halflife.generation.prompts.depth_rubric import DEPTH_RUBRIC, depth_label  # noqa: E402
 from halflife.generation.schemas import GeneratedIssue  # noqa: E402
@@ -139,7 +139,7 @@ def run_depth(client: GenerationClient) -> int:
     off_by = []
 
     for topic in case["topics"]:
-        print(f"\n{topic}")
+        print(f"\n{topic}", flush=True)
         pieces: dict[int, GeneratedIssue] = {}
         for depth in depths:
             issue = _generate(
@@ -203,7 +203,7 @@ def run_continuity(client: GenerationClient) -> int:
     failures = 0
 
     for topic in case["topics"]:
-        print(f"\n{topic}  (depth {depth}, {count} issues)")
+        print(f"\n{topic}  (depth {depth}, {count} issues)", flush=True)
         ledger: list[str] = []
         threads: list[str] = []
         bodies: list[str] = []
@@ -266,11 +266,15 @@ def main() -> int:
     args = parser.parse_args()
 
     client = GenerationClient(get_settings())
-    if args.suite == "depth":
-        return run_depth(client)
-    if args.suite == "continuity":
-        return run_continuity(client)
-    return run_depth(client) | run_continuity(client)
+    try:
+        if args.suite == "depth":
+            return run_depth(client)
+        if args.suite == "continuity":
+            return run_continuity(client)
+        return run_depth(client) | run_continuity(client)
+    except GenerationError as exc:
+        print(f"\n{exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
