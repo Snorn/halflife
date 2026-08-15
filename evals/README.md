@@ -12,6 +12,23 @@ python evals/run_evals.py all
 These make real API calls. Cases live in [cases.yaml](cases.yaml); pick topics you can personally
 judge, because the numbers below are a pointer to where to look, not a verdict.
 
+Every run ends with what it cost:
+
+```
+spend for this run:
+  claude-opus-5  28 calls  74,300 in  41,900 out  $1.42
+  total $1.42 over 28 calls ($0.051/call)
+```
+
+Costed per model actually used, so a server-side fallback is billed at its own rates rather than
+the requested model's. Printed even when a run fails part way, so an interrupted run still tells
+you what it spent. An unrecognised model reports tokens and no dollar figure rather than a wrong
+one — if you change `HALFLIFE_MODEL_ID`, add it to `_PRICING` in
+[run_evals.py](run_evals.py).
+
+Rough scale at the time of writing: a depth run is 28 calls, plan-ab 15, continuity 7. Generating
+one real issue for yourself is a single call — the evals are the expensive part, not the product.
+
 Every run writes the generated text to `evals/output/<suite>-<timestamp>/`. Read it.
 
 ## depth

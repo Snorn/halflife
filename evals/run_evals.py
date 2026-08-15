@@ -45,6 +45,73 @@ from halflife.models.base import Flavour  # noqa: E402
 OUTPUT = Path(__file__).parent / "output"
 
 
+# --------------------------------------------------------------------------- metering
+
+
+# USD per million tokens, input and output. Thinking bills as output, so at
+# effort=high the output column carries most of the cost. Update when pricing
+# moves; an unrecognised model reports tokens and no dollar figure rather than
+# a wrong one.
+_PRICING: dict[str, tuple[float, float]] = {
+    "claude-opus-5": (5.00, 25.00),
+    "claude-opus-4-8": (5.00, 25.00),
+    "claude-sonnet-5": (3.00, 15.00),
+    "claude-haiku-4-5": (1.00, 5.00),
+    "claude-fable-5": (10.00, 50.00),
+}
+
+
+class Meter:
+    """Wraps the client and counts what a run actually spends.
+
+    Keyed on the model named in each response rather than the configured one,
+    so a server-side fallback to a different model is costed at its own rates
+    instead of silently at the requested model's.
+    """
+
+    def __init__(self, client: Meter) -> None:
+        self._client = client
+        self.usage: dict[str, list[int]] = {}
+
+    def generate(self, **kwargs):
+        result = self._client.generate(**kwargs)
+        row = self.usage.setdefault(result.model_id, [0, 0, 0])
+        row[0] += 1
+        row[1] += result.input_tokens or 0
+        row[2] += result.output_tokens or 0
+        return result
+
+    def report(self) -> None:
+        if not self.usage:
+            print("\nno API calls made.")
+            return
+
+        def _calls(n: int) -> str:
+            return f"{n} call" if n == 1 else f"{n} calls"
+
+        print("\nspend for this run:")
+        total_cost = 0.0
+        priced = True
+        for model, (calls, tokens_in, tokens_out) in sorted(self.usage.items()):
+            line = f"  {model}  {_calls(calls)}  {tokens_in:,} in  {tokens_out:,} out"
+            rates = _PRICING.get(model)
+            if rates:
+                cost = tokens_in / 1e6 * rates[0] + tokens_out / 1e6 * rates[1]
+                total_cost += cost
+                line += f"  ${cost:.2f}"
+            else:
+                priced = False
+                line += "  (unpriced model)"
+            print(line)
+
+        calls = sum(row[0] for row in self.usage.values())
+        if priced:
+            print(f"  total ${total_cost:.2f} over {_calls(calls)} (${total_cost / calls:.3f}/call)")
+        else:
+            print(f"  {_calls(calls)}; at least one model has no price on file, so no total")
+        print("  excludes prompt caching, which this harness does not use.")
+
+
 # --------------------------------------------------------------------------- judges
 
 
@@ -80,7 +147,7 @@ redundancy. Explaining the same thing a second time is redundancy, even if the w
 # --------------------------------------------------------------------------- helpers
 
 
-def _generate(client: GenerationClient, *, topic: str, depth: int, minutes: int,
+def _generate(client: Meter, *, topic: str, depth: int, minutes: int,
               issue_number: int, ledger: list[str], threads: list[str],
               plan: list[dict] | None = None, arc: str = "") -> GeneratedIssue:
     settings = get_settings()
@@ -135,7 +202,7 @@ def _run_dir(kind: str) -> Path:
 # --------------------------------------------------------------------------- depth
 
 
-def run_depth(client: GenerationClient) -> int:
+def run_depth(client: Meter) -> int:
     case = _load_cases()["depth"]
     depths: list[int] = case["depths"]
     minutes: int = case["duration_minutes"]
@@ -225,7 +292,7 @@ def run_depth(client: GenerationClient) -> int:
 # --------------------------------------------------------------------------- continuity
 
 
-def run_continuity(client: GenerationClient) -> int:
+def run_continuity(client: Meter) -> int:
     case = _load_cases()["continuity"]
     count: int = case["issues"]
     depth: int = case["depth"]
@@ -323,7 +390,7 @@ and answer "tie" when they are genuinely comparable.
 
 
 def _run_series(
-    client: GenerationClient,
+    client: Meter,
     *,
     topic: str,
     depth: int,
@@ -379,7 +446,7 @@ def _render_arm(arm: dict) -> str:
     return "\n".join(lines)
 
 
-def run_plan_ab(client: GenerationClient) -> int:
+def run_plan_ab(client: Meter) -> int:
     """Does the series plan earn the extra generation it costs at subscribe time?
 
     The continuity suite showed a coherent six-issue arc with no plan at all, so
@@ -485,7 +552,7 @@ def main() -> int:
     parser.add_argument("suite", choices=["depth", "continuity", "plan-ab", "all"])
     args = parser.parse_args()
 
-    client = GenerationClient(get_settings())
+    client = Meter(GenerationClient(get_settings()))
     try:
         if args.suite == "depth":
             return run_depth(client)
@@ -497,6 +564,10 @@ def main() -> int:
     except GenerationError as exc:
         print(f"\n{exc}", file=sys.stderr)
         return 2
+    finally:
+        # In the finally block so an interrupted or failed run still tells you
+        # what it spent before it stopped.
+        client.report()
 
 
 if __name__ == "__main__":
