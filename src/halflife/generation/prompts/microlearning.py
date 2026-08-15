@@ -1,6 +1,19 @@
 """The micro-learning generation prompt.
 
 Bump ``GENERATION_PROMPT_VERSION`` on any change to the text below.
+
+v2 responds to two of three continuity runs failing the same way: the last
+issue re-explained a mechanism the first had established — the admission
+pipeline order on one topic, per-dispatcher load counters on another. Both
+times the new coverage points were genuinely novel, so the ledger's
+near-duplicate check saw nothing; only the prose repeated.
+
+v1 already said not to re-explain, and was ignored, in the same way the depth
+rubric's abstract depth-5 description was ignored until it was given a
+concrete test. So v2 names the situation where the rule actually breaks — a
+ledger point that is a *premise* for the current subject — states the
+compression to apply, and adds a closing scan, which is the pattern that
+worked for the depth rubric's calibration checks.
 """
 
 from __future__ import annotations
@@ -8,7 +21,7 @@ from __future__ import annotations
 from halflife.generation.prompts.depth_rubric import DEPTH_RUBRIC, depth_label
 from halflife.models.base import Flavour
 
-GENERATION_PROMPT_VERSION = "1"
+GENERATION_PROMPT_VERSION = "2"
 
 _SYSTEM = """\
 You write micro-learning for working professionals — short, single-sitting reads that keep a
@@ -30,6 +43,13 @@ Rules:
 1. **Never re-explain a point in the coverage ledger.** You may refer to it in a single clause
    to build on it ("since the dispatcher terminates TLS itself, ...") but you may not teach it
    again. Repetition is the fastest way to make a series feel worthless.
+
+   This bites hardest when a ledger point is a **premise** for what you are writing now — the
+   mechanism your subject depends on. That is exactly where the rule gets broken, because
+   restating it feels like being helpful. Compress it to one subordinate clause and move on:
+   never a paragraph, never a walkthrough, never a restated sequence of steps. The test to
+   apply: if a passage would teach a ledger point to somebody who had **not** read the earlier
+   issue, that passage is the bug. Assume your reader has read every issue, because they have.
 2. Choose this issue's subject from the series plan, unless an open thread is more valuable to
    the reader right now — in which case take the thread and say nothing about the deviation.
    The plan is advisory; what the reader needs is not.
@@ -49,6 +69,13 @@ Rules:
   usually does not.
 * No closing summary, no "key takeaways", no encouragement.
 * Write the body in Markdown, and do not include the title in it — the title is a separate field.
+
+## Before you answer
+
+Scan the draft for any passage that explains something already in the coverage ledger, and
+replace each one with a clause. The usual offender is a paragraph near the top that sets up the
+mechanism you are about to build on — the reader already has that mechanism, which is why it is
+in the ledger.
 """
 
 _USER = """\

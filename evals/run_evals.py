@@ -293,6 +293,23 @@ def run_depth(client: Meter) -> int:
 # --------------------------------------------------------------------------- continuity
 
 
+def _judge_pairs(count: int) -> list[tuple[int, int]]:
+    """Pairs to check, at long, medium and short range.
+
+    Re-explanation gets likelier the further apart two issues are, but building
+    on the immediately preceding issue is the legitimate case most easily
+    confused with it — so check both ends and the middle.
+    """
+    if count < 3:
+        return [(1, count)] if count > 1 else []
+    candidates = {
+        (1, count),                       # longest range
+        (max(2, count // 3), count - 1),  # middle
+        (count - 2, count),               # adjacent, late
+    }
+    return sorted(p for p in candidates if p[0] < p[1])
+
+
 def run_continuity(client: Meter, topics: list[str] | None = None) -> int:
     case = _load_cases()["continuity"]
     count: int = case["issues"]
@@ -334,24 +351,27 @@ def run_continuity(client: Meter, topics: list[str] | None = None) -> int:
             ledger.extend(issue.covered_points_added)
             threads = issue.open_threads
 
-        # Judge signal: does the last issue re-teach the first?
-        print("  judging issue 1 against the last...", flush=True)
-        verdict = client.generate(
-            system=_OVERLAP_JUDGE_SYSTEM,
-            user=(
-                f"Issue 1:\n---\n{bodies[0]}\n---\n\n"
-                f"Issue {count}:\n---\n{bodies[-1]}\n---\n\n"
-                f"Does issue {count} re-explain anything issue 1 established?"
-            ),
-            output_model=OverlapVerdict,
-        ).parsed
-        if verdict.restates_earlier_material:
-            failures += 1
-            print(f"  [REPEATS] issue {count} re-explains issue 1:")
-            for example in verdict.examples[:3]:
-                print(f"      - {example}")
-        else:
-            print(f"  issue {count} does not re-explain issue 1.")
+        # Judge signal at three ranges. Judging only 1-vs-N samples one pair in
+        # fifteen for a six-issue series, and the two observed failures both
+        # happened to be that pair — which is luck, not coverage.
+        for earlier, later in _judge_pairs(count):
+            print(f"  judging issue {later} against issue {earlier}...", flush=True)
+            verdict = client.generate(
+                system=_OVERLAP_JUDGE_SYSTEM,
+                user=(
+                    f"Issue {earlier}:\n---\n{bodies[earlier - 1]}\n---\n\n"
+                    f"Issue {later}:\n---\n{bodies[later - 1]}\n---\n\n"
+                    f"Does issue {later} re-explain anything issue {earlier} established?"
+                ),
+                output_model=OverlapVerdict,
+            ).parsed
+            if verdict.restates_earlier_material:
+                failures += 1
+                print(f"  [REPEATS] issue {later} re-explains issue {earlier}:")
+                for example in verdict.examples[:3]:
+                    print(f"      - {example}")
+            else:
+                print(f"  issue {later} does not re-explain issue {earlier}.")
 
         print(f"  ledger grew to {len(ledger)} points")
 
