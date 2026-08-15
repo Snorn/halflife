@@ -1,0 +1,33 @@
+[project]
+name = "halflife"
+version = "0.1.0"
+description = "HalfLife — professional skill maintenance. Step 1: the micro-learning generation engine."
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.69",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.2",
+    "typer>=0.12",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+halflife = "halflife.cli:app"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
