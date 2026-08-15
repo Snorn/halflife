@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -292,7 +293,7 @@ def run_depth(client: Meter) -> int:
 # --------------------------------------------------------------------------- continuity
 
 
-def run_continuity(client: Meter) -> int:
+def run_continuity(client: Meter, topics: list[str] | None = None) -> int:
     case = _load_cases()["continuity"]
     count: int = case["issues"]
     depth: int = case["depth"]
@@ -301,13 +302,15 @@ def run_continuity(client: Meter) -> int:
 
     failures = 0
 
-    for topic in case["topics"]:
+    for topic in topics or case["topics"]:
         print(f"\n{topic}  (depth {depth}, {count} issues)", flush=True)
         ledger: list[str] = []
         threads: list[str] = []
         bodies: list[str] = []
 
         for n in range(1, count + 1):
+            started = time.monotonic()
+            print(f"  {n}. generating...", flush=True)
             issue = _generate(
                 client, topic=topic, depth=depth, minutes=minutes,
                 issue_number=n, ledger=ledger, threads=threads,
@@ -318,7 +321,7 @@ def run_continuity(client: Meter) -> int:
                 f"# {issue.title}\n\n{issue.body_markdown}\n\n---\n"
                 + "\n".join(f"- {p}" for p in issue.covered_points_added),
             )
-            print(f"  {n}. {issue.title}", flush=True)
+            print(f"  {n}. {issue.title}  [{time.monotonic() - started:.0f}s]", flush=True)
 
             # Deterministic signal: did this issue's new points restate old ones?
             for new in issue.covered_points_added:
@@ -332,6 +335,7 @@ def run_continuity(client: Meter) -> int:
             threads = issue.open_threads
 
         # Judge signal: does the last issue re-teach the first?
+        print("  judging issue 1 against the last...", flush=True)
         verdict = client.generate(
             system=_OVERLAP_JUDGE_SYSTEM,
             user=(
@@ -550,6 +554,11 @@ def run_plan_ab(client: Meter) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("suite", choices=["depth", "continuity", "plan-ab", "all"])
+    parser.add_argument(
+        "--topic",
+        action="append",
+        help="Override the topics in cases.yaml. Repeatable. Continuity suite only.",
+    )
     args = parser.parse_args()
 
     client = Meter(GenerationClient(get_settings()))
@@ -557,7 +566,7 @@ def main() -> int:
         if args.suite == "depth":
             return run_depth(client)
         if args.suite == "continuity":
-            return run_continuity(client)
+            return run_continuity(client, args.topic)
         if args.suite == "plan-ab":
             return run_plan_ab(client)
         return run_depth(client) | run_continuity(client) | run_plan_ab(client)
