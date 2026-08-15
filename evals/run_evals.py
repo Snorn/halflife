@@ -134,9 +134,11 @@ def run_depth(client: GenerationClient) -> int:
     minutes: int = case["duration_minutes"]
     run = _run_dir("depth")
 
-    hits = 0
-    total = 0
-    off_by = []
+    # Keyed by requested depth. Aggregating across depths cancels — a rubric
+    # that writes depth 2 when asked for 1 and depth 4 when asked for 5 has a
+    # mean signed error near zero while discriminating at neither end.
+    inferred: dict[int, list[int]] = {d: [] for d in depths}
+    repeats = 0
 
     for topic in case["topics"]:
         print(f"\n{topic}", flush=True)
@@ -158,12 +160,8 @@ def run_depth(client: GenerationClient) -> int:
                 output_model=DepthVerdict,
             ).parsed
 
-            total += 1
-            delta = verdict.inferred_depth - depth
-            off_by.append(delta)
-            mark = "ok " if delta == 0 else "MISS"
-            if delta == 0:
-                hits += 1
+            inferred[depth].append(verdict.inferred_depth)
+            mark = "ok " if verdict.inferred_depth == depth else "MISS"
             print(f"  depth {depth} -> judged {verdict.inferred_depth}  [{mark}] {verdict.reasoning}")
 
         # The rubric's own claim: two levels apart should be disjoint, not nested.
@@ -178,16 +176,40 @@ def run_depth(client: GenerationClient) -> int:
             output_model=OverlapVerdict,
         ).parsed
         status = "REPEATS" if overlap.restates_earlier_material else "disjoint"
+        if overlap.restates_earlier_material:
+            repeats += 1
         print(f"  depth {lo} vs {hi}: {status}")
         for example in overlap.examples[:3]:
             print(f"      - {example}")
 
-    drift = sum(off_by) / len(off_by) if off_by else 0.0
-    print(f"\ndepth accuracy: {hits}/{total}   mean signed error: {drift:+.2f}")
-    if drift < -0.3:
-        print("  negative drift means collapse toward the middle — the rubric is not holding.")
+    print("\nper-depth results — read this, not the aggregate:")
+    hits = total = 0
+    errors: dict[int, float] = {}
+    for depth in depths:
+        judged = inferred[depth]
+        if not judged:
+            continue
+        error = sum(j - depth for j in judged) / len(judged)
+        errors[depth] = error
+        matched = sum(1 for j in judged if j == depth)
+        hits += matched
+        total += len(judged)
+        print(
+            f"  requested {depth}: judged {judged}  "
+            f"hit {matched}/{len(judged)}  signed error {error:+.2f}"
+        )
+
+    low, high = min(depths), max(depths)
+    if errors.get(low, 0) > 0.25 and errors.get(high, 0) < -0.25:
+        print(
+            "\n  Both ends are being pulled toward the middle. The aggregate mean cancels\n"
+            "  this out, which is why it is not reported: the rubric is discriminating in\n"
+            "  the centre and not at the extremes."
+        )
+
+    print(f"\ndepth accuracy: {hits}/{total}   disjointness failures: {repeats}/{len(case['topics'])}")
     print(f"output: {run}")
-    return 0 if hits == total else 1
+    return 0 if hits == total and repeats == 0 else 1
 
 
 # --------------------------------------------------------------------------- continuity
