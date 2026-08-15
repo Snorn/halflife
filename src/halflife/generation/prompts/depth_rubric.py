@@ -22,11 +22,25 @@ four. Two causes, both defects in v1's text:
   checkable specificity the explicit 4-vs-5 boundary, promotes the narrowing
   rule out of the failure note where it was being ignored, and bans the
   grounding preamble that was causing depth 5 to restate depth 1.
+
+v2 moved depth 5 from 1/4 to 3/4 and disjointness failures from 2/4 to 1/4,
+but depth 1 only went 0/4 to 1/4. v3 addresses the two things that run showed:
+
+* Depth 1's misses were convicted on teaching the vocabulary and walking a
+  scenario end to end — neither of which v2 forbade, and both of which are
+  depth 2's deliverables. The one depth-1 success withheld the terminology
+  outright. So depth 1 now avoids the standard vocabulary rather than defining
+  it, and the end-to-end walk is named as depth 2's.
+* Depth 5's remaining miss was SAP Web Dispatcher, judged short on "source
+  symbols, notes, or version-specific bug references". v2's test named source
+  code artefacts specifically, which is unreachable for proprietary software —
+  a large share of what the first trial cohort will subscribe to. v3 gives
+  closed-source and standards topics their own artefact classes.
 """
 
 from __future__ import annotations
 
-DEPTH_RUBRIC_VERSION = "2"
+DEPTH_RUBRIC_VERSION = "3"
 
 DEPTH_RUBRIC = """\
 ## Depth rubric
@@ -37,20 +51,25 @@ pieces on the same topic at depth 2 and depth 4 should be *disjoint in content*,
 longer version of the other.
 
 **Depth 1 — Orientation.** The reader has heard the term and cannot place it. Answer two things:
-what it is, and what problem it exists to solve. Plain language; define every term of art inline
-at first use. No syntax, no configuration, no version specifics.
+what it is, and what problem it exists to solve. No syntax, no configuration, no version
+specifics.
+
+Write in plain language and **avoid the standard vocabulary rather than teaching it**. Where a
+term of art can be replaced by an ordinary description, replace it; where one is genuinely
+unavoidable, define it in passing and move on. Handing the reader the terminology is depth 2's
+deliverable, and introducing jargon in order to define it is the most common way a depth-1 piece
+becomes a depth-2 piece.
 
 Stay on the one thing. Do not map the surrounding landscape — no comparison against sibling or
-adjacent components, no walking through how the parts interconnect, no disambiguation from
-things it gets confused with. That is depth 2's job, and reaching for it is the most common way
-a depth-1 piece becomes a depth-2 piece.
+adjacent components, no disambiguation from what it gets confused with, no account of how the
+parts interconnect — and do not walk a scenario end to end. All of that is depth 2.
 *Failure at this level: a glossary entry with no "so what" — correct and useless.*
 
 **Depth 2 — Working literacy.** The reader could follow a conversation about it and recognise
-when it is relevant to their work. This level owns **relationships**: the standard vocabulary,
-the main moving parts, how those parts relate to each other, and what it is distinct from among
-the things it is commonly confused with. Give one concrete canonical scenario end to end. Still
-no deep configuration.
+when it is relevant to their work. This level owns **the vocabulary and the relationships**: the
+standard terminology, the main moving parts, how those parts relate to each other, and what it
+is distinct from among the things it is commonly confused with. This is also the level that
+walks one concrete canonical scenario end to end. Still no deep configuration.
 *Failure: a feature list. If the reader cannot say what talks to what, this level did not land.*
 
 **Depth 3 — Practitioner.** The reader has done this before or is doing it now. Assume the
@@ -71,11 +90,20 @@ Cover implementation internals and the constraints they impose; edge cases; vers
 behaviour and known limitations or bugs; genuinely contested trade-offs where competent people
 disagree; what the documentation does not say. Assume everything below.
 
-What separates this level from depth 4 is **specificity a reader could go and check**: the name
-of the function or struct, the version a behaviour changed in, the commit or issue, the default
-the documentation states and the code contradicts. Depth 4 is what experience teaches; depth 5
-is what the source, the changelog, and the bug tracker teach. If you cannot name a single such
-artefact for this topic, you are writing depth 4 — narrow instead.
+What separates this level from depth 4 is **specificity a reader could go and check**. Depth 4 is
+what experience teaches; depth 5 is what the source, the changelog, the vendor's own errata and
+the bug tracker teach. Name the artefact:
+
+* open code — the function or struct, the file, the commit or issue, the release a behaviour
+  changed in;
+* closed or vendor software — the vendor note or KB article number, the parameter together with
+  the release its behaviour changed in, the documented default the product contradicts in
+  practice;
+* protocols and standards — the RFC and section, the CVE, the erratum.
+
+Closed-source topics are not exempt from this level; they have a different artefact class, and
+"there is no source to cite" is not a licence to fall back to depth 4. If you genuinely cannot
+name a single checkable artefact of any kind, narrow instead.
 
 Narrowing: if the topic does not carry enough genuine depth-5 material at this length, say so in
 one sentence at the top, name the slice you are going deep on, and go deep on it. This is the
