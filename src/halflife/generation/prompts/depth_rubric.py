@@ -36,6 +36,26 @@ but depth 1 only went 0/4 to 1/4. v3 addresses the two things that run showed:
   code artefacts specifically, which is unreachable for proprietary software —
   a large share of what the first trial cohort will subscribe to. v3 gives
   closed-source and standards topics their own artefact classes.
+
+Where v3 landed: depth accuracy 9/12 (v1 5/12, v2 8/12), disjointness failures
+0/4 (v1 2/4, v2 1/4). Depth 3 has been 4/4 throughout. Two known ceilings, both
+looking structural rather than fixable by wording:
+
+* Depth 1 passes on *component* topics (SAP Web Dispatcher, Kubernetes
+  admission controllers) and is still judged 2 on *concept* topics (connection
+  pooling, certificate chains). For those, the topic name is the vocabulary and
+  the thing itself is a process, so "avoid the terminology" and "do not walk a
+  scenario" are close to unsatisfiable. If this is worth another pass, the
+  candidate is: on a concept topic, depth 1 covers what problem exists and what
+  changes once you have the thing, leaving how it works to depth 2.
+* Depth 5 on SAP now cites SAP Notes, which it did not under v2, so the
+  artefact-class change took effect; the judge still wants errata-level
+  specificity the model does not appear to hold for that product.
+
+Note for whoever tunes this next: three rounds have now been fitted against
+four topics and a single judge model. Further gains against that set are as
+likely to be fitting the judge as improving the rubric — widen the topic set
+before iterating again.
 """
 
 from __future__ import annotations
