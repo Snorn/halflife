@@ -29,6 +29,11 @@ from pydantic import BaseModel, Field
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+# These runs take minutes per suite and print progress as they go. Without line
+# buffering the output arrives in one block at the end, and a working run is
+# indistinguishable from a hung one.
+sys.stdout.reconfigure(line_buffering=True)
+
 from halflife.config import get_settings  # noqa: E402
 from halflife.generation import continuity  # noqa: E402
 from halflife.generation.client import GenerationClient, GenerationError  # noqa: E402
@@ -162,7 +167,10 @@ def run_depth(client: GenerationClient) -> int:
 
             inferred[depth].append(verdict.inferred_depth)
             mark = "ok " if verdict.inferred_depth == depth else "MISS"
-            print(f"  depth {depth} -> judged {verdict.inferred_depth}  [{mark}] {verdict.reasoning}")
+            print(
+                f"  depth {depth} -> judged {verdict.inferred_depth}  [{mark}] {verdict.reasoning}",
+                flush=True,
+            )
 
         # The rubric's own claim: two levels apart should be disjoint, not nested.
         lo, hi = min(depths), max(depths)
@@ -241,7 +249,7 @@ def run_continuity(client: GenerationClient) -> int:
                 f"# {issue.title}\n\n{issue.body_markdown}\n\n---\n"
                 + "\n".join(f"- {p}" for p in issue.covered_points_added),
             )
-            print(f"  {n}. {issue.title}")
+            print(f"  {n}. {issue.title}", flush=True)
 
             # Deterministic signal: did this issue's new points restate old ones?
             for new in issue.covered_points_added:

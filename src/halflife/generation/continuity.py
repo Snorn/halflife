@@ -3,9 +3,16 @@ issue's output back into it.
 
 The coverage ledger is fed to every generation in full, up to
 ``MAX_LEDGER_POINTS``. Beyond that the oldest points are elided and the prompt
-says so. At roughly five points per issue that is about forty issues before any
-elision happens; when a series outlives that, the honest fix is summarising old
-points rather than silently dropping them, which is deferred.
+says so.
+
+Measured, not guessed: the first continuity eval produced 79 points across 6
+issues at depth 4 — about 13 per issue, not the 5 this cap was originally sized
+against. Elision therefore begins around issue 15, roughly two weeks of daily
+delivery, rather than the forty issues assumed here before. Raising the cap only
+moves the wall (a year of daily issues would be some 4,800 points, far past what
+is worth putting in a prompt), so the real fix is summarising displaced points
+into durable claims rather than dropping them. That work is still deferred, but
+it lands in weeks rather than months and should be scheduled accordingly.
 """
 
 from __future__ import annotations
