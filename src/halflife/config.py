@@ -19,7 +19,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="HALFLIFE_",
         env_file=".env",
-        env_file_encoding="utf-8",
+        # utf-8-sig, not utf-8: Windows tooling writes .env with a BOM by
+        # default (`Out-File -Encoding utf8`, Notepad), which otherwise makes
+        # the first key parse as "﻿HALFLIFE_..." and silently not match.
+        # This encoding strips a BOM when present and is identical without one.
+        env_file_encoding="utf-8-sig",
         extra="ignore",
     )
 
