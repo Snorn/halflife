@@ -45,8 +45,8 @@ class GenerationResult(Generic[T]):
     output_tokens: int | None
 
 
-class MissingCredentials(GenerationError):
-    """No API key, auth token, or `ant auth login` profile could be resolved."""
+class CredentialsError(GenerationError):
+    """Credentials were missing, or the API rejected them."""
 
 
 def _sdk_supports_fallbacks(client: anthropic.Anthropic) -> bool:
@@ -152,9 +152,20 @@ class GenerationClient:
             # The SDK reports unresolvable credentials as a TypeError from
             # header validation, which is otherwise a very confusing traceback.
             if "authentication" in str(exc).lower():
-                raise MissingCredentials(
+                raise CredentialsError(
                     "No Anthropic credentials found. Set ANTHROPIC_API_KEY in your "
                     "environment, or HALFLIFE_ANTHROPIC_API_KEY in .env, or run "
                     "`ant auth login`."
                 ) from exc
             raise
+        except anthropic.AuthenticationError as exc:
+            raise CredentialsError(
+                "The API rejected the credentials (401). The key was found but is not "
+                "valid — check for a truncated paste, surrounding quotes captured into "
+                "the value, or a key that has been revoked."
+            ) from exc
+        except anthropic.PermissionDeniedError as exc:
+            raise CredentialsError(
+                "The API accepted the credentials but denied access (403). The key may "
+                "not have access to this model, or belongs to the wrong workspace."
+            ) from exc

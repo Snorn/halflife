@@ -13,7 +13,7 @@ import httpx
 import pytest
 
 from halflife.config import Settings
-from halflife.generation.client import GenerationClient, MissingCredentials
+from halflife.generation.client import CredentialsError, GenerationClient
 from halflife.generation.schemas import GeneratedIssue
 
 AUTH_TYPE_ERROR = TypeError(
@@ -22,10 +22,13 @@ AUTH_TYPE_ERROR = TypeError(
 )
 
 
-def _bad_request(message: str) -> anthropic.BadRequestError:
+def _status_error(cls, status: int, message: str):
     request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
-    response = httpx.Response(400, request=request)
-    return anthropic.BadRequestError(message, response=response, body=None)
+    return cls(message, response=httpx.Response(status, request=request), body=None)
+
+
+def _bad_request(message: str) -> anthropic.BadRequestError:
+    return _status_error(anthropic.BadRequestError, 400, message)
 
 
 class _Endpoint:
@@ -60,7 +63,7 @@ def _generate(client: GenerationClient):
 def test_missing_credentials_becomes_a_readable_error():
     client = _client(plain=AUTH_TYPE_ERROR, beta=AUTH_TYPE_ERROR)
 
-    with pytest.raises(MissingCredentials, match="ANTHROPIC_API_KEY"):
+    with pytest.raises(CredentialsError, match="ANTHROPIC_API_KEY"):
         _generate(client)
 
 
@@ -68,7 +71,7 @@ def test_missing_credentials_does_not_look_like_a_fallbacks_problem():
     """The original bug: an auth failure disabled fallbacks permanently."""
     client = _client(plain=AUTH_TYPE_ERROR, beta=AUTH_TYPE_ERROR)
 
-    with pytest.raises(MissingCredentials):
+    with pytest.raises(CredentialsError):
         _generate(client)
 
     assert client._use_fallbacks is True
@@ -87,7 +90,7 @@ def test_server_rejecting_the_fallbacks_beta_degrades_to_the_plain_endpoint():
         plain=AUTH_TYPE_ERROR,  # proves the plain endpoint was reached
     )
 
-    with pytest.raises(MissingCredentials):
+    with pytest.raises(CredentialsError):
         _generate(client)
 
     assert client._use_fallbacks is False
@@ -103,6 +106,34 @@ def test_other_bad_requests_are_raised_not_masked_as_a_fallbacks_problem():
 
     assert client._use_fallbacks is True
     assert client._client.messages.calls == 0
+
+
+def test_a_rejected_key_is_reported_without_a_traceback():
+    """A 401 means the key was found and refused — a different problem from
+    no key at all, and the message has to say so."""
+    error = _status_error(anthropic.AuthenticationError, 401, "API key is invalid.")
+    client = _client(beta=error, plain=error)
+
+    with pytest.raises(CredentialsError, match="truncated paste"):
+        _generate(client)
+
+
+def test_forbidden_is_distinguished_from_invalid():
+    error = _status_error(anthropic.PermissionDeniedError, 403, "Forbidden")
+    client = _client(beta=error, plain=error)
+
+    with pytest.raises(CredentialsError, match="wrong workspace"):
+        _generate(client)
+
+
+def test_a_rejected_key_does_not_disable_fallbacks():
+    error = _status_error(anthropic.AuthenticationError, 401, "API key is invalid.")
+    client = _client(beta=error, plain=error)
+
+    with pytest.raises(CredentialsError):
+        _generate(client)
+
+    assert client._use_fallbacks is True
 
 
 def test_fallback_support_is_feature_detected_from_the_sdk():
