@@ -37,9 +37,9 @@ sys.stdout.reconfigure(line_buffering=True)
 from halflife.config import get_settings  # noqa: E402
 from halflife.generation import continuity  # noqa: E402
 from halflife.generation.client import GenerationClient, GenerationError  # noqa: E402
-from halflife.generation.prompts import microlearning  # noqa: E402
+from halflife.generation.prompts import microlearning, series_plan  # noqa: E402
 from halflife.generation.prompts.depth_rubric import DEPTH_RUBRIC, depth_label  # noqa: E402
-from halflife.generation.schemas import GeneratedIssue  # noqa: E402
+from halflife.generation.schemas import GeneratedIssue, SeriesPlan  # noqa: E402
 from halflife.models.base import Flavour  # noqa: E402
 
 OUTPUT = Path(__file__).parent / "output"
@@ -81,7 +81,8 @@ redundancy. Explaining the same thing a second time is redundancy, even if the w
 
 
 def _generate(client: GenerationClient, *, topic: str, depth: int, minutes: int,
-              issue_number: int, ledger: list[str], threads: list[str]) -> GeneratedIssue:
+              issue_number: int, ledger: list[str], threads: list[str],
+              plan: list[dict] | None = None, arc: str = "") -> GeneratedIssue:
     settings = get_settings()
 
     result = client.generate(
@@ -93,9 +94,10 @@ def _generate(client: GenerationClient, *, topic: str, depth: int, minutes: int,
             word_budget=minutes * settings.words_per_minute,
             flavour=Flavour.LEARNING,
             issue_number=issue_number,
-            # No plan: the depth eval isolates depth, and the continuity eval
-            # isolates the ledger. Both would be confounded by an arc.
-            plan_block=continuity.render_plan_block([], "", issue_number),
+            # Default is no plan: the depth eval isolates depth and the
+            # continuity eval isolates the ledger, and an arc would confound
+            # both. The plan A/B is the one suite that passes a plan in.
+            plan_block=continuity.render_plan_block(plan or [], arc, issue_number),
             ledger_block=continuity.render_ledger_block(ledger),
             threads_block=continuity.render_threads_block(threads),
         ),
@@ -287,12 +289,200 @@ def run_continuity(client: GenerationClient) -> int:
     return 0 if failures == 0 else 1
 
 
+# --------------------------------------------------------------------------- plan A/B
+
+
+class ArcVerdict(BaseModel):
+    better: str = Field(description='Which series has the better arc: "A", "B", or "tie".')
+    dependency_order: str = Field(
+        description="Which is better ordered so later issues can assume earlier ones, and why."
+    )
+    drift: str = Field(
+        description="Which, if either, reads as a random walk around the topic rather than a course."
+    )
+    reasoning: str = Field(description="Two or three sentences.")
+
+
+_ARC_JUDGE_SYSTEM = """\
+You compare two micro-learning series on the same topic, written for the same reader at the same
+depth. Each is presented as its ordered issue titles plus the claims each issue established.
+
+Judge the *arc*, not the prose of any single issue:
+
+* Dependency order — can each issue assume what earlier ones established, or does a later issue
+  need something that arrives after it?
+* Course versus random walk — does the sequence get somewhere, or is it a set of adjacent
+  observations in arbitrary order?
+* Coverage — does it reach the material that matters most for this topic at this depth, or does
+  it spend its issues on a narrow corner?
+
+One of these was written to a plan drawn up in advance; the other chose each issue from what had
+already been covered. You are not told which. Do not guess — judge only what is in front of you,
+and answer "tie" when they are genuinely comparable.
+"""
+
+
+def _run_series(
+    client: GenerationClient,
+    *,
+    topic: str,
+    depth: int,
+    minutes: int,
+    count: int,
+    out: Path,
+    plan: list[dict] | None = None,
+    arc: str = "",
+) -> dict:
+    ledger: list[str] = []
+    threads: list[str] = []
+    titles: list[str] = []
+    words: list[int] = []
+    per_issue: list[list[str]] = []
+
+    for n in range(1, count + 1):
+        issue = _generate(
+            client, topic=topic, depth=depth, minutes=minutes,
+            issue_number=n, ledger=ledger, threads=threads, plan=plan, arc=arc,
+        )
+        titles.append(issue.title)
+        words.append(len(issue.body_markdown.split()))
+        per_issue.append(list(issue.covered_points_added))
+        _write(
+            out / f"issue-{n:02d}.md",
+            f"# {issue.title}\n\n{issue.body_markdown}\n\n---\n"
+            + "\n".join(f"- {p}" for p in issue.covered_points_added),
+        )
+        print(f"    {n}. {issue.title}", flush=True)
+        ledger.extend(issue.covered_points_added)
+        threads = issue.open_threads
+
+    near_dupes = sum(
+        1
+        for i, a in enumerate(ledger)
+        for b in ledger[:i]
+        if _jaccard(a, b) > 0.6
+    )
+    return {
+        "titles": titles,
+        "ledger": ledger,
+        "per_issue": per_issue,
+        "words": words,
+        "near_dupes": near_dupes,
+    }
+
+
+def _render_arm(arm: dict) -> str:
+    lines = []
+    for n, (title, points) in enumerate(zip(arm["titles"], arm["per_issue"]), start=1):
+        lines.append(f"{n}. {title}")
+        lines.extend(f"     - {p}" for p in points)
+    return "\n".join(lines)
+
+
+def run_plan_ab(client: GenerationClient) -> int:
+    """Does the series plan earn the extra generation it costs at subscribe time?
+
+    The continuity suite showed a coherent six-issue arc with no plan at all, so
+    this runs both arms on the same topic and asks a blind judge which sequence
+    is better ordered. The judge runs twice with the arms swapped; if it changes
+    its answer, position bias is larger than the effect and the result is not
+    usable.
+    """
+    case = _load_cases()["plan_ab"]
+    topic: str = case["topic"]
+    depth: int = case["depth"]
+    minutes: int = case["duration_minutes"]
+    count: int = case["issues"]
+    run = _run_dir("plan-ab")
+
+    print(f"\n{topic}  (depth {depth}, {count} issues per arm)", flush=True)
+
+    print("\n  planned arm — drawing up the arc first", flush=True)
+    plan_result = client.generate(
+        system=series_plan.build_system_prompt(count=count),
+        user=series_plan.build_user_prompt(
+            topic=topic, depth=depth, duration_minutes=minutes,
+            flavour=Flavour.LEARNING, count=count,
+        ),
+        output_model=SeriesPlan,
+    ).parsed
+    plan_json = continuity.plan_to_json(plan_result.issues)
+    _write(
+        run / "plan.md",
+        f"# Plan\n\n{plan_result.arc_summary}\n\n"
+        + "\n".join(f"{e['index']}. {e['title']} — {e['focus']}" for e in plan_json),
+    )
+    print(f"    arc: {plan_result.arc_summary}", flush=True)
+
+    planned = _run_series(
+        client, topic=topic, depth=depth, minutes=minutes, count=count,
+        out=run / "planned", plan=plan_json, arc=plan_result.arc_summary,
+    )
+
+    print("\n  unplanned arm — each issue chosen from the ledger alone", flush=True)
+    unplanned = _run_series(
+        client, topic=topic, depth=depth, minutes=minutes, count=count,
+        out=run / "unplanned",
+    )
+
+    print("\nper-arm figures:", flush=True)
+    for label, arm in (("planned", planned), ("unplanned", unplanned)):
+        total = len(arm["ledger"])
+        print(
+            f"  {label:<10} {total} coverage points "
+            f"({total / count:.1f}/issue)  near-duplicates {arm['near_dupes']}  "
+            f"words {min(arm['words'])}-{max(arm['words'])}"
+        )
+
+    # Blind, and run both ways round to expose position bias.
+    verdicts = {}
+    for orientation, (a, b) in (("planned=A", (planned, unplanned)), ("planned=B", (unplanned, planned))):
+        verdict = client.generate(
+            system=_ARC_JUDGE_SYSTEM,
+            user=(
+                f"Topic: {topic}\n\nSeries A:\n{_render_arm(a)}\n\n"
+                f"Series B:\n{_render_arm(b)}\n\nWhich has the better arc?"
+            ),
+            output_model=ArcVerdict,
+        ).parsed
+        verdicts[orientation] = verdict
+        winner = verdict.better.strip().upper()
+        resolved = (
+            "planned" if (winner == "A") == (orientation == "planned=A") and winner in {"A", "B"}
+            else "unplanned" if winner in {"A", "B"}
+            else "tie"
+        )
+        print(f"\n  [{orientation}] picks {winner} -> {resolved}")
+        print(f"    order: {verdict.dependency_order}")
+        print(f"    drift: {verdict.drift}")
+        print(f"    {verdict.reasoning}")
+
+    picks = []
+    for orientation, verdict in verdicts.items():
+        winner = verdict.better.strip().upper()
+        if winner not in {"A", "B"}:
+            picks.append("tie")
+        else:
+            picks.append("planned" if (winner == "A") == (orientation == "planned=A") else "unplanned")
+
+    print()
+    if picks[0] == picks[1]:
+        print(f"consistent across both orientations: {picks[0]}")
+    else:
+        print(
+            f"INCONSISTENT — {picks[0]} then {picks[1]}. The judge changed its answer when the\n"
+            "arms were swapped, so position bias exceeds the effect. Treat this as no result."
+        )
+    print(f"output: {run}")
+    return 0
+
+
 # --------------------------------------------------------------------------- main
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("suite", choices=["depth", "continuity", "all"])
+    parser.add_argument("suite", choices=["depth", "continuity", "plan-ab", "all"])
     args = parser.parse_args()
 
     client = GenerationClient(get_settings())
@@ -301,7 +491,9 @@ def main() -> int:
             return run_depth(client)
         if args.suite == "continuity":
             return run_continuity(client)
-        return run_depth(client) | run_continuity(client)
+        if args.suite == "plan-ab":
+            return run_plan_ab(client)
+        return run_depth(client) | run_continuity(client) | run_plan_ab(client)
     except GenerationError as exc:
         print(f"\n{exc}", file=sys.stderr)
         return 2

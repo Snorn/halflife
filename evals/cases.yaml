@@ -15,6 +15,16 @@ depth:
     - Postgres connection pooling
     - TLS certificate chains
 
+plan_ab:
+  # Does the series plan earn the extra generation it costs at subscribe time?
+  # Both arms run on one topic so the only variable is whether an arc was drawn
+  # up in advance. Deliberately a different topic from the continuity suite, so
+  # the answer is not read off the one series we have already looked at.
+  topic: Postgres connection pooling
+  depth: 4
+  duration_minutes: 5
+  issues: 6
+
 continuity:
   # One series, generated straight through, to see whether issue N knows what
   # issues 1..N-1 established.
