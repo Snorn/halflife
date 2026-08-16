@@ -6,11 +6,23 @@ constraints that must hold in code; read the design doc for the "why".
 
 ## Build order (deliberate — do not run ahead)
 
-1. **Micro-learning generation engine, standalone, against SQLite.** Depth rubric + series continuity.
-   This is the make-or-break; it must be usable daily by one person from a CLI before anything else exists.
-2. MCP server + in-harness delivery (first harness target: **Claude Cowork**).
+1. ✅ **Micro-learning generation engine, standalone, against SQLite.** Depth rubric + series
+   continuity, driven from a CLI.
+2. ✅ **MCP server + in-harness delivery** (`halflife-mcp`), targeting Claude Code and Claude Cowork.
 3. Wrap in FastAPI; move to Postgres; add tenancy enforcement.
 4. Containerise → Helm → k3d → EKS.
+
+Step 2 was brought forward, ahead of the "usable daily for a week first" gate, because the
+deployment environment turned out to forbid API spend without procurement. In-harness generation
+is not a workaround for that: it removes the carve-out below by which generation used the API
+while extraction used the harness's model, so the "thick agent uses the harness's own model" rule
+now holds for both. The cost is real and is recorded in the README — no unattended delivery, and
+no pinned model, therefore no comparable quality measurement on the harness path.
+
+**Two generation backends, one set of prompts.** `engine.build_brief` / `engine.record_issue` are
+the seam. The API path (`generate_next`) stays for evals and prompt tuning, where a pinned model
+is the whole point; the harness path serves anyone without API access. Every `Delivery` records
+`source` (`api` | `harness`), and `model_id` / `effort` are nullable rather than guessed.
 
 **Do NOT scaffold, stub, or add config for:** Kubernetes, Helm, Dockerfiles, SSO/OIDC/Keycloak, multi-tenant
 auth, dashboards, the skill graph, or connectors. Not "just a placeholder", not "while we're here". If a
@@ -25,9 +37,11 @@ step-1 change seems to need one of these, say so and stop rather than adding it.
   Thinking is on by default on that model; control depth with `output_config={"effort": ...}`, not
   `budget_tokens` (removed — 400s). No `temperature`/`top_p`/`top_k` (removed — 400s). Stream anything with
   large `max_tokens`.
-  - This is not a violation of the "thick agent uses the harness's own model" rule. **Extraction** is a local
-    agent function using the harness model; **generation** is a control-plane function (the design doc puts
-    the generator in the control plane). Keep that line clean.
+  - As of step 2 there are two backends. **API generation** is the control-plane path, used for
+    evals and prompt tuning, and is the only one whose output is comparable across deliveries.
+    **Harness generation** runs the same prompts through the user's own tool via MCP, for
+    deployments where API access is not available. Extraction (step 2's other half, not yet built)
+    is a local agent function using the harness model. Do not add a third path.
 
 ## The privacy boundary — non-negotiable
 

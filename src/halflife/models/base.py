@@ -76,6 +76,20 @@ class CoverageKind(str, enum.Enum):
     SUMMARY = "summary"
 
 
+class GenerationSource(str, enum.Enum):
+    """Which end wrote an issue.
+
+    ``api`` is the control-plane path: pinned model, pinned effort, and the only
+    one whose output is comparable across deliveries. ``harness`` means the
+    user's own tool generated it, on whatever model that tool runs, which is why
+    ``model_id`` and ``effort`` are nullable — recording an honest unknown beats
+    recording a plausible fiction.
+    """
+
+    API = "api"
+    HARNESS = "harness"
+
+
 class Feedback(str, enum.Enum):
     TOO_BASIC = "too_basic"
     JUST_RIGHT = "just_right"

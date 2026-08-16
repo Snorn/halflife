@@ -5,7 +5,14 @@ from datetime import datetime
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from halflife.models.base import Base, Feedback, TenantMixin, TimestampMixin, new_id
+from halflife.models.base import (
+    Base,
+    Feedback,
+    GenerationSource,
+    TenantMixin,
+    TimestampMixin,
+    new_id,
+)
 
 
 class Delivery(Base, TenantMixin, TimestampMixin):
@@ -39,8 +46,21 @@ class Delivery(Base, TenantMixin, TimestampMixin):
     depth: Mapped[int] = mapped_column(Integer, nullable=False)
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    model_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    effort: Mapped[str] = mapped_column(String(16), nullable=False)
+    source: Mapped[GenerationSource] = mapped_column(
+        Enum(
+            GenerationSource,
+            native_enum=False,
+            length=16,
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+        default=GenerationSource.API,
+        server_default=GenerationSource.API.value,
+    )
+    # Nullable because a harness may not report what it ran. An honest unknown
+    # is worth more than a plausible default when attributing quality.
+    model_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    effort: Mapped[str | None] = mapped_column(String(16), nullable=True)
     depth_rubric_version: Mapped[str] = mapped_column(String(16), nullable=False)
     generation_prompt_version: Mapped[str] = mapped_column(String(16), nullable=False)
     input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)

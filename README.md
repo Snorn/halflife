@@ -130,6 +130,42 @@ Alembic owns the schema; there is no `create_all` path.
 .venv/bin/alembic upgrade head
 ```
 
+## Using it inside a harness (no API key)
+
+`halflife-mcp` is an MCP server that inverts the generation flow: instead of HalfLife calling a
+model, your harness calls HalfLife. It hands out the assembled prompt, your harness's own model
+writes the issue, and it takes the result back and does the bookkeeping.
+
+That means **it works with no Anthropic API key at all** — the model is the one you already have
+approved. Register it with any MCP-speaking harness (Claude Code, Claude Cowork):
+
+```json
+{
+  "mcpServers": {
+    "halflife": { "command": "/absolute/path/to/.venv/bin/halflife-mcp" }
+  }
+}
+```
+
+Then ask your harness to deliver today's read. The loop it follows:
+
+| tool | |
+|---|---|
+| `halflife_list_due` | what's due now |
+| `halflife_next_brief` | the prompt, depth, word budget, ledger and open threads |
+| `halflife_record_issue` | saves the written issue, updates the ledger, advances the schedule |
+| `halflife_pending_reads` / `halflife_read` | what's waiting, and its text |
+| `halflife_feedback` | `too_basic` / `just_right` / `too_advanced`, adjusts future depth |
+| `halflife_compaction_brief` / `halflife_record_compaction` | compress the ledger when it outgrows a prompt |
+
+**What this costs you.** Nothing generates unless a session is open — there is no unattended
+delivery. And the model is whatever your harness runs, so quality is neither pinned nor comparable
+between installs. Every delivery records a `source` of `api` or `harness`, and `model_id` is left
+null rather than guessed when the harness doesn't report one, so this distinction survives into
+any later analysis.
+
+The API path remains for evals and prompt tuning, where a pinned model is the whole point.
+
 ## Design and constraints
 
 [The design doc](regenerative-learning-platform-design.md) is the product rationale;
