@@ -82,6 +82,7 @@ def subscribe(
             console.print(f"\n[dim]{series.arc_summary}[/dim]\n")
             for entry in series.plan:
                 console.print(f"  {entry['index']:>2}. {entry['title']}")
+        console.print("\n[dim]Generate the first issue with:[/dim] halflife run-due")
 
 
 @app.command("ls")
@@ -131,6 +132,7 @@ def run_due(
                 console.print(f"  {_short(sub.id)}  {sub.topic}  (due {sub.next_due_at:%Y-%m-%d %H:%M})")
             return
 
+        generated = 0
         for sub in due:
             with console.status(f"Generating: {sub.topic}"):
                 try:
@@ -138,9 +140,17 @@ def run_due(
                 except GenerationError as exc:
                     console.print(f"[red]{sub.topic}: {exc}[/red]")
                     continue
+            generated += 1
             console.print(
                 f"[green]#{delivery.issue_number}[/green] {delivery.title}  "
                 f"[dim]{_short(delivery.id)}[/dim]"
+            )
+
+        # Generating and reading are separate steps, which is not obvious from
+        # a line of output that looks like it might have been the whole thing.
+        if generated:
+            console.print(
+                f"\n[dim]{generated} waiting. Read with:[/dim] halflife read latest"
             )
 
 
