@@ -14,7 +14,7 @@ from rich.table import Table
 from halflife.db import session_scope
 from halflife.generation import GenerationError, engine
 from halflife.migrations_runner import upgrade_to_head
-from halflife.models.base import Feedback, SubscriptionStatus, utcnow
+from halflife.models.base import CoverageKind, Feedback, SubscriptionStatus, utcnow
 from halflife.models.delivery import Delivery
 from halflife.repository import deliveries as delivery_repo
 from halflife.repository import series as series_repo
@@ -238,6 +238,7 @@ def feedback(
 @app.command()
 def series(
     subscription: str = typer.Argument(..., help="Subscription id or prefix."),
+    full: bool = typer.Option(False, "--full", help="Include entries folded into summaries."),
 ) -> None:
     """Inspect series continuity state: the plan, the coverage ledger, open threads."""
     with session_scope() as session:
@@ -261,9 +262,23 @@ def series(
             console.print(f"  [{marker}] {entry['index']:>2}. {entry['title']} — [dim]{entry['focus']}[/dim]")
 
         points = series_repo.coverage_points(session, state.id)
-        console.print(f"\n[bold]Coverage ledger[/bold] ({len(points)} points)")
-        for point in points:
-            console.print(f"  - {point.point}")
+        active = [p for p in points if p.compacted_at is None]
+        folded = len(points) - len(active)
+        header = f"\n[bold]Coverage ledger[/bold] ({len(active)} active"
+        if folded:
+            header += f", {folded} folded into summaries"
+        console.print(header + ")")
+        for point in points if full else active:
+            if point.compacted_at is not None:
+                console.print(f"  [dim]x {point.point}[/dim]")
+                continue
+            marker = "[cyan]~[/cyan]" if point.kind is CoverageKind.SUMMARY else "-"
+            console.print(f"  {marker} {point.point}")
+        if folded and not full:
+            console.print(
+                f"\n  [dim]~ marks a summary. Folded entries are kept, not deleted —[/dim] "
+                f"halflife series {_short(sub.id)} --full"
+            )
 
         console.print("\n[bold]Open threads[/bold]")
         if state.open_threads:

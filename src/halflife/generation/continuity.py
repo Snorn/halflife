@@ -20,10 +20,20 @@ from __future__ import annotations
 from typing import Any
 
 from halflife.generation.schemas import GeneratedIssue
-from halflife.models.base import new_id
+from halflife.models.base import CoverageKind, new_id, utcnow
 from halflife.models.series import CoveragePoint, Series
 
+# The most entries that go into a prompt. Compaction keeps the active ledger
+# under this, so the truncation path in render_ledger_block is now a backstop
+# for a series that somehow outran compaction rather than the normal case.
 MAX_LEDGER_POINTS = 200
+
+# Compact once the active ledger reaches the cap, folding the oldest slice into
+# roughly a quarter as many claims. At ~13 points an issue that is a compaction
+# every five or six issues once a series is past its second week.
+COMPACT_TRIGGER = MAX_LEDGER_POINTS
+COMPACT_OLDEST = 80
+COMPACT_RATIO = 4
 
 
 def render_plan_block(
@@ -76,7 +86,9 @@ def apply_issue(
 
     Returns the new coverage rows; the caller adds them to the session.
     """
-    start = len(series.coverage)
+    # Positions must keep climbing. Compaction inserts summaries at the low
+    # positions they replace, so the count of rows is not the next position.
+    start = max((p.position for p in series.coverage), default=-1) + 1
     new_points = [
         CoveragePoint(
             id=new_id(),
@@ -93,6 +105,68 @@ def apply_issue(
     series.open_threads = [t.strip() for t in issue.open_threads if t.strip()]
     series.issue_count = max(series.issue_count, 0) + 1
     return new_points
+
+
+def active_points(series: Series) -> list[CoveragePoint]:
+    """Ledger rows still shown to the generator, oldest first."""
+    return sorted(
+        (p for p in series.coverage if p.compacted_at is None),
+        key=lambda p: p.position,
+    )
+
+
+def needs_compaction(series: Series) -> bool:
+    return len(active_points(series)) >= COMPACT_TRIGGER
+
+
+def points_to_compact(series: Series) -> list[CoveragePoint]:
+    """The oldest slice, which may include summaries from an earlier compaction.
+
+    Summaries are ordinary ledger rows, so a long-running series compacts its
+    own summaries rather than accumulating an ever-growing tier of them.
+    """
+    return active_points(series)[:COMPACT_OLDEST]
+
+
+def compaction_target(count: int) -> int:
+    return max(1, count // COMPACT_RATIO)
+
+
+def apply_compaction(
+    *,
+    series: Series,
+    replaced: list[CoveragePoint],
+    claims: list[str],
+    tenant_id: str,
+) -> list[CoveragePoint]:
+    """Fold ``replaced`` into ``claims``, without deleting anything.
+
+    The summaries take the position of the oldest row they replace, so ledger
+    order survives compaction and the prompt still reads chronologically.
+    """
+    kept = [text.strip() for text in claims if text.strip()]
+    if not kept or not replaced:
+        return []
+
+    at = utcnow()
+    base = min(p.position for p in replaced)
+    for point in replaced:
+        point.compacted_at = at
+
+    summaries = [
+        CoveragePoint(
+            id=new_id(),
+            tenant_id=tenant_id,
+            series_id=series.id,
+            delivery_id=None,
+            position=base + offset,
+            point=text,
+            kind=CoverageKind.SUMMARY,
+        )
+        for offset, text in enumerate(kept)
+    ]
+    series.coverage.extend(summaries)
+    return summaries
 
 
 def plan_to_json(plan_issues: list[Any]) -> list[dict[str, Any]]:

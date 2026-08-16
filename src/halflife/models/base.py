@@ -68,6 +68,14 @@ class SubscriptionStatus(str, enum.Enum):
     PAUSED = "paused"
 
 
+class CoverageKind(str, enum.Enum):
+    """A ledger row is either something an issue established, or a compaction of
+    several such rows made when the ledger outgrew what fits in a prompt."""
+
+    POINT = "point"
+    SUMMARY = "summary"
+
+
 class Feedback(str, enum.Enum):
     TOO_BASIC = "too_basic"
     JUST_RIGHT = "just_right"

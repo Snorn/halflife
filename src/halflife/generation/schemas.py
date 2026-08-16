@@ -39,6 +39,15 @@ class GeneratedIssue(BaseModel):
     )
 
 
+class CompactedLedger(BaseModel):
+    claims: list[str] = Field(
+        description=(
+            "The merged claims replacing the entries given. Each specific enough that a future "
+            "issue can recognise the ground as already covered."
+        )
+    )
+
+
 class PlannedIssue(BaseModel):
     index: int
     title: str

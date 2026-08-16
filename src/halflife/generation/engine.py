@@ -8,18 +8,22 @@ the result back into the series.
 
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy.orm import Session
 
 from halflife.config import Settings, get_settings
 from halflife.generation import continuity
-from halflife.generation.client import GenerationClient
-from halflife.generation.prompts import microlearning, series_plan
+from halflife.generation.client import GenerationClient, GenerationError
+from halflife.generation.prompts import ledger_compaction, microlearning, series_plan
 from halflife.generation.prompts.depth_rubric import DEPTH_RUBRIC_VERSION
-from halflife.generation.schemas import GeneratedIssue, SeriesPlan
+from halflife.generation.schemas import CompactedLedger, GeneratedIssue, SeriesPlan
 from halflife.models.base import new_id, utcnow
 from halflife.models.delivery import Delivery
-from halflife.models.series import Series
+from halflife.models.series import CoveragePoint, Series
 from halflife.models.subscription import Subscription
+
+log = logging.getLogger(__name__)
 
 
 def word_budget(duration_minutes: int, settings: Settings | None = None) -> int:
@@ -85,6 +89,52 @@ def plan_series(
     return series
 
 
+def compact_ledger(
+    *,
+    session: Session,
+    subscription: Subscription,
+    client: GenerationClient | None = None,
+    settings: Settings | None = None,
+) -> list[CoveragePoint]:
+    """Fold the oldest part of the ledger into fewer, denser claims.
+
+    Costs one API call, and happens roughly every five or six issues once a
+    series is past its second week.
+    """
+    settings = settings or get_settings()
+    client = client or GenerationClient(settings)
+
+    series = ensure_series(session, subscription)
+    replaced = continuity.points_to_compact(series)
+    if not replaced:
+        return []
+
+    result = client.generate(
+        system=ledger_compaction.build_system_prompt(),
+        user=ledger_compaction.build_user_prompt(
+            topic=subscription.topic,
+            entries=[p.point for p in replaced],
+            target=continuity.compaction_target(len(replaced)),
+        ),
+        output_model=CompactedLedger,
+    )
+
+    summaries = continuity.apply_compaction(
+        series=series,
+        replaced=replaced,
+        claims=result.parsed.claims,
+        tenant_id=subscription.tenant_id,
+    )
+    session.flush()
+    log.info(
+        "Compacted %d ledger entries into %d for %r",
+        len(replaced),
+        len(summaries),
+        subscription.topic,
+    )
+    return summaries
+
+
 def generate_next(
     *,
     session: Session,
@@ -97,6 +147,18 @@ def generate_next(
     client = client or GenerationClient(settings)
 
     series = ensure_series(session, subscription)
+
+    if continuity.needs_compaction(series):
+        try:
+            compact_ledger(
+                session=session, subscription=subscription, client=client, settings=settings
+            )
+        except GenerationError:
+            # A failed compaction must not cost the reader their issue. The
+            # render path truncates as a backstop, which is worse than a
+            # compaction but not worth failing over.
+            log.warning("Ledger compaction failed; generating against a truncated ledger.")
+
     issue_number = series.issue_count + 1
 
     result = client.generate(
@@ -111,7 +173,9 @@ def generate_next(
             plan_block=continuity.render_plan_block(
                 series.plan, series.arc_summary, issue_number
             ),
-            ledger_block=continuity.render_ledger_block([p.point for p in series.coverage]),
+            ledger_block=continuity.render_ledger_block(
+                [p.point for p in continuity.active_points(series)]
+            ),
             threads_block=continuity.render_threads_block(list(series.open_threads)),
         ),
         output_model=GeneratedIssue,

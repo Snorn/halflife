@@ -12,12 +12,19 @@ Three parts, deliberately structured rather than a prose blob:
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from halflife.models.base import Base, TenantMixin, TimestampMixin, new_id
+from halflife.models.base import (
+    Base,
+    CoverageKind,
+    TenantMixin,
+    TimestampMixin,
+    new_id,
+)
 
 
 class Series(Base, TenantMixin, TimestampMixin):
@@ -43,7 +50,12 @@ class Series(Base, TenantMixin, TimestampMixin):
 
 
 class CoveragePoint(Base, TenantMixin, TimestampMixin):
-    """One thing the series has already established. Append-only."""
+    """One thing the series has already established. Append-only.
+
+    Compaction never deletes: a row that has been folded into a summary keeps
+    its text and gains a ``compacted_at``, which excludes it from the prompt but
+    leaves the record of what the series actually said intact.
+    """
 
     __tablename__ = "coverage_point"
 
@@ -57,4 +69,25 @@ class CoveragePoint(Base, TenantMixin, TimestampMixin):
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     point: Mapped[str] = mapped_column(Text, nullable=False)
 
+    kind: Mapped[CoverageKind] = mapped_column(
+        Enum(
+            CoverageKind,
+            native_enum=False,
+            length=16,
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+        default=CoverageKind.POINT,
+        server_default=CoverageKind.POINT.value,
+    )
+    # Set when this row has been folded into a summary. Excluded from the
+    # prompt from then on, but never removed.
+    compacted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     series: Mapped["Series"] = relationship(back_populates="coverage")
+
+    @property
+    def is_active(self) -> bool:
+        return self.compacted_at is None
