@@ -6,5 +6,8 @@ build/
 dist/
 .env
 *.db
+# Local harness registration: contains an absolute path to this machine's venv.
+# The portable form is documented in the README.
+.mcp.json
 .pytest_cache/
 evals/output/

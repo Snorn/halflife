@@ -25,6 +25,7 @@ from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 
+from halflife import __version__
 from halflife.db import session_scope
 from halflife.generation import engine
 from halflife.generation.schemas import GeneratedIssue
@@ -36,6 +37,8 @@ from halflife.shorthand import ShorthandError, parse_shorthand
 
 server = MCPServer(
     name="halflife",
+    version=__version__,
+    title="HalfLife",
     instructions=(
         "HalfLife keeps professional skills from decaying by delivering short, "
         "depth-controlled reads on a schedule.\n\n"
