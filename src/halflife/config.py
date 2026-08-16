@@ -36,8 +36,14 @@ class Settings(BaseSettings):
 
     # Generation. Thinking is on by default on claude-opus-5; depth of reasoning
     # is controlled by effort, not by a token budget.
+    #
+    # medium, not high: two depth-eval runs at medium each scored 11/12 against
+    # high's 9/12, with depth 5 clean both times, at $0.077 a call against
+    # roughly $0.19. Higher effort explores more before answering, which a
+    # tightly-rubric-constrained task does not want. Raise it if a workload
+    # shows otherwise — but measure, because the intuition is wrong here.
     model_id: str = "claude-opus-5"
-    effort: str = "high"
+    effort: str = "medium"
     max_tokens: int = 16000
 
     # Roughly how many words a reader gets through in a minute of technical prose.

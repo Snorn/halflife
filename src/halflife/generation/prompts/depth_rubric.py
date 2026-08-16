@@ -41,21 +41,29 @@ Where v3 landed: depth accuracy 9/12 (v1 5/12, v2 8/12), disjointness failures
 0/4 (v1 2/4, v2 1/4). Depth 3 has been 4/4 throughout. Two known ceilings, both
 looking structural rather than fixable by wording:
 
-* Depth 1 passes on *component* topics (SAP Web Dispatcher, Kubernetes
-  admission controllers) and is still judged 2 on *concept* topics (connection
-  pooling, certificate chains). For those, the topic name is the vocabulary and
-  the thing itself is a process, so "avoid the terminology" and "do not walk a
-  scenario" are close to unsatisfiable. If this is worth another pass, the
-  candidate is: on a concept topic, depth 1 covers what problem exists and what
-  changes once you have the thing, leaving how it works to depth 2.
+* Depth 1 sits around 3/4. Two later runs at effort=medium showed the miss
+  *moving between topics* — TLS certificate chains missed in one and scored a
+  clean 1 in the next, substituting "stamp" and "working identity" for the
+  standard terms. So this is a marginal call that varies run to run, not the
+  per-topic structural ceiling recorded here earlier: concept topics can hit
+  depth 1, they just do not do it reliably. Anything aimed at the remaining
+  miss has to beat run-to-run variance, which means repeated runs rather than
+  the single comparison that produced the wrong conclusion the first time.
 * Depth 5 on SAP now cites SAP Notes, which it did not under v2, so the
   artefact-class change took effect; the judge still wants errata-level
   specificity the model does not appear to hold for that product.
 
+Effort matters more than any further rubric wording. The same v3 text scores
+9/12 at effort=high and 11/12 at effort=medium, reproduced across two runs, at
+roughly 40% of the cost. Higher effort explores more before answering, which is
+the opposite of what a tightly-constrained rubric wants. Anyone benchmarking
+this rubric should state the effort level, because it moves the result by more
+than two of the three revisions above did.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
-before iterating again.
+before iterating again, and repeat runs before believing a two-point move.
 """
 
 from __future__ import annotations

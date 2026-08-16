@@ -54,12 +54,18 @@ force a specific key. See [.env.example](.env.example).
 
 ## What it costs
 
-Measured, not estimated: **about $0.21 per issue** at the default `effort=high`, because thinking
-tokens bill as output — a daily subscription is roughly $6.40 a month.
+Measured, not estimated. At the default `effort=medium`, an API call costs **about $0.08** — so a
+daily subscription runs to roughly $2.50 a month. Most of the bill is output tokens, because
+thinking bills as output.
 
-The evals in [evals/](evals/README.md) are the expensive part: a depth run is 28 API calls, and
-tuning the rubric across three revisions cost around $20. Every eval run prints what it spent.
-Nothing in `tests/` touches the network.
+`effort` is the dominant cost lever, and the intuitive setting is the wrong one: two depth-eval
+runs at `medium` each scored **11/12** against `high`'s 9/12, at roughly 40% of the price. Higher
+effort explores more before answering, which is not what a tightly-rubric-constrained task wants.
+Measure before raising it.
+
+The evals in [evals/](evals/README.md) are the expensive part: a depth run is 28 API calls (~$2 at
+medium), and tuning the rubric across three revisions cost around $20. Every eval run prints what
+it spent. Nothing in `tests/` touches the network.
 
 ## Daily use
 

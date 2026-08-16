@@ -48,4 +48,6 @@ def test_environment_beats_the_env_file(env_file, monkeypatch):
 def test_defaults_when_nothing_is_set(env_file):
     assert Settings().anthropic_api_key is None
     assert Settings().model_id == "claude-opus-5"
-    assert Settings().effort == "high"
+    # medium, not high: measured better on the depth eval and ~60% cheaper.
+    # See the note in config.py before changing this.
+    assert Settings().effort == "medium"
