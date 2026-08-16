@@ -14,6 +14,20 @@ concrete test. So v2 names the situation where the rule actually breaks — a
 ledger point that is a *premise* for the current subject — states the
 compression to apply, and adds a closing scan, which is the pattern that
 worked for the depth rubric's calibration checks.
+
+Caveat on that reasoning, recorded because it would otherwise be read as a
+success story: those failures were mostly the eval's own overlap judge
+misfiring. It returned a boolean and quoted fragments, and was flagging
+correct cumulative writing — "safe to retry because nothing has been sent to
+the client yet" is the exact clause form this prompt prescribes — as
+re-explanation. Once the judge was made to quote whole sentences and separate
+a reference from a restatement, both previously failing topics came back with
+41 references and zero restatements across six checks.
+
+So v2 is not a proven improvement over v1. Its guidance stands on its own
+merits, but the evidence that motivated it was an instrument fault, and if
+anyone wants to know whether v1 was fine, the way to find out is to run both
+against the current judge rather than to assume this one is better.
 """
 
 from __future__ import annotations
