@@ -25,6 +25,11 @@ dependencies = [
     "rich>=13.7",
 ]
 
+[project.urls]
+Homepage = "https://github.com/snorn/halflife"
+Repository = "https://github.com/snorn/halflife"
+Issues = "https://github.com/snorn/halflife/issues"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
