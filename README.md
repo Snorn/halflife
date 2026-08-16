@@ -90,7 +90,8 @@ defaults to daily — hourly exists for cramming and has to be asked for.
 | `inbox` / `read [id\|latest]` | What is unread; read it. |
 | `feedback <delivery> too-basic\|just-right\|too-advanced` | Nudges the subscription's depth. |
 | `series <sub>` | The continuity state: plan, coverage ledger, open threads. |
-| `pause` / `resume <sub>` | |
+| `pause` / `resume <sub>` | Stop and restart delivery, keeping the series. |
+| `unsubscribe <sub>` | Delete a subscription, its series and every issue it delivered. Irreversible; confirms first, `--yes` to skip. |
 
 Ids can be given as any unambiguous prefix, so the eight characters shown in `ls` are enough.
 

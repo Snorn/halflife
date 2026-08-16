@@ -289,6 +289,42 @@ def series(
 
 
 @app.command()
+def unsubscribe(
+    subscription: str = typer.Argument(..., help="Subscription id or prefix."),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt."),
+) -> None:
+    """Delete a subscription, its series and every issue it has delivered.
+
+    Irreversible. Use `pause` instead to stop delivery while keeping the series.
+    """
+    with session_scope() as session:
+        sub = subscription_repo.get_by_prefix(session, subscription)
+        if sub is None:
+            _fail(f"No single subscription matches {subscription!r}.")
+            return
+
+        summary = subscription_repo.deletion_summary(session, sub)
+        console.print(
+            f"[bold]{sub.topic}[/bold]  depth {sub.depth}  {sub.frequency.value}\n"
+            f"  {summary['issues']} issue(s) and {summary['coverage_points']} coverage "
+            f"point(s) will be deleted."
+        )
+
+        if not yes:
+            console.print(
+                "[dim]This cannot be undone. `halflife pause` stops delivery "
+                "without deleting anything.[/dim]"
+            )
+            if not typer.confirm("Delete it?"):
+                console.print("[dim]Left alone.[/dim]")
+                return
+
+        topic = sub.topic
+        subscription_repo.delete(session, sub)
+        console.print(f"[green]Unsubscribed[/green] {topic}")
+
+
+@app.command()
 def pause(subscription: str = typer.Argument(...)) -> None:
     """Pause a subscription."""
     _set_status(subscription, SubscriptionStatus.PAUSED, "Paused")

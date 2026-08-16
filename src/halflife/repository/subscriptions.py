@@ -89,6 +89,30 @@ def list_due(
     return list(session.scalars(stmt).all())
 
 
+def deletion_summary(session: Session, subscription: Subscription) -> dict[str, int]:
+    """What deleting this subscription would destroy.
+
+    Called before the deletion so the confirmation can state the cost rather
+    than asking the user to guess it.
+    """
+    series = subscription.series
+    return {
+        "issues": len(subscription.deliveries),
+        "coverage_points": len(series.coverage) if series else 0,
+    }
+
+
+def delete(session: Session, subscription: Subscription) -> None:
+    """Remove a subscription and everything belonging to it.
+
+    Irreversible, and it takes the series plan, the coverage ledger and every
+    delivered issue with it — the cascades are declared on the relationships.
+    ``pause`` is the non-destructive alternative and the CLI says so.
+    """
+    session.delete(subscription)
+    session.flush()
+
+
 def set_status(
     session: Session, subscription: Subscription, status: SubscriptionStatus
 ) -> Subscription:
