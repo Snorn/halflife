@@ -138,15 +138,33 @@ model, your harness calls HalfLife. It hands out the assembled prompt, your harn
 writes the issue, and it takes the result back and does the bookkeeping.
 
 That means **it works with no Anthropic API key at all** — the model is the one you already have
-approved. Register it with any MCP-speaking harness (Claude Code, Claude Cowork):
+approved.
+
+To register it, you need the absolute path to the installed `halflife-mcp` on *your* machine.
+Print it:
+
+```bash
+.venv/bin/python scripts/mcp_doctor.py
+```
+
+Check 2 of its output is the path to paste. Then, in your harness's MCP configuration:
 
 ```json
 {
   "mcpServers": {
-    "halflife": { "command": "/absolute/path/to/.venv/bin/halflife-mcp" }
+    "halflife": { "command": "PASTE_THE_PATH_FROM_CHECK_2_HERE" }
   }
 }
 ```
+
+**That value is a placeholder, not a working default** — the single most common setup failure is
+leaving it unedited, and a harness reports it the same way it reports every other attach failure.
+On Windows the path needs doubled backslashes: `C:\\dev\\halflife\\.venv\\Scripts\\halflife-mcp.exe`.
+
+Then **restart the harness** — MCP servers are loaded at startup, not when the config changes.
+
+If it will not attach, `scripts/mcp_doctor.py` runs the same checks the harness does and stops at
+the first failure, including whether the configured command path actually exists.
 
 Then ask your harness to deliver today's read. The loop it follows:
 
