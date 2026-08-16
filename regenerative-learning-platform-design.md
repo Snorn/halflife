@@ -6,15 +6,17 @@
 
 Professional skill maintenance. Skills decay ("I was good at algebra at school; now I'd have to relearn it"). The platform assesses where people are, detects drift between what they know and what their role demands, and periodically delivers content to keep skills fresh — regenerative learning.
 
-**Positioning:** every competitor helps you learn something new; this helps you *keep* what you've already learned. Maintenance product, not acquisition product.
+**Positioning:** most learning tools help you acquire something new; this one helps you *keep* what you already learned. A maintenance product, not an acquisition product — which is what makes decay, freshness and cadence the load-bearing concepts rather than courses and completion.
 
 **Name:** **HalfLife** — the decay metaphor stated outright: every skill has one, and the product's job is to keep topping you back up before yours runs down.
 
-## Audience & trial
+## Audience
 
 - Professional tool (career skill maintenance), not consumer.
-- First trial cohort: my new FDE team. Pricing/business model deferred to v2.
-- FDEs are the ideal first user: constant unfamiliar customer stacks, high topic churn, live in AI harnesses all day.
+- The design target is the forward-deployed / field engineer shape of role: constant exposure to
+  unfamiliar customer stacks, high topic churn, and most of the working day spent inside an AI
+  harness. Several decisions below only make sense against that user — the harness-only sensor
+  surface especially.
 
 ## Architecture
 
@@ -25,8 +27,8 @@ Professional skill maintenance. Skills decay ("I was good at algebra at school; 
 
 ## v1 scope: zero-permission
 
-- Sensor surface is **harness conversations only** — no email, calendar, or document access. No OAuth consent screens, no security-review blockers. Connectors are a later-version upsell.
-- Honest v1 pitch: (1) micro-learning subscriptions (day-one value), (2) emergent skill profile from what users ask their AI, (3) team dashboard of aggregated topics and subscription trends. Decay detection proper arrives when connectors provide time-depth (v2).
+- Sensor surface is **harness conversations only** — no email, calendar, or document access. No OAuth consent screens, no security-review blockers. Connectors are deferred to a later version.
+- What v1 actually delivers: (1) micro-learning subscriptions (day-one value), (2) emergent skill profile from what users ask their AI, (3) team view of aggregated topics and subscription trends. Decay detection proper arrives when connectors provide time-depth (v2).
 
 ## Micro-learning engine
 
@@ -91,11 +93,10 @@ Key decisions:
 
 In-harness first-run: one sentence ("Skill tracker active — classifications only, no content leaves. Say 'pause tracking' anytime"), then silent unless delivering or asked.
 
-Admin flow (tenant/team/invites) stays manual/scripted for the FDE trial. Instrument the funnel: invite → consent → connected → seeded → first subscription → first read opened.
+Admin flow (tenant/team/invites) stays manual/scripted for a first deployment. Instrument the funnel: invite → consent → connected → seeded → first subscription → first read opened.
 
 ## v2 feature list
 
-- Pricing / business model
 - Connector support (email, calendar, docs — beyond harness-only signals)
 - Decay detection proper (needs connector time-depth)
 - Auto-pause/resume maintenance subscriptions based on `applied` signals (candidate)
@@ -103,7 +104,7 @@ Admin flow (tenant/team/invites) stays manual/scripted for the FDE trial. Instru
 
 ## Open items
 
-1. Micro-learning generation quality — depth rubric wording, continuity mechanism (week-one make-or-break for the FDE trial)
-2. Pressure-test the signal schema against a concrete scenario (e.g. an FDE's first week on a new engagement)
+1. Micro-learning generation quality — depth rubric wording, continuity mechanism (the week-one make-or-break for any first deployment)
+2. Pressure-test the signal schema against a concrete scenario (e.g. a field engineer's first week on an unfamiliar customer stack)
 
 *Closed: product name — settled as **HalfLife**.*

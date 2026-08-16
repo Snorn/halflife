@@ -1,8 +1,20 @@
 [project]
 name = "halflife"
 version = "0.1.0"
-description = "HalfLife — professional skill maintenance. Step 1: the micro-learning generation engine."
+description = "Professional skill maintenance: scheduled, depth-controlled micro-learning that knows what it already taught you."
+readme = "README.md"
 requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["learning", "micro-learning", "spaced-repetition", "anthropic", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Education",
+]
 dependencies = [
     "anthropic>=0.69",
     "sqlalchemy>=2.0",

@@ -1,25 +1,65 @@
 # HalfLife
 
-Professional skill maintenance. Every skill has a half-life; this tops yours back up before it
-runs down.
+Professional skill *maintenance*. Every skill has a half-life; this tops yours back up before it
+runs down. Most learning tools help you acquire something new — this one helps you keep what you
+already learned.
 
-**This repo is step 1 of four:** the micro-learning generation engine, standalone, against SQLite,
-driven from a CLI. The MCP server, the API, and the deployment story come later and deliberately
-do not exist yet. See [CLAUDE.md](CLAUDE.md) for the build order and the constraints, and
-[the design doc](regenerative-learning-platform-design.md) for the product.
+You subscribe to a topic at a depth and a cadence, and it writes you a short, single-sitting read
+on a schedule. Each issue knows what the previous ones covered and is forbidden from re-explaining
+it, so a series accumulates instead of circling.
+
+> **Status: early, and honest about it.** This is step one of four — the generation engine,
+> standalone, against SQLite, driven from a CLI. There is no server, no MCP integration, no
+> deployment story, and no multi-user anything. Those are deliberately not built yet. It is
+> useful today if you want a daily read on a topic you're keeping alive; it is not a product.
+
+## What makes it different from a prompt
+
+Two mechanisms, both of which have been measured rather than assumed:
+
+**A depth rubric.** Depth 1–5 sets *what the reader is assumed to already know*, not the word
+count. A depth-2 and a depth-4 piece on the same topic should be disjoint, not one a longer
+version of the other. The rubric is a versioned constant, and
+[its own source file](src/halflife/generation/prompts/depth_rubric.py) records what each revision
+changed, what it measured, and where it still fails.
+
+**A coverage ledger.** Every issue returns the claims it established; these accumulate and are fed
+back into the next generation as ground that may be referred to but not taught again. When the
+ledger outgrows a prompt, the oldest entries are compressed into denser claims rather than
+dropped.
+
+## Requirements
+
+- Python 3.11+
+- An Anthropic API key with credit. Generation calls `claude-opus-5` directly — an API key is
+  separate from a Claude.ai subscription, which does **not** include API access.
 
 ## Setup
 
 ```bash
 python -m venv .venv
-.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.venv\Scripts\halflife.exe init
 ```
 
-Generation calls the Anthropic API. The SDK finds credentials on its own from
-`ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, or an `ant auth login` profile — set
-`HALFLIFE_ANTHROPIC_API_KEY` only if you need to force a specific key. See
-[.env.example](.env.example) for the rest.
+```bash
+.venv/bin/python -m pip install -e ".[dev]"      # Windows: .venv\Scripts\python.exe
+```
+
+```bash
+.venv/bin/halflife init
+```
+
+Credentials resolve the way the Anthropic SDK expects — `ANTHROPIC_API_KEY`,
+`ANTHROPIC_AUTH_TOKEN`, or an `ant auth login` profile. Set `HALFLIFE_ANTHROPIC_API_KEY` only to
+force a specific key. See [.env.example](.env.example).
+
+## What it costs
+
+Measured, not estimated: **about $0.21 per issue** at the default `effort=high`, because thinking
+tokens bill as output — a daily subscription is roughly $6.40 a month.
+
+The evals in [evals/](evals/README.md) are the expensive part: a depth run is 28 API calls, and
+tuning the rubric across three revisions cost around $20. Every eval run prints what it spent.
+Nothing in `tests/` touches the network.
 
 ## Daily use
 
@@ -77,6 +117,38 @@ and whether issue 6 knows what issue 1 said.
 Alembic owns the schema; there is no `create_all` path.
 
 ```bash
-.venv\Scripts\alembic.exe revision --autogenerate -m "what changed"
-.venv\Scripts\alembic.exe upgrade head
+.venv/bin/alembic revision --autogenerate -m "what changed"
 ```
+
+```bash
+.venv/bin/alembic upgrade head
+```
+
+## Design and constraints
+
+[The design doc](regenerative-learning-platform-design.md) is the product rationale;
+[CLAUDE.md](CLAUDE.md) is the set of constraints that must hold in code. Two are worth knowing
+before contributing:
+
+**The build order is deliberate.** Generation engine → MCP server → API and Postgres →
+containerisation. Kubernetes, Helm, SSO and tenancy enforcement are explicitly *not* to be
+scaffolded ahead of time, not even as placeholders.
+
+**The privacy boundary is non-negotiable.** When the agent half is built, the control plane sees
+classifications and never content — an `evidence` field exists in the signal schema and is
+permanently null, present so the stance is auditable. Step 1 writes no signals at all, but the
+schema is fixed now.
+
+## Contributing
+
+Issues and pull requests welcome. Two things to know:
+
+- `tests/` must stay deterministic and offline. Anything that asserts on model output belongs in
+  `evals/`, which costs money to run.
+- Prompts live in `generation/prompts/` as versioned constants. Changing one means bumping its
+  version, because every generated issue records the versions that produced it — otherwise
+  quality changes can't be attributed.
+
+## Licence
+
+[Apache-2.0](LICENSE).
