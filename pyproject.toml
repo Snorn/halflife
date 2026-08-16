@@ -26,9 +26,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/snorn/halflife"
-Repository = "https://github.com/snorn/halflife"
-Issues = "https://github.com/snorn/halflife/issues"
+Homepage = "https://github.com/Snorn/halflife"
+Repository = "https://github.com/Snorn/halflife"
+Issues = "https://github.com/Snorn/halflife/issues"
 
 [project.optional-dependencies]
 dev = [
