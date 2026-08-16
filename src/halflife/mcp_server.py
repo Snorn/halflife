@@ -28,7 +28,7 @@ from mcp.server.mcpserver import MCPServer
 from halflife import __version__
 from halflife.db import session_scope
 from halflife.generation import engine
-from halflife.generation.schemas import GeneratedIssue
+from halflife.generation.schemas import GeneratedIssue, PlannedIssue
 from halflife.models.base import Feedback, GenerationSource
 from halflife.repository import deliveries as delivery_repo
 from halflife.repository import series as series_repo
@@ -42,6 +42,9 @@ server = MCPServer(
     instructions=(
         "HalfLife keeps professional skills from decaying by delivering short, "
         "depth-controlled reads on a schedule.\n\n"
+        "For a new subscription with no plan yet, call halflife_plan_brief and "
+        "halflife_record_plan first. A planned series measurably beats an "
+        "unplanned one.\n\n"
         "To deliver a due issue: call halflife_list_due, then halflife_next_brief "
         "for a subscription. The brief contains a system prompt and a user prompt. "
         "Follow them exactly — they carry a depth rubric and a coverage ledger of "
@@ -102,6 +105,78 @@ def halflife_list_subscriptions() -> str:
                 }
                 for s in subscription_repo.list_all(session)
             ]
+        )
+
+
+@server.tool()
+def halflife_plan_brief(subscription_id: str) -> str:
+    """Get the prompt for sketching a series' arc, before writing any issues.
+
+    Worth doing once per new subscription: a planned series measurably beats an
+    unplanned one, because without an arc the first issue front-loads material
+    that belongs to later ones. Follow the prompts, then call
+    halflife_record_plan. Issues can be written without a plan if you skip this.
+
+    Args:
+        subscription_id: id from halflife_list_subscriptions, full or a prefix.
+    """
+    with session_scope() as session:
+        subscription = subscription_repo.get_by_prefix(session, subscription_id)
+        if subscription is None:
+            return _ok({"error": f"no single subscription matches {subscription_id!r}"})
+
+        brief = engine.build_plan_brief(session=session, subscription=subscription)
+        return _ok(
+            {
+                "subscription_id": brief.subscription_id,
+                "topic": brief.topic,
+                "depth": brief.depth,
+                "duration_minutes": brief.duration_minutes,
+                "flavour": brief.flavour,
+                "issue_count_to_plan": brief.count,
+                "already_planned": brief.already_planned,
+                "system_prompt": brief.system_prompt,
+                "user_prompt": brief.user_prompt,
+            }
+        )
+
+
+@server.tool()
+def halflife_record_plan(
+    subscription_id: str,
+    arc_summary: str,
+    issues: list[PlannedIssue],
+) -> str:
+    """Save a series arc you have just drawn up.
+
+    The plan is advisory — later issues may deviate when an open thread matters
+    more — so each focus should be specific enough that a future issue can tell
+    whether that ground is taken. Replaces any existing plan.
+
+    Args:
+        subscription_id: the id from the brief.
+        arc_summary: two sentences on where the series starts and ends up.
+        issues: the planned issues in order, each with index, title and focus.
+    """
+    with session_scope() as session:
+        subscription = subscription_repo.get_by_prefix(session, subscription_id)
+        if subscription is None:
+            return _ok({"error": f"no single subscription matches {subscription_id!r}"})
+        if not issues:
+            return _ok({"error": "issues must not be empty"})
+
+        series = engine.record_plan(
+            session=session,
+            subscription=subscription,
+            arc_summary=arc_summary,
+            issues=issues,
+        )
+        return _ok(
+            {
+                "topic": subscription.topic,
+                "planned_issues": len(series.plan),
+                "arc_summary": series.arc_summary,
+            }
         )
 
 

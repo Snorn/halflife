@@ -152,6 +152,7 @@ Then ask your harness to deliver today's read. The loop it follows:
 
 | tool | |
 |---|---|
+| `halflife_plan_brief` / `halflife_record_plan` | sketch a new series' arc — worth doing once per subscription |
 | `halflife_list_due` | what's due now |
 | `halflife_next_brief` | the prompt, depth, word budget, ledger and open threads |
 | `halflife_record_issue` | saves the written issue, updates the ledger, advances the schedule |

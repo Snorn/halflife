@@ -18,7 +18,12 @@ from halflife.generation import continuity
 from halflife.generation.client import GenerationClient, GenerationError
 from halflife.generation.prompts import ledger_compaction, microlearning, series_plan
 from halflife.generation.prompts.depth_rubric import DEPTH_RUBRIC_VERSION
-from halflife.generation.schemas import CompactedLedger, GeneratedIssue, SeriesPlan
+from halflife.generation.schemas import (
+    CompactedLedger,
+    GeneratedIssue,
+    PlannedIssue,
+    SeriesPlan,
+)
 from halflife.models.base import GenerationSource, new_id, utcnow
 from halflife.models.delivery import Delivery
 from halflife.models.series import CoveragePoint, Series
@@ -58,6 +63,78 @@ def ensure_series(session: Session, subscription: Subscription) -> Series:
     return series
 
 
+@dataclass(frozen=True)
+class PlanBrief:
+    """The plan equivalent of IssueBrief.
+
+    Without this a harness-only install could never draw an arc, and every
+    series would run unplanned — which the plan A/B measured as worse: the
+    unplanned arm front-loaded its first issue with conclusions belonging to
+    issues four to six, leaving the later ones to re-derive rather than build.
+    """
+
+    subscription_id: str
+    topic: str
+    depth: int
+    duration_minutes: int
+    flavour: str
+    count: int
+    already_planned: bool
+    system_prompt: str
+    user_prompt: str
+
+
+def build_plan_brief(
+    *,
+    session: Session,
+    subscription: Subscription,
+    settings: Settings | None = None,
+) -> PlanBrief:
+    """Assemble the series-planning prompt without generating anything."""
+    settings = settings or get_settings()
+    series = ensure_series(session, subscription)
+    count = settings.series_plan_length
+
+    return PlanBrief(
+        subscription_id=subscription.id,
+        topic=subscription.topic,
+        depth=subscription.depth,
+        duration_minutes=subscription.duration_minutes,
+        flavour=subscription.flavour.value,
+        count=count,
+        already_planned=bool(series.plan),
+        system_prompt=series_plan.build_system_prompt(count=count),
+        user_prompt=series_plan.build_user_prompt(
+            topic=subscription.topic,
+            depth=subscription.depth,
+            duration_minutes=subscription.duration_minutes,
+            flavour=subscription.flavour,
+            count=count,
+        ),
+    )
+
+
+def record_plan(
+    *,
+    session: Session,
+    subscription: Subscription,
+    arc_summary: str,
+    issues: list[PlannedIssue],
+) -> Series:
+    """Store a series arc, replacing any existing one.
+
+    Replacing rather than refusing: a series whose plan has been overtaken by
+    what the reader actually needs is better re-planned than left misleading,
+    and the coverage ledger — not the plan — is what protects continuity.
+    """
+    series = ensure_series(session, subscription)
+    series.arc_summary = arc_summary.strip()
+    series.plan = continuity.plan_to_json(issues)
+    series.plan_prompt_version = series_plan.SERIES_PLAN_PROMPT_VERSION
+    session.flush()
+    return series
+
+
 def plan_series(
     *,
     session: Session,
@@ -65,29 +142,24 @@ def plan_series(
     client: GenerationClient | None = None,
     settings: Settings | None = None,
 ) -> Series:
-    """Sketch the series arc. Called once, at subscribe time."""
+    """Sketch the series arc via the API. Called once, at subscribe time."""
     settings = settings or get_settings()
     client = client or GenerationClient(settings)
 
+    brief = build_plan_brief(session=session, subscription=subscription, settings=settings)
     result = client.generate(
-        system=series_plan.build_system_prompt(count=settings.series_plan_length),
-        user=series_plan.build_user_prompt(
-            topic=subscription.topic,
-            depth=subscription.depth,
-            duration_minutes=subscription.duration_minutes,
-            flavour=subscription.flavour,
-            count=settings.series_plan_length,
-        ),
+        system=brief.system_prompt,
+        user=brief.user_prompt,
         output_model=SeriesPlan,
     )
     plan: SeriesPlan = result.parsed
 
-    series = ensure_series(session, subscription)
-    series.arc_summary = plan.arc_summary
-    series.plan = continuity.plan_to_json(plan.issues)
-    series.plan_prompt_version = series_plan.SERIES_PLAN_PROMPT_VERSION
-    session.flush()
-    return series
+    return record_plan(
+        session=session,
+        subscription=subscription,
+        arc_summary=plan.arc_summary,
+        issues=plan.issues,
+    )
 
 
 @dataclass(frozen=True)

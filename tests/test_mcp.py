@@ -14,7 +14,7 @@ import pytest
 
 from halflife import mcp_server
 from halflife.generation import engine
-from halflife.generation.schemas import GeneratedIssue
+from halflife.generation.schemas import GeneratedIssue, PlannedIssue
 from halflife.models.base import GenerationSource
 from halflife.repository import subscriptions as subscription_repo
 from halflife.shorthand import parse_shorthand
@@ -130,6 +130,8 @@ def test_tools_are_registered_and_dispatchable(migrated_db):
 
     assert {
         "halflife_list_due",
+        "halflife_plan_brief",
+        "halflife_record_plan",
         "halflife_next_brief",
         "halflife_record_issue",
         "halflife_compaction_brief",
@@ -186,6 +188,69 @@ def test_full_harness_loop_through_the_tools(migrated_db):
     nxt = _json(mcp_server.halflife_next_brief(sub_id))
     assert nxt["depth"] == 3
     assert "MPI buffers are counted" in nxt["user_prompt"]
+
+
+def test_a_new_subscription_starts_unplanned_and_says_so(migrated_db):
+    sub_id = _json(mcp_server.halflife_subscribe("kubernetes, 4, 5, 1d"))["subscription_id"]
+
+    brief = _json(mcp_server.halflife_plan_brief(sub_id))
+
+    assert brief["already_planned"] is False
+    assert brief["issue_count_to_plan"] == 10
+    assert "kubernetes" in brief["user_prompt"]
+    assert "Depth rubric" in brief["system_prompt"]
+
+
+def test_planning_through_the_tools_reaches_the_issue_brief(migrated_db):
+    """The plan is only useful if it turns up in the next issue's prompt."""
+    sub_id = _json(mcp_server.halflife_subscribe("kubernetes, 4, 5, 1d"))["subscription_id"]
+
+    out = _json(
+        mcp_server.halflife_record_plan(
+            subscription_id=sub_id,
+            arc_summary="Starts at the request path, ends at failure modes.",
+            issues=[
+                PlannedIssue(index=1, title="The admission chain", focus="Establishes ordering."),
+                PlannedIssue(index=2, title="Failure policy", focus="Establishes blast radius."),
+            ],
+        )
+    )
+    assert out["planned_issues"] == 2
+
+    brief = _json(mcp_server.halflife_next_brief(sub_id))
+    assert "The admission chain" in brief["user_prompt"]
+    assert "Establishes ordering." in brief["user_prompt"]
+    assert "Starts at the request path" in brief["user_prompt"]
+
+    # And the brief no longer reports the series as unplanned.
+    assert _json(mcp_server.halflife_plan_brief(sub_id))["already_planned"] is True
+
+
+def test_recording_a_plan_replaces_the_previous_one(migrated_db):
+    sub_id = _json(mcp_server.halflife_subscribe("kubernetes, 4, 5, 1d"))["subscription_id"]
+    mcp_server.halflife_record_plan(
+        subscription_id=sub_id,
+        arc_summary="First attempt.",
+        issues=[PlannedIssue(index=1, title="Old", focus="Old focus.")],
+    )
+
+    mcp_server.halflife_record_plan(
+        subscription_id=sub_id,
+        arc_summary="Second attempt.",
+        issues=[PlannedIssue(index=1, title="New", focus="New focus.")],
+    )
+
+    brief = _json(mcp_server.halflife_next_brief(sub_id))
+    assert "New" in brief["user_prompt"]
+    assert "Old" not in brief["user_prompt"]
+
+
+def test_empty_plan_is_rejected(migrated_db):
+    sub_id = _json(mcp_server.halflife_subscribe("kubernetes, 4, 5, 1d"))["subscription_id"]
+
+    out = _json(mcp_server.halflife_record_plan(sub_id, "An arc.", []))
+
+    assert "error" in out
 
 
 def test_reported_model_is_kept_when_the_harness_supplies_it(migrated_db):
