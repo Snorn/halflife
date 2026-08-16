@@ -11,10 +11,18 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
 
+from halflife import pricing
 from halflife.db import session_scope
 from halflife.generation import GenerationError, engine
 from halflife.migrations_runner import upgrade_to_head
-from halflife.models.base import CoverageKind, Feedback, SubscriptionStatus, utcnow
+from halflife.models.base import (
+    CoverageKind,
+    Feedback,
+    Frequency,
+    GenerationSource,
+    SubscriptionStatus,
+    utcnow,
+)
 from halflife.models.delivery import Delivery
 from halflife.repository import deliveries as delivery_repo
 from halflife.repository import series as series_repo
@@ -133,6 +141,7 @@ def run_due(
             return
 
         generated = 0
+        produced: list[Delivery] = []
         for sub in due:
             with console.status(f"Generating: {sub.topic}"):
                 try:
@@ -141,16 +150,19 @@ def run_due(
                     console.print(f"[red]{sub.topic}: {exc}[/red]")
                     continue
             generated += 1
+            produced.append(delivery)
             console.print(
                 f"[green]#{delivery.issue_number}[/green] {delivery.title}  "
-                f"[dim]{_short(delivery.id)}[/dim]"
+                f"[dim]{_short(delivery.id)} · {pricing.describe(delivery)}[/dim]"
             )
 
         # Generating and reading are separate steps, which is not obvious from
         # a line of output that looks like it might have been the whole thing.
         if generated:
+            spend = pricing.total(produced)[0]
             console.print(
-                f"\n[dim]{generated} waiting. Read with:[/dim] halflife read latest"
+                f"\n[dim]{generated} waiting, ${spend:.3f}. Read with:[/dim] "
+                "halflife read latest"
             )
 
 
@@ -286,6 +298,73 @@ def series(
                 console.print(f"  - {thread}")
         else:
             console.print("  [dim]none[/dim]")
+
+
+_ISSUES_PER_MONTH = {Frequency.HOURLY: 730.0, Frequency.DAILY: 30.4, Frequency.WEEKLY: 4.3}
+
+
+@app.command()
+def cost() -> None:
+    """What generation has cost so far, and what the current subscriptions run to."""
+    with session_scope() as session:
+        subscriptions = subscription_repo.list_all(session)
+        if not subscriptions:
+            console.print("[dim]No subscriptions yet.[/dim]")
+            return
+
+        table = Table(box=None, pad_edge=False)
+        for column in ("topic", "issues", "api", "in-harness", "spent", "per issue"):
+            table.add_column(column)
+
+        grand_known = 0.0
+        grand_priced = 0
+        grand_unknown = 0
+
+        for sub in subscriptions:
+            deliveries = delivery_repo.list_for_subscription(session, sub.id)
+            known, priced, unknown = pricing.total(deliveries)
+            in_harness = sum(
+                1 for d in deliveries if d.source is GenerationSource.HARNESS
+            )
+            grand_known += known
+            grand_priced += priced
+            grand_unknown += unknown
+            table.add_row(
+                sub.topic,
+                str(len(deliveries)),
+                str(len(deliveries) - in_harness),
+                str(in_harness),
+                f"${known:.2f}",
+                f"${known / priced:.3f}" if priced else "—",
+            )
+        console.print(table)
+
+        console.print(f"\n[bold]${grand_known:.2f}[/bold] in API spend to date")
+        if grand_unknown:
+            console.print(
+                f"  [dim]{grand_unknown} issue(s) excluded: written in-harness, or "
+                f"on a model with no price on file.[/dim]"
+            )
+
+        if not grand_priced:
+            console.print(
+                "  [dim]No priced issues yet, so no run rate can be projected.[/dim]"
+            )
+            return
+
+        # Projected from this installation's own measured average, not from a
+        # figure baked in here — effort and topic both move it.
+        per_issue = grand_known / grand_priced
+        monthly = sum(
+            _ISSUES_PER_MONTH[s.frequency] * per_issue
+            for s in subscriptions
+            if s.status is SubscriptionStatus.ACTIVE
+        )
+        console.print(
+            f"  [dim]At ${per_issue:.3f}/issue measured here, the active "
+            f"subscriptions run to about ${monthly:.2f}/month if every issue is "
+            f"generated via the API.[/dim]"
+        )
 
 
 @app.command()

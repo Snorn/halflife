@@ -35,6 +35,7 @@ sys.path.insert(0, str(ROOT / "src"))
 # indistinguishable from a hung one.
 sys.stdout.reconfigure(line_buffering=True)
 
+from halflife import pricing  # noqa: E402
 from halflife.config import get_settings  # noqa: E402
 from halflife.generation import continuity  # noqa: E402
 from halflife.generation.client import GenerationClient, GenerationError  # noqa: E402
@@ -47,19 +48,6 @@ OUTPUT = Path(__file__).parent / "output"
 
 
 # --------------------------------------------------------------------------- metering
-
-
-# USD per million tokens, input and output. Thinking bills as output, so at
-# effort=high the output column carries most of the cost. Update when pricing
-# moves; an unrecognised model reports tokens and no dollar figure rather than
-# a wrong one.
-_PRICING: dict[str, tuple[float, float]] = {
-    "claude-opus-5": (5.00, 25.00),
-    "claude-opus-4-8": (5.00, 25.00),
-    "claude-sonnet-5": (3.00, 15.00),
-    "claude-haiku-4-5": (1.00, 5.00),
-    "claude-fable-5": (10.00, 50.00),
-}
 
 
 class Meter:
@@ -95,9 +83,8 @@ class Meter:
         priced = True
         for model, (calls, tokens_in, tokens_out) in sorted(self.usage.items()):
             line = f"  {model}  {_calls(calls)}  {tokens_in:,} in  {tokens_out:,} out"
-            rates = _PRICING.get(model)
-            if rates:
-                cost = tokens_in / 1e6 * rates[0] + tokens_out / 1e6 * rates[1]
+            cost = pricing.cost_usd(model, tokens_in, tokens_out)
+            if cost is not None:
                 total_cost += cost
                 line += f"  ${cost:.2f}"
             else:
