@@ -94,26 +94,21 @@ the first failure, including whether the configured command path actually exists
 
 ## Daily use
 
-Create a subscription:
+Everything from here happens in your harness, in plain language. Ask it to subscribe you to a
+topic, plan the series, and write what is due — it has tools for each step and follows the
+sequence on its own.
 
-```bash
-.venv/bin/halflife subscribe "sap web dispatcher, 4, 5, 1d"
-```
+Subscriptions are created from shorthand: `topic, depth, duration, frequency, flavour`, where
+everything after the topic is optional. Depth is 1–5, duration is minutes, frequency is
+`1h`/`1d`/`1w`, and flavour is `learning` (new ground) or `maintaining` (refresher on a skill you
+already have). Frequency defaults to daily — hourly exists for cramming and has to be asked for.
+So *"subscribe me to sap web dispatcher at depth 4, five minutes, daily"* is enough.
 
-Shorthand is `topic, depth, duration, frequency, flavour`; everything after the topic is optional.
-Depth is 1–5, duration is minutes, frequency is `1h`/`1d`/`1w`, and flavour is `learning` (new
-ground) or `maintaining` (refresher on a skill you already have). Frequency defaults to daily —
-hourly exists for cramming and has to be asked for.
-
-Without an API key this reports `Not planned` and creates the subscription anyway — drawing the
-arc is the one part of `subscribe` that would call the API, and your harness does it instead on
-its first run. Pass `--no-plan` if you want to skip that attempt outright.
-
-Then ask your harness, in plain language, to plan the series and deliver what is due. It follows
-this loop on its own:
+The tools it uses:
 
 | tool | |
 |---|---|
+| `halflife_subscribe` / `halflife_list_subscriptions` | create and list subscriptions |
 | `halflife_plan_brief` / `halflife_record_plan` | sketch a new series' arc — once per subscription |
 | `halflife_list_due` | what is due now |
 | `halflife_next_brief` | the prompt, depth, word budget, ledger and open threads |
@@ -121,9 +116,10 @@ this loop on its own:
 | `halflife_pending_reads` / `halflife_read` | what is waiting, and its text |
 | `halflife_feedback` | `too_basic` / `just_right` / `too_advanced`, adjusts future depth |
 | `halflife_compaction_brief` / `halflife_record_compaction` | compress the ledger when it outgrows a prompt |
-| `halflife_subscribe` / `halflife_list_subscriptions` | create and list subscriptions |
 
 Nothing here spends anything with Anthropic: the model is the one your harness already runs.
+`halflife init` is the only step that has to come from the CLI, because it runs schema migrations
+— which is not something a model-invoked tool should be able to do.
 
 **What that costs you.** Nothing generates unless a session is open — there is no unattended
 delivery. And the model is whatever your harness runs, so quality is neither pinned nor comparable
