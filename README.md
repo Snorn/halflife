@@ -8,14 +8,18 @@ You subscribe to a topic at a depth and a cadence, and it writes you a short, si
 on a schedule. Each issue knows what the previous ones covered and is forbidden from re-explaining
 it, so a series accumulates instead of circling.
 
-> **Status: early, and honest about it.** This is step one of four — the generation engine,
-> standalone, against SQLite, driven from a CLI. There is no server, no MCP integration, no
-> deployment story, and no multi-user anything. Those are deliberately not built yet. It is
-> useful today if you want a daily read on a topic you're keeping alive; it is not a product.
+**It runs inside the AI harness you already use** — Claude Code, Claude Cowork, or anything else
+that speaks MCP — and needs no API key of its own. Your harness's model writes the issues;
+HalfLife holds the depth rubric, the schedule and the memory of what has already been said.
+
+> **Status: early, and honest about it.** The generation engine and the harness integration are
+> built and measured. There is no server, no multi-user support and no deployment story — those
+> are deliberately later steps. It is useful today if you want a daily read on a topic you are
+> keeping alive; it is not yet a product.
 
 ## What makes it different from a prompt
 
-Two mechanisms, both of which have been measured rather than assumed:
+Two mechanisms, both measured rather than assumed:
 
 **A depth rubric.** Depth 1–5 sets *what the reader is assumed to already know*, not the word
 count. A depth-2 and a depth-4 piece on the same topic should be disjoint, not one a longer
@@ -24,17 +28,22 @@ version of the other. The rubric is a versioned constant, and
 changed, what it measured, and where it still fails.
 
 **A coverage ledger.** Every issue returns the claims it established; these accumulate and are fed
-back into the next generation as ground that may be referred to but not taught again. When the
-ledger outgrows a prompt, the oldest entries are compressed into denser claims rather than
-dropped.
+into the next generation as ground that may be referred to but not taught again. When the ledger
+outgrows a prompt, the oldest entries are compressed into denser claims rather than dropped.
 
 ## Requirements
 
 - Python 3.11+
-- An Anthropic API key with credit. Generation calls `claude-opus-5` directly — an API key is
-  separate from a Claude.ai subscription, which does **not** include API access.
+- An MCP-capable harness (Claude Code, Claude Cowork, …)
 
-## Setup
+No Anthropic API key is required. One is only needed for the optional API path in
+[Appendix A](#appendix-a-generating-via-the-api).
+
+## Install
+
+```bash
+git clone https://github.com/Snorn/halflife.git && cd halflife
+```
 
 ```bash
 python -m venv .venv
@@ -45,103 +54,19 @@ python -m venv .venv
 ```
 
 ```bash
+.venv/bin/python -m pytest -q
+```
+
+The test suite is fully offline, so it passes before any harness wiring or credentials exist. If
+it goes green, the install is sound. Then create the database:
+
+```bash
 .venv/bin/halflife init
 ```
 
-Credentials resolve the way the Anthropic SDK expects — `ANTHROPIC_API_KEY`,
-`ANTHROPIC_AUTH_TOKEN`, or an `ant auth login` profile. Set `HALFLIFE_ANTHROPIC_API_KEY` only to
-force a specific key. See [.env.example](.env.example).
+## Register it with your harness
 
-## What it costs
-
-Measured, not estimated. At the default `effort=medium`, an API call costs **about $0.08** — so a
-daily subscription runs to roughly $2.50 a month. Most of the bill is output tokens, because
-thinking bills as output.
-
-`effort` is the dominant cost lever, and the intuitive setting is the wrong one: two depth-eval
-runs at `medium` each scored **11/12** against `high`'s 9/12, at roughly 40% of the price. Higher
-effort explores more before answering, which is not what a tightly-rubric-constrained task wants.
-Measure before raising it.
-
-The evals in [evals/](evals/README.md) are the expensive part: a depth run is 28 API calls (~$2 at
-medium), and tuning the rubric across three revisions cost around $20. Every eval run prints what
-it spent. Nothing in `tests/` touches the network.
-
-## Daily use
-
-```bash
-halflife subscribe "sap web dispatcher, 3, 5, 1d"
-halflife run-due
-halflife read latest
-halflife feedback 4f2a1c9b too-advanced
-```
-
-Shorthand is `topic, depth, duration, frequency, flavour`; everything after the topic is
-optional. Depth is 1–5, duration is minutes, frequency is `1h`/`1d`/`1w`, and flavour is
-`learning` (new ground) or `maintaining` (refresher on a skill you already have). Frequency
-defaults to daily — hourly exists for cramming and has to be asked for.
-
-| Command | |
-|---|---|
-| `subscribe "<shorthand>"` | Create a subscription and sketch its arc. `--no-plan` skips the arc. |
-| `ls` | Subscriptions, with issue counts and next due time. |
-| `run-due` | Generate an issue for everything that is due. `--dry-run` to look first. |
-| `generate <sub>` | Generate now, ignoring the schedule. |
-| `inbox` / `read [id\|latest]` | What is unread; read it. |
-| `feedback <delivery> too-basic\|just-right\|too-advanced` | Nudges the subscription's depth. |
-| `series <sub>` | The continuity state: plan, coverage ledger, open threads. |
-| `pause` / `resume <sub>` | Stop and restart delivery, keeping the series. |
-| `unsubscribe <sub>` | Delete a subscription, its series and every issue it delivered. Irreversible; confirms first, `--yes` to skip. |
-
-Ids can be given as any unambiguous prefix, so the eight characters shown in `ls` are enough.
-
-## How a series stays coherent
-
-Three pieces of state, rather than one prose summary:
-
-* a **plan** — an advisory arc generated once at subscribe time, so the series does not
-  random-walk around the topic;
-* a **coverage ledger** — append-only, one short claim per line, fed into every generation as
-  ground that may be referred to but not re-explained;
-* **open threads** — things an issue deliberately deferred, which the next one picks up or drops.
-
-Each generation is a single API call that returns the body *and* the updated bookkeeping, so the
-ledger cannot drift from what was actually written. `halflife series <sub>` shows all three.
-
-## Tests and evals
-
-```bash
-.venv\Scripts\python.exe -m pytest          # offline, deterministic
-python evals/run_evals.py depth             # costs tokens
-```
-
-`tests/` never touches the network. Anything that judges real model output lives in
-[evals/](evals/README.md) — that is where you find out whether the depth rubric actually holds
-and whether issue 6 knows what issue 1 said.
-
-## Schema changes
-
-Alembic owns the schema; there is no `create_all` path.
-
-```bash
-.venv/bin/alembic revision --autogenerate -m "what changed"
-```
-
-```bash
-.venv/bin/alembic upgrade head
-```
-
-## Using it inside a harness (no API key)
-
-`halflife-mcp` is an MCP server that inverts the generation flow: instead of HalfLife calling a
-model, your harness calls HalfLife. It hands out the assembled prompt, your harness's own model
-writes the issue, and it takes the result back and does the bookkeeping.
-
-That means **it works with no Anthropic API key at all** — the model is the one you already have
-approved.
-
-To register it, you need the absolute path to the installed `halflife-mcp` on *your* machine.
-Print it:
+You need the absolute path to the installed `halflife-mcp` on *your* machine. Print it:
 
 ```bash
 .venv/bin/python scripts/mcp_doctor.py
@@ -159,32 +84,81 @@ Check 2 of its output is the path to paste. Then, in your harness's MCP configur
 
 **That value is a placeholder, not a working default** — the single most common setup failure is
 leaving it unedited, and a harness reports it the same way it reports every other attach failure.
-On Windows the path needs doubled backslashes: `C:\\dev\\halflife\\.venv\\Scripts\\halflife-mcp.exe`.
+On Windows the path needs doubled backslashes:
+`C:\\dev\\halflife\\.venv\\Scripts\\halflife-mcp.exe`.
 
-Then **restart the harness** — MCP servers are loaded at startup, not when the config changes.
+Then **restart the harness** — MCP servers load at startup, not when the config changes.
 
 If it will not attach, `scripts/mcp_doctor.py` runs the same checks the harness does and stops at
 the first failure, including whether the configured command path actually exists.
 
-Then ask your harness to deliver today's read. The loop it follows:
+## Daily use
+
+Create a subscription:
+
+```bash
+.venv/bin/halflife subscribe "sap web dispatcher, 4, 5, 1d" --no-plan
+```
+
+Shorthand is `topic, depth, duration, frequency, flavour`; everything after the topic is optional.
+Depth is 1–5, duration is minutes, frequency is `1h`/`1d`/`1w`, and flavour is `learning` (new
+ground) or `maintaining` (refresher on a skill you already have). Frequency defaults to daily —
+hourly exists for cramming and has to be asked for. `--no-plan` skips the API call that sketches
+the arc; your harness draws it instead, on its first run.
+
+Then ask your harness, in plain language, to plan the series and deliver what is due. It follows
+this loop on its own:
 
 | tool | |
 |---|---|
-| `halflife_plan_brief` / `halflife_record_plan` | sketch a new series' arc — worth doing once per subscription |
-| `halflife_list_due` | what's due now |
+| `halflife_plan_brief` / `halflife_record_plan` | sketch a new series' arc — once per subscription |
+| `halflife_list_due` | what is due now |
 | `halflife_next_brief` | the prompt, depth, word budget, ledger and open threads |
-| `halflife_record_issue` | saves the written issue, updates the ledger, advances the schedule |
-| `halflife_pending_reads` / `halflife_read` | what's waiting, and its text |
+| `halflife_record_issue` | saves the issue, updates the ledger, advances the schedule |
+| `halflife_pending_reads` / `halflife_read` | what is waiting, and its text |
 | `halflife_feedback` | `too_basic` / `just_right` / `too_advanced`, adjusts future depth |
 | `halflife_compaction_brief` / `halflife_record_compaction` | compress the ledger when it outgrows a prompt |
+| `halflife_subscribe` / `halflife_list_subscriptions` | create and list subscriptions |
 
-**What this costs you.** Nothing generates unless a session is open — there is no unattended
+Nothing here spends anything with Anthropic: the model is the one your harness already runs.
+
+**What that costs you.** Nothing generates unless a session is open — there is no unattended
 delivery. And the model is whatever your harness runs, so quality is neither pinned nor comparable
 between installs. Every delivery records a `source` of `api` or `harness`, and `model_id` is left
-null rather than guessed when the harness doesn't report one, so this distinction survives into
+null rather than guessed when the harness does not report one, so the distinction survives into
 any later analysis.
 
-The API path remains for evals and prompt tuning, where a pinned model is the whole point.
+## Managing subscriptions from the CLI
+
+These need no API key and work regardless of how issues were generated:
+
+| Command | |
+|---|---|
+| `ls` | Subscriptions, with issue counts and next due time. |
+| `inbox` / `read [id\|latest]` | What is unread; read it. |
+| `feedback <delivery> too-basic\|just-right\|too-advanced` | Nudges the subscription's depth. |
+| `series <sub>` | The continuity state: plan, coverage ledger, open threads. `--full` includes compacted entries. |
+| `cost` | Spend to date per subscription, and the projected monthly run rate. |
+| `pause` / `resume <sub>` | Stop and restart delivery, keeping the series. |
+| `unsubscribe <sub>` | Delete a subscription, its series and every issue it delivered. Irreversible; confirms first, `--yes` to skip. |
+
+Ids can be given as any unambiguous prefix, so the eight characters shown in `ls` are enough.
+
+Deletion is deliberately **not** exposed over MCP — everything else in the tool is additive or
+reversible, and there is no reason a model needs to remove your reading history.
+
+## How a series stays coherent
+
+Three pieces of state, rather than one prose summary:
+
+* a **plan** — an advisory arc drawn once per subscription, so the series does not random-walk
+  around the topic;
+* a **coverage ledger** — append-only, one short claim per line, fed into every generation as
+  ground that may be referred to but not re-explained;
+* **open threads** — things an issue deliberately deferred, which the next one picks up or drops.
+
+Each generation returns the body *and* the updated bookkeeping together, so the ledger cannot
+drift from what was actually written. `halflife series <sub>` shows all three.
 
 ## Design and constraints
 
@@ -198,8 +172,8 @@ scaffolded ahead of time, not even as placeholders.
 
 **The privacy boundary is non-negotiable.** When the agent half is built, the control plane sees
 classifications and never content — an `evidence` field exists in the signal schema and is
-permanently null, present so the stance is auditable. Step 1 writes no signals at all, but the
-schema is fixed now.
+permanently null, present so the stance is auditable. No signals are written yet, but the schema
+is fixed now.
 
 ## Contributing
 
@@ -209,8 +183,75 @@ Issues and pull requests welcome. Two things to know:
   `evals/`, which costs money to run.
 - Prompts live in `generation/prompts/` as versioned constants. Changing one means bumping its
   version, because every generated issue records the versions that produced it — otherwise
-  quality changes can't be attributed.
+  quality changes cannot be attributed.
 
 ## Licence
 
 [Apache-2.0](LICENSE).
+
+---
+
+# Appendix A: generating via the API
+
+The harness path above is the default. HalfLife can also generate issues itself by calling the
+Anthropic API directly, which buys two things the harness path cannot give you:
+
+- **Unattended delivery.** `run-due` generates on a schedule with nobody present.
+- **A pinned model and effort**, which is the only way output is comparable across deliveries —
+  and therefore the only path on which the evals mean anything.
+
+This is how the prompts are tuned. It requires an API key with credit; an API key is separate
+from a Claude.ai subscription, which does **not** include API access.
+
+Credentials resolve the way the Anthropic SDK expects — `ANTHROPIC_API_KEY`,
+`ANTHROPIC_AUTH_TOKEN`, or an `ant auth login` profile. Set `HALFLIFE_ANTHROPIC_API_KEY` only to
+force a specific key. See [.env.example](.env.example).
+
+| Command | |
+|---|---|
+| `subscribe "<shorthand>"` | Without `--no-plan`, sketches the series arc via the API. |
+| `run-due` | Generate an issue for everything that is due. `--dry-run` to look first. |
+| `generate <sub>` | Generate now, ignoring the schedule. |
+
+## What it costs
+
+Measured, not estimated. At the default `effort=medium` an API call costs **about $0.08**, so a
+daily subscription runs to roughly $2.50 a month. Most of the bill is output tokens, because
+thinking bills as output.
+
+`effort` is the dominant cost lever, and the intuitive setting is the wrong one: two depth-eval
+runs at `medium` each scored **11/12** against `high`'s 9/12, at roughly 40% of the price. Higher
+effort explores more before answering, which is not what a tightly-rubric-constrained task wants.
+Measure before raising it.
+
+`halflife cost` reports spend from the tokens recorded on each delivery. Harness-written issues
+are excluded rather than costed — whatever they cost was paid inside the tool you were already
+running.
+
+## Evals
+
+```bash
+python evals/run_evals.py depth
+```
+
+A depth run is 28 API calls (~$2 at medium); tuning the rubric across three revisions cost around
+$20. Every run prints what it spent. See [evals/](evals/README.md) — that is where you find out
+whether the depth rubric actually holds, and whether issue 6 knows what issue 1 said.
+
+Nothing in `tests/` touches the network:
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+# Appendix B: schema changes
+
+Alembic owns the schema; there is no `create_all` path.
+
+```bash
+.venv/bin/alembic revision --autogenerate -m "what changed"
+```
+
+```bash
+.venv/bin/alembic upgrade head
+```
