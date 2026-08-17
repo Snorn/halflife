@@ -44,7 +44,7 @@ Steps 3-5 are the daily habit. Steps 1-2 happen once per topic.
 
 Depth sets **what you are assumed to already know**, not the length.
 
-| | |
+| depth | who it is written for |
 |---|---|
 | 1 | You have heard the term and cannot place it. What it is, what problem it solves. |
 | 2 | You could follow a conversation about it. Vocabulary, the moving parts, how they relate. |
@@ -60,7 +60,7 @@ daily; `weekly` suits maintaining series, and `hourly` exists for cramming.
 
 ## Tools your harness has
 
-| tool | |
+| tool | what it does |
 |---|---|
 | `halflife_subscribe` / `halflife_list_subscriptions` | create and list subscriptions |
 | `halflife_plan_brief` / `halflife_record_plan` | draw the series arc, once per subscription |
@@ -76,7 +76,7 @@ daily; `weekly` suits maintaining series, and `hourly` exists for cramming.
 
 Run from a terminal. These need no API key.
 
-| command | |
+| command | what it does |
 |---|---|
 | `halflife init` | create or upgrade the database. Required once per machine. |
 | `halflife help` | this guide |

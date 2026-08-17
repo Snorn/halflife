@@ -106,7 +106,7 @@ So *"subscribe me to sap web dispatcher at depth 4, five minutes, daily"* is eno
 
 The tools it uses:
 
-| tool | |
+| tool | what it does |
 |---|---|
 | `halflife_subscribe` / `halflife_list_subscriptions` | create and list subscriptions |
 | `halflife_plan_brief` / `halflife_record_plan` | sketch a new series' arc — once per subscription |
@@ -131,7 +131,7 @@ any later analysis.
 
 These need no API key and work regardless of how issues were generated:
 
-| Command | |
+| Command | What it does |
 |---|---|
 | `ls` | Subscriptions, with issue counts and next due time. |
 | `inbox` / `read [id\|latest]` | What is unread; read it. |
@@ -206,7 +206,7 @@ Credentials resolve the way the Anthropic SDK expects — `ANTHROPIC_API_KEY`,
 `ANTHROPIC_AUTH_TOKEN`, or an `ant auth login` profile. Set `HALFLIFE_ANTHROPIC_API_KEY` only to
 force a specific key. See [.env.example](.env.example).
 
-| Command | |
+| Command | What it does |
 |---|---|
 | `subscribe "<shorthand>"` | Sketches the series arc via the API. Without a key it warns and creates the subscription unplanned; `--no-plan` skips the attempt. |
 | `run-due` | Generate an issue for everything that is due. `--dry-run` to look first. |
