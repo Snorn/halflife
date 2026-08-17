@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from pathlib import Path
 
 from typer.testing import CliRunner
 
@@ -78,6 +79,20 @@ def test_guide_mentions_no_command_that_does_not_exist(migrated_db):
     claimed = set(re.findall(r"`halflife ([a-z-]+)", guide.guide_text()))
 
     assert claimed <= commands, f"guide invents: {sorted(claimed - commands)}"
+
+
+def test_readme_lists_every_mcp_tool(migrated_db):
+    """The README drifted behind the tool surface once; this is why it stopped.
+
+    Tool names are unique enough to check by substring, and a tool missing from
+    the README is one a reader has no way to know exists.
+    """
+    readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
+    advertised = {t.name for t in asyncio.run(mcp_server.server.list_tools())}
+
+    missing = sorted(name for name in advertised if name not in readme)
+
+    assert not missing, f"README does not mention: {missing}"
 
 
 def test_guide_covers_all_five_depths():

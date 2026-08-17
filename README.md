@@ -116,6 +116,11 @@ The tools it uses:
 | `halflife_pending_reads` / `halflife_read` | what is waiting, and its text |
 | `halflife_feedback` | `too_basic` / `just_right` / `too_advanced`, adjusts future depth |
 | `halflife_compaction_brief` / `halflife_record_compaction` | compress the ledger when it outgrows a prompt |
+| `halflife_help` | the built-in guide: the loop, depths, and everything above |
+
+You do not have to remember any of this. Ask your harness *"what is HalfLife and how do I use
+it?"* and it will call `halflife_help`, which explains the loop, what each depth means, and what
+to say next.
 
 Nothing here spends anything with Anthropic: the model is the one your harness already runs.
 `halflife init` is the only step that has to come from the CLI, because it runs schema migrations
@@ -133,6 +138,7 @@ These need no API key and work regardless of how issues were generated:
 
 | Command | What it does |
 |---|---|
+| `help` | The built-in guide: the loop, depths, tools and commands. Works before `init`. |
 | `ls` | Subscriptions, with issue counts and next due time. |
 | `inbox` / `read [id\|latest]` | What is unread; read it. |
 | `feedback <delivery> too-basic\|just-right\|too-advanced` | Nudges the subscription's depth. |
