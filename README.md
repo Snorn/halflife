@@ -97,14 +97,17 @@ the first failure, including whether the configured command path actually exists
 Create a subscription:
 
 ```bash
-.venv/bin/halflife subscribe "sap web dispatcher, 4, 5, 1d" --no-plan
+.venv/bin/halflife subscribe "sap web dispatcher, 4, 5, 1d"
 ```
 
 Shorthand is `topic, depth, duration, frequency, flavour`; everything after the topic is optional.
 Depth is 1–5, duration is minutes, frequency is `1h`/`1d`/`1w`, and flavour is `learning` (new
 ground) or `maintaining` (refresher on a skill you already have). Frequency defaults to daily —
-hourly exists for cramming and has to be asked for. `--no-plan` skips the API call that sketches
-the arc; your harness draws it instead, on its first run.
+hourly exists for cramming and has to be asked for.
+
+Without an API key this reports `Not planned` and creates the subscription anyway — drawing the
+arc is the one part of `subscribe` that would call the API, and your harness does it instead on
+its first run. Pass `--no-plan` if you want to skip that attempt outright.
 
 Then ask your harness, in plain language, to plan the series and deliver what is due. It follows
 this loop on its own:
@@ -209,7 +212,7 @@ force a specific key. See [.env.example](.env.example).
 
 | Command | |
 |---|---|
-| `subscribe "<shorthand>"` | Without `--no-plan`, sketches the series arc via the API. |
+| `subscribe "<shorthand>"` | Sketches the series arc via the API. Without a key it warns and creates the subscription unplanned; `--no-plan` skips the attempt. |
 | `run-due` | Generate an issue for everything that is due. `--dry-run` to look first. |
 | `generate <sub>` | Generate now, ignoring the schedule. |
 
