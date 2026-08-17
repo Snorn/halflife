@@ -25,7 +25,7 @@ from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 
-from halflife import __version__
+from halflife import __version__, guide
 from halflife.db import session_scope
 from halflife.generation import engine
 from halflife.generation.schemas import GeneratedIssue, PlannedIssue
@@ -42,6 +42,8 @@ server = MCPServer(
     instructions=(
         "HalfLife keeps professional skills from decaying by delivering short, "
         "depth-controlled reads on a schedule.\n\n"
+        "If the user asks what HalfLife is, how to use it, or which depth to "
+        "choose, call halflife_help.\n\n"
         "For a new subscription with no plan yet, call halflife_plan_brief and "
         "halflife_record_plan first. A planned series measurably beats an "
         "unplanned one.\n\n"
@@ -61,6 +63,17 @@ server = MCPServer(
 
 def _ok(payload: Any) -> str:
     return json.dumps(payload, indent=2, default=str)
+
+
+@server.tool()
+def halflife_help() -> str:
+    """How HalfLife works: the loop, what to ask for, depths, tools and commands.
+
+    Call this when asked what HalfLife is, how to use it, what depth to choose,
+    or what can be done with it. Returns Markdown intended to be shown or
+    summarised for the user.
+    """
+    return guide.guide_text()
 
 
 @server.tool()

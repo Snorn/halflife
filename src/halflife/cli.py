@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
 
-from halflife import pricing
+from halflife import guide, pricing
 from halflife.db import session_scope
 from halflife.generation import GenerationError, engine
 from halflife.migrations_runner import upgrade_to_head
@@ -52,6 +52,12 @@ def _short(identifier: str) -> str:
 def _fail(message: str) -> None:
     console.print(f"[red]{message}[/red]")
     raise typer.Exit(code=1)
+
+
+@app.command("help")
+def show_guide() -> None:
+    """How HalfLife works: the loop, what to ask your harness, and every command."""
+    console.print(Markdown(guide.guide_text()))
 
 
 @app.command()
