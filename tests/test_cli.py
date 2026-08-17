@@ -123,6 +123,30 @@ def test_bad_shorthand_exits_nonzero_with_a_usable_message(migrated_db):
     assert "Depth must be between 1 and 5" in result.output
 
 
+def test_subscription_survives_a_failed_plan(migrated_db, monkeypatch):
+    """Planning needs an API key; the harness can do it instead.
+
+    Regression: subscribe used to print "Subscribed", then abort on the planning
+    failure and roll the whole transaction back, leaving the user with a success
+    message and no subscription.
+    """
+    from halflife.generation.client import GenerationError
+
+    class NoCredentials(FakeClient):
+        def generate(self, **kwargs):
+            raise GenerationError("No Anthropic credentials found.")
+
+    monkeypatch.setattr(engine, "GenerationClient", lambda _s: NoCredentials([]))
+
+    result = runner.invoke(cli.app, ["subscribe", "kubernetes, 3, 5, 1d"])
+
+    assert result.exit_code == 0
+    assert "Not planned" in result.output
+    assert "ask your harness to plan" in result.output
+    # The subscription is really there.
+    assert "kubernetes" in _run("ls")
+
+
 def test_no_plan_skips_the_arc_call(migrated_db, monkeypatch):
     client = FakeClient([])  # any call would raise
     monkeypatch.setattr(engine, "GenerationClient", lambda _settings: client)

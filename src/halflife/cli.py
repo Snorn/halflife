@@ -80,17 +80,29 @@ def subscribe(
             f"depth {parsed.depth}  {parsed.duration_minutes}min  "
             f"{parsed.frequency.value}  {parsed.flavour.value}"
         )
+        planned = None
         if plan:
             with console.status("Planning the series arc..."):
                 try:
-                    series = engine.plan_series(session=session, subscription=subscription)
+                    planned = engine.plan_series(session=session, subscription=subscription)
                 except GenerationError as exc:
-                    _fail(f"Could not plan the series: {exc}")
-                    return
-            console.print(f"\n[dim]{series.arc_summary}[/dim]\n")
-            for entry in series.plan:
+                    # Planning is optional and needs an API key; the harness can
+                    # do it instead. Failing the whole subscribe here would throw
+                    # away a subscription that is otherwise perfectly usable.
+                    console.print(f"\n[yellow]Not planned:[/yellow] {exc}")
+
+        if planned is not None:
+            console.print(f"\n[dim]{planned.arc_summary}[/dim]\n")
+            for entry in planned.plan:
                 console.print(f"  {entry['index']:>2}. {entry['title']}")
-        console.print("\n[dim]Generate the first issue with:[/dim] halflife run-due")
+            console.print(
+                "\n[dim]Next: ask your harness for the first issue, or[/dim] halflife run-due"
+            )
+        else:
+            console.print(
+                "\n[dim]Next: ask your harness to plan this series and write the first "
+                "issue.[/dim]"
+            )
 
 
 @app.command("ls")
