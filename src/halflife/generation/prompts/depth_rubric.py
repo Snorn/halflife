@@ -60,6 +60,23 @@ the opposite of what a tightly-constrained rubric wants. Anyone benchmarking
 this rubric should state the effort level, because it moves the result by more
 than two of the three revisions above did.
 
+Fourth run at effort=medium, and the first under generation prompt v3, which
+added a callback rule and a reader-feedback rule to the surrounding prompt
+without touching this text: 10/12, disjointness still 0/4. Depth 3 and depth 5
+were both 4/4; both misses were depth 1 judged as 2, on Kubernetes admission
+controllers and TLS certificate chains.
+
+Read that as the same 3/4-ish depth-1 ceiling rather than a regression from
+11/12 — one extra miss out of twelve is inside the run-to-run variance this
+docstring already records, and the topic that missed is again not stable across
+runs. What is stable is the *shape* of the miss, and it has now sharpened: both
+pieces withheld the standard vocabulary correctly, and were convicted on
+scope — mapping relationships, contrasting alternatives, walking a scenario end
+to end. v3's wording fixed the vocabulary half of that and left the scope half
+implicit. If anyone takes another run at depth 1, that is the seam: constrain
+what it may *do*, not only what it may *name*. Repeat runs first, per the note
+below.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
