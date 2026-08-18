@@ -5,6 +5,9 @@ Two questions, both of which decide whether step 1 is worth building on:
   depth       Does the depth parameter actually change what gets written, or
               does everything collapse toward depth 3?
   continuity  Does issue 6 know what issues 1-5 established?
+  distance    When it builds on itself, how far back does it reach? Judges
+              saved output, so a prompt revision can be measured against an
+              older run for the price of the judging.
 
 Both write the generated text to evals/output/ — the harness gives you numbers,
 but you are the judge, and the numbers exist to tell you where to look.
@@ -18,6 +21,7 @@ These make real API calls and cost real tokens.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 import time
@@ -40,7 +44,11 @@ from halflife.config import get_settings  # noqa: E402
 from halflife.generation import continuity  # noqa: E402
 from halflife.generation.client import GenerationClient, GenerationError  # noqa: E402
 from halflife.generation.prompts import microlearning, series_plan  # noqa: E402
-from halflife.generation.prompts.depth_rubric import DEPTH_RUBRIC, depth_label  # noqa: E402
+from halflife.generation.prompts.depth_rubric import (  # noqa: E402
+    DEPTH_RUBRIC,
+    DEPTH_RUBRIC_VERSION,
+    depth_label,
+)
 from halflife.generation.schemas import GeneratedIssue, SeriesPlan  # noqa: E402
 from halflife.models.base import Flavour  # noqa: E402
 
@@ -372,6 +380,23 @@ def run_continuity(client: Meter, topics: list[str] | None = None) -> int:
     depth: int = case["depth"]
     minutes: int = case["duration_minutes"]
     run = _run_dir("continuity")
+    settings = get_settings()
+    _write(
+        run / "run.json",
+        json.dumps(
+            {
+                # So a later distance run can say what produced this output
+                # instead of dating it from the directory name and guessing.
+                "generation_prompt_version": microlearning.GENERATION_PROMPT_VERSION,
+                "depth_rubric_version": DEPTH_RUBRIC_VERSION,
+                "model_id": settings.model_id,
+                "effort": settings.effort,
+                "depth": depth,
+                "issues": count,
+            },
+            indent=2,
+        ),
+    )
 
     failures = 0
 
@@ -620,16 +645,202 @@ def run_plan_ab(client: Meter) -> int:
     return 0
 
 
+# --------------------------------------------------------------------------- distance
+
+
+class Reference(BaseModel):
+    sentence: str = Field(
+        description="The full sentence from the issue, not a fragment, that builds on earlier ground."
+    )
+    source_issue: int = Field(
+        description="Number of the earliest issue whose listed ground this sentence builds on."
+    )
+    ledger_point: str = Field(description="The listed point from that issue it builds on.")
+
+
+class ReferenceMap(BaseModel):
+    references: list[Reference] = Field(
+        description=(
+            "Every place this issue builds on ground an earlier issue established, attributed. "
+            "Empty if the issue stands alone, which is a real answer."
+        )
+    )
+
+
+_DISTANCE_JUDGE_SYSTEM = """
+You map how far back a cumulative series reaches. You are given one issue, and the ground each
+earlier issue established, labelled by issue number. Find every place the issue builds on that
+ground, and attribute each one to the issue that established it.
+
+You are not grading. A reference is correct writing, and so is an issue that stands alone. Report
+what is there.
+
+Rules:
+
+* Attribute to the **earliest** issue whose listed ground covers it. Where two issues both
+  established something, the earlier one is the source. This is the whole measurement: getting the
+  attribution right matters more than finding every last reference.
+* Only the listed ground counts. General domain knowledge a competent reader would already have is
+  not a reference, however technical it sounds, and neither is something this issue explains from
+  scratch that no earlier issue listed.
+* Quote the full sentence, not a fragment.
+* A sentence building on two different issues is reported once per source.
+* An empty list is a real answer. Do not manufacture attributions to look thorough.
+""".lstrip()
+
+
+def _read_saved_run(run: Path) -> dict[str, list[tuple[str, str, list[str]]]]:
+    """Load the issues a continuity run wrote, per topic, in order.
+
+    Reads what is on disk rather than regenerating, so a prompt revision can be
+    judged against output produced weeks earlier for the price of the judge.
+    """
+    topics: dict[str, list[tuple[str, str, list[str]]]] = {}
+    for folder in sorted(p for p in run.iterdir() if p.is_dir()):
+        issues = []
+        for path in sorted(folder.glob("issue-*.md")):
+            text = path.read_text(encoding="utf-8")
+            head, _, tail = text.rpartition("\n---\n")
+            title, _, body = head.partition("\n\n")
+            points = [line[2:].strip() for line in tail.splitlines() if line.startswith("- ")]
+            issues.append((title.lstrip("# ").strip(), body.strip(), points))
+        if issues:
+            topics[folder.name] = issues
+    return topics
+
+
+def _run_label(run: Path) -> str:
+    """What produced this run, from its manifest, or an honest unknown."""
+    manifest = run / "run.json"
+    if not manifest.exists():
+        return f"{run.name} (prompt version not recorded — predates the manifest)"
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    return (
+        f"{run.name} (generation prompt v{data.get('generation_prompt_version', '?')}, "
+        f"rubric v{data.get('depth_rubric_version', '?')}, effort {data.get('effort', '?')})"
+    )
+
+
+def _distances(
+    client: Meter, issues: list[tuple[str, str, list[str]]], judge_from: int
+) -> list[int]:
+    """Judge each issue from ``judge_from`` on, returning one distance per reference."""
+    found: list[int] = []
+    discarded = 0
+
+    for number in range(judge_from, len(issues) + 1):
+        _, body, _ = issues[number - 1]
+        established = "\n\n".join(
+            "Issue {n} established:\n{points}".format(
+                n=n,
+                points="\n".join(f"  - {point}" for point in issues[n - 1][2]),
+            )
+            for n in range(1, number)
+        )
+        print(f"    mapping issue {number}...", flush=True)
+        verdict = client.generate(
+            system=_DISTANCE_JUDGE_SYSTEM,
+            user=(
+                f"{established}\n\n"
+                f"Issue {number}:\n---\n{body}\n---\n\n"
+                f"Which earlier issues does issue {number} build on?"
+            ),
+            output_model=ReferenceMap,
+        ).parsed
+
+        distances = []
+        for reference in verdict.references:
+            if 1 <= reference.source_issue < number:
+                distances.append(number - reference.source_issue)
+            else:
+                discarded += 1
+        found.extend(distances)
+        spread = ", ".join(f"-{d}" for d in sorted(distances)) or "none"
+        print(f"      {len(distances)} references  [{spread}]")
+
+    if discarded:
+        # Never silently: an attribution outside 1..N-1 is the judge failing at
+        # the one job this suite gives it.
+        print(f"    discarded {discarded} attribution(s) outside issues 1..N-1")
+    return found
+
+
+def _report_distances(label: str, distances: list[int]) -> None:
+    print(f"\n{label}")
+    if not distances:
+        print("  no references found — nothing to measure")
+        return
+    beyond = [d for d in distances if d > 1]
+    histogram = {d: distances.count(d) for d in sorted(set(distances))}
+    print(f"  references        {len(distances)}")
+    print(f"  mean distance     {sum(distances) / len(distances):.2f} issues")
+    print(f"  furthest reach    {max(distances)} issues")
+    print(
+        f"  beyond the last   {len(beyond)} of {len(distances)} "
+        f"({100 * len(beyond) / len(distances):.0f}%)"
+    )
+    print("  by distance       " + ", ".join(f"-{d}: {n}" for d, n in histogram.items()))
+
+
+def run_distance(client: Meter, runs: list[str] | None, judge_from: int = 3) -> int:
+    """How far back does a series reach when it builds on itself?
+
+    Generation prompt v3 tells the writer to prefer an older ledger point over a
+    recent one where both would serve. This is the measurement that says whether
+    that instruction does anything. It judges saved output, so a revision can be
+    compared against an earlier run without regenerating either arm — the bodies
+    are already on disk, and only the judging costs anything.
+    """
+    directories = [Path(r) for r in runs] if runs else _latest_runs("continuity", 1)
+    if not directories:
+        print("no continuity runs to judge — run the continuity suite first", file=sys.stderr)
+        return 2
+
+    summaries: list[tuple[str, list[int]]] = []
+    for run in directories:
+        if not run.exists():
+            print(f"no such run: {run}", file=sys.stderr)
+            return 2
+        print(f"\n{_run_label(run)}")
+        for slug, issues in _read_saved_run(run).items():
+            print(f"  {slug}  ({len(issues)} issues, judging {judge_from} onward)")
+            summaries.append((f"{run.name}  {slug}", _distances(client, issues, judge_from)))
+
+    print("\n" + "=" * 70)
+    for label, distances in summaries:
+        _report_distances(label, distances)
+
+    if len(summaries) > 1:
+        print(
+            "\nComparing runs is suggestive, not controlled: a prompt revision changes more than\n"
+            "one rule at a time, the topic and the judge both move the numbers, and these are\n"
+            "tens of references rather than hundreds. Read it as a direction to look in."
+        )
+    return 0
+
+
+def _latest_runs(kind: str, count: int) -> list[Path]:
+    return sorted(OUTPUT.glob(f"{kind}-*"), key=lambda p: p.name)[-count:]
+
+
 # --------------------------------------------------------------------------- main
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("suite", choices=["depth", "continuity", "plan-ab", "all"])
+    parser.add_argument("suite", choices=["depth", "continuity", "plan-ab", "distance", "all"])
     parser.add_argument(
         "--topic",
         action="append",
         help="Override the topics in cases.yaml. Repeatable. Continuity suite only.",
+    )
+    parser.add_argument(
+        "--run",
+        action="append",
+        help=(
+            "A saved continuity run directory to judge. Repeatable; pass two to compare them. "
+            "Distance suite only, and it defaults to the most recent continuity run."
+        ),
     )
     args = parser.parse_args()
 
@@ -641,6 +852,8 @@ def main() -> int:
             return run_continuity(client, args.topic)
         if args.suite == "plan-ab":
             return run_plan_ab(client)
+        if args.suite == "distance":
+            return run_distance(client, args.run)
         return run_depth(client) | run_continuity(client) | run_plan_ab(client)
     except GenerationError as exc:
         print(f"\n{exc}", file=sys.stderr)

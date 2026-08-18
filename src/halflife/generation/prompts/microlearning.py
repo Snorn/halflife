@@ -61,11 +61,24 @@ restatements across the three judged pairs, with 17 references — 12 from issue
 6 back to issue 1, 3 from 5 to 2, 2 from 6 to 4. So v3 did not regress the one
 thing this suite measures, which is re-explanation.
 
-It says nothing about the callback rule. The judge counts references per pair
-and has no notion of how far back a series reaches, and the only prior figure
-to compare against is v2's 41 references over six pairs — about 6.8 a pair
-against this run's 5.7, on a different topic mix, at n=3. Deciding whether rule
-4 does anything needs a judge that is asked about distance, not this one.
+The callback rule needed its own instrument, since that judge counts references
+per pair and has no notion of how far back a series reaches. The distance suite
+now maps each reference to the issue that established the ground, and it judges
+saved output, so the pre-v1-commit runs of 2026-08-15 could be scored against
+the v3 run for $0.95 without regenerating anything.
+
+On the same topic, six issues, judging 3 onward:
+
+  v1  32 references  mean 2.50  75% beyond the previous issue  (-3 the mode)
+  v3  40 references  mean 2.88  65% beyond the previous issue  (-1 and -5 both heavy)
+
+That is not an effect. The two headline numbers disagree — mean distance up,
+share reaching past the previous issue down — and the v1 run's second topic came
+in at 2.66, so a 0.38 gap sits inside the spread between topics. References also
+cluster hard by issue (one issue contributed 18 of v3's 40), which makes six
+issues closer to four independent observations than forty. Rule 4 is therefore
+still unproven: it did not obviously suppress reaching back either, and the
+instrument to settle it now exists and is cheap to re-run.
 
 So v2 is not a proven improvement over v1. Its guidance stands on its own
 merits, but the evidence that motivated it was an instrument fault, and if

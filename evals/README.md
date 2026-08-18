@@ -6,6 +6,7 @@ actual risk in step 1.
 ```bash
 python evals/run_evals.py depth
 python evals/run_evals.py continuity
+python evals/run_evals.py distance --run evals/output/continuity-<stamp>
 python evals/run_evals.py all
 ```
 
@@ -26,7 +27,8 @@ you what it spent. An unrecognised model reports tokens and no dollar figure rat
 one — if you change `HALFLIFE_MODEL_ID`, add it to `_PRICING` in
 [run_evals.py](run_evals.py).
 
-Rough scale at the time of writing: a depth run is 28 calls, plan-ab 15, continuity 7. Generating
+Rough scale at the time of writing: a depth run is 28 calls, plan-ab 15, continuity 9, distance 4
+per series judged. Generating
 one real issue for yourself is a single call — the evals are the expensive part, not the product.
 
 Every run writes the generated text to `evals/output/<suite>-<timestamp>/`. Read it.
@@ -59,6 +61,24 @@ Generates one series straight through, feeding the real ledger forward. Two chec
 Exit code is non-zero when anything fails, so these can be wired into CI later — but for now the
 point is that you run them after changing a prompt and compare against the previous run's output
 directory.
+
+## distance
+
+Generation prompt v3 tells the writer to prefer an older ledger point over a recent one where both
+would serve, on the grounds that a reader recalls something by having to use it. This suite says
+whether that instruction does anything.
+
+It judges *saved* output rather than generating: point it at a run directory and it maps every
+place an issue builds on earlier ground back to the issue that established it, then reports the
+distribution of distances. So a prompt revision can be measured against output produced weeks
+earlier for the price of the judging alone. Pass `--run` twice to print both.
+
+Read the distribution, not the mean. References cluster by issue — one issue can contribute
+fifteen of them — so a six-issue series is nearer four independent observations than forty, and a
+difference of a few tenths between runs is noise.
+
+Runs record a `run.json` naming the prompt and rubric versions that produced them. Directories
+predating that say so rather than guessing.
 
 ## What is deliberately not measured
 

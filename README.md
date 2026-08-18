@@ -262,7 +262,8 @@ python evals/run_evals.py depth
 ```
 
 A depth run is 28 API calls (~$2 at medium); tuning the rubric across three revisions cost around
-$20. Every run prints what it spent. See [evals/](evals/README.md) — that is where you find out
+$20. Every run prints what it spent. The `distance` suite judges output already on disk, so a
+prompt revision can be compared against an older run without regenerating either arm. See [evals/](evals/README.md) — that is where you find out
 whether the depth rubric actually holds, and whether issue 6 knows what issue 1 said.
 
 Nothing in `tests/` touches the network:
