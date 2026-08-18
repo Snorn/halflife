@@ -53,7 +53,19 @@ the sequence. An entry the plan lists but nothing took stays unmarked, which
 position could never express.
 
 All of this is the same shape as the v2 change — name the situation, state what
-to do — and carries the same caveat. None has been run against a judge.
+to do — and carries the same caveat.
+
+One continuity run against v3 (Kubernetes admission controllers, six issues,
+depth 4, effort medium, $1.13): zero near-duplicate ledger entries and zero
+restatements across the three judged pairs, with 17 references — 12 from issue
+6 back to issue 1, 3 from 5 to 2, 2 from 6 to 4. So v3 did not regress the one
+thing this suite measures, which is re-explanation.
+
+It says nothing about the callback rule. The judge counts references per pair
+and has no notion of how far back a series reaches, and the only prior figure
+to compare against is v2's 41 references over six pairs — about 6.8 a pair
+against this run's 5.7, on a different topic mix, at n=3. Deciding whether rule
+4 does anything needs a judge that is asked about distance, not this one.
 
 So v2 is not a proven improvement over v1. Its guidance stands on its own
 merits, but the evidence that motivated it was an instrument fault, and if

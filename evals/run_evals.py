@@ -199,6 +199,10 @@ def _generate(client: Meter, *, topic: str, depth: int, minutes: int,
             plan_block=continuity.render_plan_block(plan or [], arc, issue_number),
             ledger_block=continuity.render_ledger_block(ledger),
             threads_block=continuity.render_threads_block(threads),
+            # No reader in an eval, so this is always the empty rendering — but
+            # it has to be present, or the eval measures a prompt production
+            # never sends.
+            feedback_block=continuity.render_feedback_block([]),
         ),
         output_model=GeneratedIssue,
     )
