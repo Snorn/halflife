@@ -235,6 +235,7 @@ def halflife_record_issue(
     covered_points_added: list[str],
     open_threads: list[str],
     next_suggested: str,
+    plan_index: int = 0,
     model_id: str | None = None,
 ) -> str:
     """Save an issue you have just written, and advance the series.
@@ -251,6 +252,9 @@ def halflife_record_issue(
         covered_points_added: claims this issue established.
         open_threads: things deliberately deferred to a later issue.
         next_suggested: one line on what the next issue should cover.
+        plan_index: the series-plan entry this issue covered. 0 if it took an
+            open thread or went its own way, which is allowed — an accurate 0
+            is worth more than a number chosen to look compliant.
         model_id: the model you ran, if known. Recorded as unknown otherwise.
     """
     with session_scope() as session:
@@ -264,6 +268,7 @@ def halflife_record_issue(
             covered_points_added=covered_points_added,
             open_threads=open_threads,
             next_suggested=next_suggested,
+            plan_index=plan_index,
         )
         delivery = engine.record_issue(
             session=session,
@@ -278,6 +283,7 @@ def halflife_record_issue(
                 "issue_number": delivery.issue_number,
                 "title": delivery.title,
                 "coverage_points_added": len(covered_points_added),
+                "plan_index": delivery.plan_index,
                 "next_due_at": subscription.next_due_at,
             }
         )

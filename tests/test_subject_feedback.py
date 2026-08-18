@@ -25,11 +25,11 @@ from tests.conftest import FakeClient, make_issue, make_plan
 runner = CliRunner()
 
 
-def _deliver(session, sub, n):
+def _deliver(session, sub, n, plan_index=0):
     return engine.record_issue(
         session=session,
         subscription=sub,
-        issue=make_issue(n),
+        issue=make_issue(n, plan_index=plan_index),
         source=GenerationSource.HARNESS,
     )
 
@@ -55,7 +55,9 @@ def _plan(n=4):
 
 
 def test_a_rejected_plan_entry_is_marked_and_says_why():
-    block = render_plan_block(_plan(), "", issue_number=4, rejected={2: "wrong_subject"})
+    block = render_plan_block(
+        _plan(), "", issue_number=4, written={1, 2, 3}, rejected={2: "wrong_subject"}
+    )
 
     lines = {line.split(".")[0].strip(): line for line in block.split(chr(10))[1:]}
     assert "not what they needed" in lines["2"]
@@ -63,7 +65,7 @@ def test_a_rejected_plan_entry_is_marked_and_says_why():
 
 
 def test_an_unrejected_plan_keeps_the_plain_marker():
-    block = render_plan_block(_plan(), "", issue_number=3)
+    block = render_plan_block(_plan(), "", issue_number=3, written={1, 2})
 
     assert "already written]" in block
     assert "do not return" not in block
@@ -75,7 +77,7 @@ def test_rejections_survive_past_the_prose_window(session):
     engine.ensure_series(session, sub).plan = _plan(6)
     for n in range(1, 6):
         delivery_repo.set_feedback(
-            session, _deliver(session, sub, n), Feedback.ALREADY_KNEW
+            session, _deliver(session, sub, n, plan_index=n), Feedback.ALREADY_KNEW
         )
 
     prompt = engine.build_brief(session=session, subscription=sub).user_prompt

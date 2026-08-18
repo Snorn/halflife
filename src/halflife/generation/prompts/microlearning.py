@@ -41,13 +41,19 @@ effect of but not the cause.
 
 The plan block carries the same signal structurally: an entry the reader
 rejected is marked in place, so it stays struck out for the life of the series
-rather than only for the few issues the prose list covers. That marking is
-positional — the plan is advisory, and an issue that took an open thread
-instead breaks the correspondence — which `render_plan_block` documents. The
-existing "already written" marker has always made the same assumption.
+rather than only for the few issues the prose list covers.
 
-All three are the same shape as the v2 change — name the situation, state what
-to do — and carry the same caveat. None has been run against a judge.
+Marking it needs to know which plan entry an issue took. That was inferred from
+position at first, on the same assumption the "already written" marker had
+always made, and the assumption is wrong exactly when the prompt says to deviate
+— a generation that takes an open thread instead breaks the correspondence. So
+v3 also asks for `plan_index` in the output and stores it, and the markers are
+now keyed on what generation reported rather than on where an issue landed in
+the sequence. An entry the plan lists but nothing took stays unmarked, which
+position could never express.
+
+All of this is the same shape as the v2 change — name the situation, state what
+to do — and carries the same caveat. None has been run against a judge.
 
 So v2 is not a proven improvement over v1. Its guidance stands on its own
 merits, but the evidence that motivated it was an instrument fault, and if
@@ -92,7 +98,10 @@ Rules:
    issue, that passage is the bug. Assume your reader has read every issue, because they have.
 2. Choose this issue's subject from the series plan, unless an open thread is more valuable to
    the reader right now — in which case take the thread and say nothing about the deviation.
-   The plan is advisory; what the reader needs is not.
+   The plan is advisory; what the reader needs is not. Report the entry you took as
+   `plan_index`, and report `0` if you took a thread or went somewhere the plan does not list.
+   Deviating is allowed and reporting it accurately matters more than looking compliant, because
+   the number is what tells a later issue which ground has actually been covered.
 3. If you deliberately defer something, put it in `open_threads` and do not gesture at it in the
    body with phrases like "more on this later". Deferral is bookkeeping, not narration.
 4. **Reach back, not only one step.** Where a ledger point is worth building on and both an

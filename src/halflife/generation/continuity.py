@@ -17,6 +17,7 @@ it lands in weeks rather than months and should be scheduled accordingly.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 from halflife.generation.schemas import GeneratedIssue
@@ -49,18 +50,19 @@ def render_plan_block(
     plan: list[dict[str, Any]],
     arc_summary: str,
     issue_number: int,
+    written: set[int] | None = None,
     rejected: dict[int, str] | None = None,
 ) -> str:
     """Render the advisory arc, marking what has been written and what missed.
 
-    ``rejected`` maps an issue number to a subject verdict. Entries are matched
-    to issues by position, which is the same assumption the "already written"
-    marker has always made: the plan is advisory, so a generation that took an
-    open thread instead breaks the correspondence. The cost of a wrong mark is
-    that the generator steers away from ground the reader never rejected, and
-    the feedback block still carries the real signal. Recording which plan
-    entry an issue actually took would remove the guess, and would mean a new
-    field on the generated-issue schema.
+    ``written`` and ``rejected`` are keyed by plan entry number, taken from what
+    each generation reported it covered rather than inferred from its position
+    in the series. An entry the plan lists but nothing ever took stays unmarked,
+    which is the point: the series skipping an entry and covering it are
+    different facts, and position cannot tell them apart.
+
+    ``written`` defaults to the old positional rule so the function still reads
+    sensibly on its own; callers with the deliveries to hand should pass it.
     """
     if not plan:
         return "Series plan: none — this is an unplanned series. Choose the subject yourself."
@@ -72,8 +74,11 @@ def render_plan_block(
     for entry in plan:
         index = entry.get("index")
         marker = "->" if index == issue_number else "  "
+        was_written = (
+            index < issue_number if written is None else index in written
+        )
         status = ""
-        if isinstance(index, int) and index < issue_number:
+        if isinstance(index, int) and was_written:
             note = _REJECTION_NOTES.get(rejected.get(index, ""))
             status = f" [already written; {note}]" if note else " [already written]"
         lines.append(f"  {marker} {index}. {entry.get('title', '')} — {entry.get('focus', '')}{status}")
@@ -94,8 +99,8 @@ def render_ledger_block(points: list[str]) -> str:
     return "\n".join(lines)
 
 
-def render_feedback_block(entries: list[tuple[int, str, str]]) -> str:
-    """Recent *subject* feedback, as (issue number, title, verdict).
+def render_feedback_block(entries: Sequence[tuple[int, str, str, Any]]) -> str:
+    """Recent *subject* feedback, as (issue number, title, verdict, ...).
 
     Depth feedback is deliberately excluded: it has already moved the depth
     parameter, and showing it here would invite the generator to correct for it
@@ -112,8 +117,8 @@ def render_feedback_block(entries: list[tuple[int, str, str]]) -> str:
     }
     lines = ["Reader feedback on recent issues — let this override the plan:"]
     lines.extend(
-        f"  - issue {number} ({title}): {labels.get(verdict, verdict)}"
-        for number, title, verdict in entries
+        f"  - issue {entry[0]} ({entry[1]}): {labels.get(entry[2], entry[2])}"
+        for entry in entries
     )
     return "\n".join(lines)
 

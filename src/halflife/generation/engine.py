@@ -327,7 +327,12 @@ def build_brief(
                 series.plan,
                 series.arc_summary,
                 issue_number,
-                rejected={number: verdict for number, _, verdict in subject_feedback},
+                written=delivery_repo.plan_entries_written(session, subscription.id),
+                rejected={
+                    f.plan_index: f.verdict
+                    for f in subject_feedback
+                    if f.plan_index is not None
+                },
             ),
             ledger_block=continuity.render_ledger_block([p.point for p in active]),
             threads_block=continuity.render_threads_block(list(series.open_threads)),
@@ -336,6 +341,19 @@ def build_brief(
         ledger_size=len(active),
         needs_compaction=continuity.needs_compaction(series),
     )
+
+
+def _reported_plan_index(series: Series, reported: int) -> int:
+    """Which plan entry the generation says it took, or 0 for none of them.
+
+    0 is a real answer — it took an open thread or went its own way, which the
+    prompt permits — and is stored as 0 rather than null, because null is
+    reserved for rows written before generation reported this at all. An index
+    the plan does not contain collapses to 0: a number that cannot be checked
+    against the plan says no more than saying nothing did.
+    """
+    known = {entry.get("index") for entry in series.plan}
+    return reported if reported in known else 0
 
 
 def record_issue(
@@ -359,6 +377,7 @@ def record_issue(
     issue_number = series.issue_count + 1
 
     delivery = Delivery(
+        plan_index=_reported_plan_index(series, issue.plan_index),
         id=new_id(),
         tenant_id=subscription.tenant_id,
         subscription_id=subscription.id,

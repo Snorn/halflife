@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -54,14 +56,21 @@ def list_for_subscription(session: Session, subscription_id: str) -> list[Delive
     return list(session.scalars(stmt).all())
 
 
-def subject_feedback(
-    session: Session, subscription_id: str
-) -> list[tuple[int, str, str]]:
-    """Every issue the reader said was mis-aimed rather than mis-pitched.
+class SubjectFeedback(NamedTuple):
+    """One issue the reader said was mis-aimed rather than mis-pitched."""
 
-    Oldest first, as (issue number, title, verdict). All of them, not a recent
-    slice: the plan block marks each rejected entry for the life of the series,
-    and it is the prompt renderer that decides how many to spell out.
+    issue_number: int
+    title: str
+    verdict: str
+    plan_index: int | None
+
+
+def subject_feedback(session: Session, subscription_id: str) -> list[SubjectFeedback]:
+    """Every rejection on this subscription, oldest first.
+
+    All of them, not a recent slice: the plan block marks each rejected entry
+    for the life of the series, and it is the prompt renderer that decides how
+    many to spell out in prose.
     """
     stmt = (
         select(Delivery)
@@ -70,9 +79,31 @@ def subject_feedback(
         .order_by(Delivery.issue_number)
     )
     return [
-        (d.issue_number, d.title, d.feedback.value)
+        SubjectFeedback(d.issue_number, d.title, d.feedback.value, d.plan_index)
         for d in session.scalars(stmt).all()
     ]
+
+
+def plan_entries_written(session: Session, subscription_id: str) -> set[int]:
+    """Series-plan entries that an issue actually covered.
+
+    Rows written before generation reported a plan index fall back to matching
+    entry number against issue number. That is the guess this column exists to
+    remove, but dropping the marker for those rows would leave the generator
+    free to cover them again, which is the worse failure.
+    """
+    stmt = (
+        select(Delivery)
+        .where(Delivery.subscription_id == subscription_id)
+        .order_by(Delivery.issue_number)
+    )
+    written: set[int] = set()
+    for delivery in session.scalars(stmt).all():
+        if delivery.plan_index is None:
+            written.add(delivery.issue_number)
+        elif delivery.plan_index > 0:
+            written.add(delivery.plan_index)
+    return written
 
 
 def mark_read(session: Session, delivery: Delivery) -> Delivery:

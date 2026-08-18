@@ -8,6 +8,13 @@ The Claude structured-outputs schema subset is narrower than full JSON Schema:
 every object needs ``additionalProperties: false`` and a complete ``required``
 list, and numeric/string constraints are not supported. Keep these models flat
 and unconstrained; ``json_schema_for`` does the ``additionalProperties`` pass.
+
+That subset is also why ``plan_index`` uses 0 rather than null for "no plan
+entry": a nullable field means ``anyOf`` on the wire, which is outside the
+subset this code has actually exercised. The column keeps that 0, and reserves
+null for rows written before generation reported the field at all — the two are
+different facts and collapsing them makes the legacy fallback fire on issues
+that answered honestly.
 """
 
 from __future__ import annotations
@@ -36,6 +43,14 @@ class GeneratedIssue(BaseModel):
     )
     next_suggested: str = Field(
         description="One line: what the next issue should most usefully cover."
+    )
+    plan_index: int = Field(
+        default=0,
+        description=(
+            "The number of the series-plan entry this issue covered. 0 if it took an open "
+            "thread, or went somewhere the plan does not list. Do not guess a number to look "
+            "compliant: 0 is the honest answer whenever the issue was not that entry."
+        ),
     )
 
 
@@ -71,7 +86,11 @@ def _harden(node: Any) -> None:
         if node.get("type") == "object" or "properties" in node:
             node["additionalProperties"] = False
             if "properties" in node:
-                node.setdefault("required", sorted(node["properties"]))
+                # Every property, not just the ones Pydantic thinks are
+                # required: a Python-side default is a convenience for local
+                # callers and must not become an optional field on the wire,
+                # which the structured-outputs subset does not allow.
+                node["required"] = sorted(node["properties"])
         for value in node.values():
             _harden(value)
     elif isinstance(node, list):

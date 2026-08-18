@@ -88,11 +88,18 @@ def make_plan(count: int = 3) -> SeriesPlan:
     )
 
 
-def make_issue(n: int, *, points: list[str] | None = None, threads: list[str] | None = None) -> GeneratedIssue:
+def make_issue(
+    n: int,
+    *,
+    points: list[str] | None = None,
+    threads: list[str] | None = None,
+    plan_index: int = 0,
+) -> GeneratedIssue:
     return GeneratedIssue(
         title=f"Issue {n}",
         body_markdown=f"Body of issue {n}.",
         covered_points_added=points if points is not None else [f"point-{n}a", f"point-{n}b"],
         open_threads=threads if threads is not None else [],
         next_suggested=f"Cover thing {n + 1}.",
+        plan_index=plan_index,
     )

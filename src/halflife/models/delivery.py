@@ -40,6 +40,10 @@ class Delivery(Base, TenantMixin, TimestampMixin):
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     body_markdown: Mapped[str] = mapped_column(Text, nullable=False)
     next_suggested: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # Which series-plan entry this issue took. 0 means it took none of them,
+    # which the prompt permits; null means the row predates generation
+    # reporting it, and is the only case anything falls back to guessing.
+    plan_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # The parameters actually used, which may differ from the subscription's
     # current values if feedback has since adjusted them.
