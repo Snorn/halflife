@@ -1,5 +1,9 @@
 # HalfLife
 
+**[snorn.github.io/halflife](https://snorn.github.io/halflife/)** — the introduction, including
+five pieces on one topic written at five different depths, so you can see what the depth
+parameter actually does before reading a line of this.
+
 Professional skill *maintenance*. Every skill has a half-life; this tops yours back up before it
 runs down. Most learning tools help you acquire something new — this one helps you keep what you
 already learned.
