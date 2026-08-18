@@ -250,6 +250,23 @@ deliberately narrow — the two topics that failed, the nearest-miss control tha
 passed at 12 references, and the practice topic, which has produced a finding
 in each of the last three runs.
 
+Ninth run, checking v6 on four topics (48 calls, $4.03, effort medium):
+20/20, and 0/4 on both disjointness pairs. Both topics that failed 2 vs 4 now
+pass, and so does the nearest-miss control that passed before at 12 references.
+
+The reference counts are the part worth reading. Postgres went from a
+restatement to 10 clean references, SAP Web Dispatcher to 8, SAP HANA held at
+10. Had v6 simply frightened depth 4 away from depth 2's material the counts
+would have collapsed toward zero and the pieces would be thinner for it. Depth
+4 still leans on depth 2 exactly as heavily; it refers instead of re-teaching,
+which is what was asked for.
+
+Weakest form of confirmation, though: the wording was fitted to those two
+failures and then checked on them, n=2, one judge. The claim it supports is
+"v6 did not break anything and the two known failures are gone", not that the
+2-vs-4 pair is solved. The next full run is what would say that, and it should
+be read for that pair before anything else.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
