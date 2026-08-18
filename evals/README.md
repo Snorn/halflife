@@ -27,8 +27,8 @@ you what it spent. An unrecognised model reports tokens and no dollar figure rat
 one — if you change `HALFLIFE_MODEL_ID`, add it to `_PRICING` in
 [run_evals.py](run_evals.py).
 
-Rough scale at the time of writing: a depth run is 56 calls across the eight topics (~$4.50 at
-effort=medium), plan-ab 15, continuity 9 per topic, distance 4 per series judged. `--topic` runs a
+Rough scale at the time of writing: a depth run is 96 calls across eight topics at five depths
+(~$7.70 at effort=medium), plan-ab 15, continuity 9 per topic, distance 4 per series judged. `--topic` runs a
 subset of the depth or continuity topics while iterating — but a subset is how three rubric
 revisions ended up fitted to four topics, so run the full set before believing a result.
 Generating
@@ -54,7 +54,10 @@ variable. Then two checks:
   is built to catch is collapse toward depth 3, which shows up as negative drift on high depths
   and positive drift on low ones, even when accuracy looks acceptable.
 * **Disjointness.** The rubric claims two levels apart should be different pieces, not one nested
-  in the other. The lowest and highest depths for each topic are compared for re-explanation.
+  in the other. Two pairs are compared per topic: the widest, which every run since the first has
+  measured and which is the easy case, and depth 2 against depth 4 — the pair the rubric names in
+  its own opening sentence, and the one where nesting actually hides, because both levels sit
+  against the same middle ground.
 
 If depth is not holding, the fix is the rubric text in
 `src/halflife/generation/prompts/depth_rubric.py` — bump `DEPTH_RUBRIC_VERSION` when you change

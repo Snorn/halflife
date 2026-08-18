@@ -191,11 +191,13 @@ it cannot detect a mild regression either, so running it again buys nothing
 until it is made harder. Two things would make it informative again, in order
 of value:
 
-* **Measure depths 2 and 4.** The suite has only ever tested 1, 3 and 5. Every
-  miss in seven runs was a piece landing in an untested neighbour — depth 1
-  judged 2, depth 3 judged 4 — so the levels doing the absorbing have never
-  themselves been graded. Adding them is 5 depths against 8 topics, 40
-  generations plus judging, and it is the obvious next spend.
+* **Measure depths 2 and 4.** Done, and unrun at the time of writing. The suite
+  had only ever tested 1, 3 and 5, while every miss in seven runs was a piece
+  landing in an untested neighbour — depth 1 judged 2, depth 3 judged 4 — so
+  the levels absorbing the errors were never themselves graded. A 24/24 on the
+  odd levels is not a rubric known to work. The full set is now 96 calls,
+  around $7.70. Read the next run for depths 2 and 4 alone: the odd levels have
+  passed twice and will mostly restate what is already known.
 * **Harder topics.** Seven of the eight are technical, and the one practice
   topic is what produced both of the last two findings. A set weighted the
   other way would test whether the artefact classes hold or whether they were

@@ -29,9 +29,20 @@ depth:
   # both misses were configurable topics. The axis stays because it is now
   # measured on both sides rather than assumed on one.
   #
-  # Eight topics is 56 calls, roughly $4.50 at effort=medium. Use --topic to
-  # run a subset when iterating; run the whole set before believing a result.
-  depths: [1, 3, 5]
+  # All five levels, not the odd ones. The suite tested 1, 3 and 5 for seven
+  # runs, during which every single miss was a piece landing in an untested
+  # neighbour — depth 1 judged 2, depth 3 judged 4 — so the levels absorbing
+  # the errors were never themselves graded. A rubric that scores 24/24 on the
+  # odd levels while 2 and 4 go unmeasured is not a rubric known to work.
+  #
+  # Eight topics across five depths is 96 calls, roughly $7.70 at effort=medium:
+  # five generations and five depth judgements per topic, plus two disjointness
+  # checks — the widest pair, and depth 2 against depth 4, which is the pair the
+  # rubric names in its own opening words and the harder of the two.
+  #
+  # Use --topic to run a subset when iterating; run the whole set before
+  # believing a result.
+  depths: [1, 2, 3, 4, 5]
   duration_minutes: 5
   topics:
     # open source, configurable

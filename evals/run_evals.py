@@ -256,7 +256,16 @@ def run_depth(client: Meter, topics: list[str] | None = None) -> int:
     # that writes depth 2 when asked for 1 and depth 4 when asked for 5 has a
     # mean signed error near zero while discriminating at neither end.
     inferred: dict[int, list[int]] = {d: [] for d in depths}
-    repeats = 0
+
+    # The rubric claims disjointness twice over. The widest pair is the easy
+    # case, and every earlier run measured it, so it stays for comparability.
+    # Depth 2 against depth 4 is the claim the rubric makes in its own opening
+    # words, and is the harder one: both levels sit against the same middle
+    # ground, which is exactly where nesting hides.
+    pairs = [(min(depths), max(depths))]
+    if 2 in depths and 4 in depths:
+        pairs.append((2, 4))
+    repeats: dict[tuple[int, int], int] = {pair: 0 for pair in pairs}
 
     for topic in topics or case["topics"]:
         print(f"\n{topic}", flush=True)
@@ -285,23 +294,23 @@ def run_depth(client: Meter, topics: list[str] | None = None) -> int:
                 flush=True,
             )
 
-        # The rubric's own claim: two levels apart should be disjoint, not nested.
-        lo, hi = min(depths), max(depths)
-        overlap = client.generate(
-            system=_OVERLAP_JUDGE_SYSTEM,
-            user=(
-                f"Earlier piece (depth {lo}):\n---\n{pieces[lo].body_markdown}\n---\n\n"
-                f"Later piece (depth {hi}):\n---\n{pieces[hi].body_markdown}\n---\n\n"
-                f"Does the depth-{hi} piece re-explain material the depth-{lo} piece establishes?"
-            ),
-            output_model=OverlapVerdict,
-        ).parsed
-        repeats += min(
-            1,
-            _report_overlap(
-                overlap, earlier=f"the depth-{lo} piece", later=f"the depth-{hi} piece"
-            ),
-        )
+        # The rubric's own claim: levels apart should be disjoint, not nested.
+        for lo, hi in pairs:
+            overlap = client.generate(
+                system=_OVERLAP_JUDGE_SYSTEM,
+                user=(
+                    f"Earlier piece (depth {lo}):\n---\n{pieces[lo].body_markdown}\n---\n\n"
+                    f"Later piece (depth {hi}):\n---\n{pieces[hi].body_markdown}\n---\n\n"
+                    f"Does the depth-{hi} piece re-explain material the depth-{lo} piece establishes?"
+                ),
+                output_model=OverlapVerdict,
+            ).parsed
+            repeats[lo, hi] += min(
+                1,
+                _report_overlap(
+                    overlap, earlier=f"the depth-{lo} piece", later=f"the depth-{hi} piece"
+                ),
+            )
 
     print("\nper-depth results — read this, not the aggregate:")
     hits = total = 0
@@ -328,9 +337,12 @@ def run_depth(client: Meter, topics: list[str] | None = None) -> int:
             "  the centre and not at the extremes."
         )
 
-    print(f"\ndepth accuracy: {hits}/{total}   disjointness failures: {repeats}/{len(case['topics'])}")
+    judged_topics = len(topics or case["topics"])
+    print(f"\ndepth accuracy: {hits}/{total}")
+    for (lo, hi), count in repeats.items():
+        print(f"disjointness failures, depth {lo} vs {hi}: {count}/{judged_topics}")
     print(f"output: {run}")
-    return 0 if hits == total and repeats == 0 else 1
+    return 0 if hits == total and not any(repeats.values()) else 1
 
 
 # --------------------------------------------------------------------------- continuity
