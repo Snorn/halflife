@@ -114,7 +114,7 @@ The tools it uses:
 | `halflife_next_brief` | the prompt, depth, word budget, ledger and open threads |
 | `halflife_record_issue` | saves the issue, updates the ledger, advances the schedule |
 | `halflife_pending_reads` / `halflife_read` | what is waiting, and its text |
-| `halflife_feedback` | `too_basic` / `just_right` / `too_advanced`, adjusts future depth |
+| `halflife_feedback` | `too_basic` / `just_right` / `too_advanced` move depth; `already_knew` / `wrong_subject` move the subject |
 | `halflife_compaction_brief` / `halflife_record_compaction` | compress the ledger when it outgrows a prompt |
 | `halflife_help` | the built-in guide: the loop, depths, and everything above |
 
@@ -141,7 +141,7 @@ These need no API key and work regardless of how issues were generated:
 | `help` | The built-in guide: the loop, depths, tools and commands. Works before `init`. |
 | `ls` | Subscriptions, with issue counts and next due time. |
 | `inbox` / `read [id\|latest]` | What is unread; read it. |
-| `feedback <delivery> too-basic\|just-right\|too-advanced` | Nudges the subscription's depth. |
+| `feedback <delivery> <verdict>` | Two axes: `too-basic` / `just-right` / `too-advanced` nudge the subscription's depth; `already-knew` / `wrong-subject` leave depth alone and tell the next few issues to take different ground. |
 | `series <sub>` | The continuity state: plan, coverage ledger, open threads. `--full` includes compacted entries. |
 | `cost` | Spend to date per subscription, and the projected monthly run rate. |
 | `pause` / `resume <sub>` | Stop and restart delivery, keeping the series. |

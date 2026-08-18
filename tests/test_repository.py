@@ -54,6 +54,17 @@ def test_feedback_nudges_depth_one_step_and_clamps(session, start, verdict, expe
     assert subscription_repo.apply_feedback_to_depth(session, sub, verdict) == expected
 
 
+@pytest.mark.parametrize(
+    "verdict", [Feedback.ALREADY_KNEW, Feedback.WRONG_SUBJECT]
+)
+def test_subject_feedback_leaves_depth_alone(session, verdict):
+    """These say the level was right and the ground was wrong. Moving depth
+    would answer a question the reader did not ask."""
+    sub = _subscribe(session, "x, 3, 5, 1d")
+    assert subscription_repo.apply_feedback_to_depth(session, sub, verdict) == 3
+    assert sub.depth == 3
+
+
 def test_lookup_by_prefix(session):
     sub = _subscribe(session)
     assert subscription_repo.get_by_prefix(session, sub.id[:8]) is sub

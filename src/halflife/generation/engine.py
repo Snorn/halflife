@@ -28,6 +28,7 @@ from halflife.models.base import GenerationSource, new_id, utcnow
 from halflife.models.delivery import Delivery
 from halflife.models.series import CoveragePoint, Series
 from halflife.models.subscription import Subscription
+from halflife.repository import deliveries as delivery_repo
 
 log = logging.getLogger(__name__)
 
@@ -326,6 +327,9 @@ def build_brief(
             ),
             ledger_block=continuity.render_ledger_block([p.point for p in active]),
             threads_block=continuity.render_threads_block(list(series.open_threads)),
+            feedback_block=continuity.render_feedback_block(
+                delivery_repo.recent_subject_feedback(session, subscription.id)
+            ),
         ),
         ledger_size=len(active),
         needs_compaction=continuity.needs_compaction(series),

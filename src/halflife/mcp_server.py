@@ -384,18 +384,26 @@ def halflife_read(delivery_id: str) -> str:
 
 @server.tool()
 def halflife_feedback(delivery_id: str, verdict: str) -> str:
-    """Record whether an issue was pitched right, adjusting future depth.
+    """Record feedback on an issue.
+
+    Two axes. too_basic and too_advanced are about the level, and move the
+    subscription's depth. already_knew and wrong_subject are about the subject:
+    the level was fine and the ground was wrong. Those leave depth alone and are
+    shown to the next few generations, which are told to go elsewhere.
 
     Args:
         delivery_id: the issue being rated.
-        verdict: too_basic, just_right, or too_advanced.
+        verdict: too_basic, just_right, too_advanced, already_knew, or wrong_subject.
     """
     normalised = verdict.strip().lower().replace("-", "_")
     try:
         parsed = Feedback(normalised)
     except ValueError:
         return _ok(
-            {"error": "verdict must be one of: too_basic, just_right, too_advanced"}
+            {
+                "error": "verdict must be one of: too_basic, just_right, "
+                "too_advanced, already_knew, wrong_subject"
+            }
         )
 
     with session_scope() as session:
@@ -407,7 +415,14 @@ def halflife_feedback(delivery_id: str, verdict: str) -> str:
         subscription = delivery.subscription
         before = subscription.depth
         after = subscription_repo.apply_feedback_to_depth(session, subscription, parsed)
-        return _ok({"topic": subscription.topic, "depth_before": before, "depth_now": after})
+        return _ok(
+            {
+                "topic": subscription.topic,
+                "axis": "depth" if parsed.is_about_depth else "subject",
+                "depth_before": before,
+                "depth_now": after,
+            }
+        )
 
 
 @server.tool()

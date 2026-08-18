@@ -24,6 +24,24 @@ re-explanation. Once the judge was made to quote whole sentences and separate
 a reference from a restatement, both previously failing topics came back with
 41 references and zero restatements across six checks.
 
+v3 adds two rules and one input block, neither of them measured yet.
+
+The first is the callback rule. Nothing in v1 or v2 said which ledger point to
+build on, and the nearest one is the easiest to reach for, so a series drifts
+towards referring only to last week. Reaching further back is what makes the
+reader retrieve something rather than recognise it, which is the whole reason
+this is a series and not a pile of articles. The rule is deliberately hedged
+against manufacture: an invented connection is worse than no callback.
+
+The second is reader feedback on the subject axis. `already_knew` and
+`wrong_subject` are new verbs that leave depth alone, so unlike the depth verbs
+they have nowhere to go except the prompt. The rule says so explicitly, and
+tells the generator not to compensate for depth feedback, which it can see the
+effect of but not the cause.
+
+Both are the same shape as the v2 change — name the situation, state what to do
+— and carry the same caveat. Neither has been run against a judge.
+
 So v2 is not a proven improvement over v1. Its guidance stands on its own
 merits, but the evidence that motivated it was an instrument fault, and if
 anyone wants to know whether v1 was fine, the way to find out is to run both
@@ -35,7 +53,7 @@ from __future__ import annotations
 from halflife.generation.prompts.depth_rubric import DEPTH_RUBRIC, depth_label
 from halflife.models.base import Flavour
 
-GENERATION_PROMPT_VERSION = "2"
+GENERATION_PROMPT_VERSION = "3"
 
 _SYSTEM = """\
 You write micro-learning for working professionals — short, single-sitting reads that keep a
@@ -50,7 +68,8 @@ You are writing one issue of an ongoing series, not a standalone article. You wi
 
 * the **series plan** — an advisory arc drawn up when the series started;
 * the **coverage ledger** — everything previous issues have already established;
-* **open threads** — things a previous issue explicitly promised to come back to.
+* **open threads** — things a previous issue explicitly promised to come back to;
+* **reader feedback** — what the reader said about recent issues, where they said anything.
 
 Rules:
 
@@ -69,7 +88,16 @@ Rules:
    The plan is advisory; what the reader needs is not.
 3. If you deliberately defer something, put it in `open_threads` and do not gesture at it in the
    body with phrases like "more on this later". Deferral is bookkeeping, not narration.
-4. The ledger is what makes the series cumulative. Write `covered_points_added` as short,
+4. **Reach back, not only one step.** Where a ledger point is worth building on and both an
+   older and a recent one would serve, prefer the older. A reader recalls something by having
+   to use it, so a callback across several issues is worth more to them than one to the issue
+   they read yesterday. Do not manufacture these: only where the connection is real.
+5. **Reader feedback outranks the plan.** If the reader said they already knew an issue's
+   material, do not spend another issue near that ground — go somewhere they have not been. If
+   they said an issue was not what they needed, the plan is wrong about what matters on this
+   topic; take a different line through it. Feedback about depth has already been applied to the
+   depth parameter you were given, so do not compensate for it again.
+6. The ledger is what makes the series cumulative. Write `covered_points_added` as short,
    atomic, self-contained claims — each one a thing the reader now knows, phrased so that a
    future issue can recognise it. They are not section headings, and they are not a summary.
 
@@ -106,6 +134,8 @@ Length: about {word_budget} words (a {duration_minutes}-minute read)
 
 {threads_block}
 
+{feedback_block}
+
 Write to the depth requested. At depths 4 and 5, if the length forces a choice, narrow the
 subject and treat it properly rather than covering more ground thinly.\
 """
@@ -139,6 +169,7 @@ def build_user_prompt(
     plan_block: str,
     ledger_block: str,
     threads_block: str,
+    feedback_block: str = "",
 ) -> str:
     return _USER.format(
         issue_number=issue_number,
@@ -150,4 +181,5 @@ def build_user_prompt(
         plan_block=plan_block,
         ledger_block=ledger_block,
         threads_block=threads_block,
+        feedback_block=feedback_block,
     )

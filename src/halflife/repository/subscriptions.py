@@ -130,6 +130,11 @@ def apply_feedback_to_depth(
     wrong, so it moves depth and nothing else.
     """
     before = subscription.depth
+    if not feedback.is_about_depth:
+        # already_knew / wrong_subject say the pitch was fine and the ground was
+        # wrong. Moving depth here would answer a question the reader did not
+        # ask; the generator is told about these instead.
+        return before
     if feedback is Feedback.TOO_BASIC:
         subscription.depth = min(MAX_DEPTH, before + 1)
     elif feedback is Feedback.TOO_ADVANCED:

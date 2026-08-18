@@ -91,9 +91,25 @@ class GenerationSource(str, enum.Enum):
 
 
 class Feedback(str, enum.Enum):
+    """Two axes, deliberately separated.
+
+    The first three are about *depth* and move the subscription's level. The
+    last two are about *subject* and do not: they say the pitch was fine and
+    the ground was wrong, which is a different complaint and needs a different
+    response. Collapsing them, as a single scale does, loses the distinction
+    entirely — a reader who already knew the material is not asking for
+    something harder, they are asking for something else.
+    """
+
     TOO_BASIC = "too_basic"
     JUST_RIGHT = "just_right"
     TOO_ADVANCED = "too_advanced"
+    ALREADY_KNEW = "already_knew"
+    WRONG_SUBJECT = "wrong_subject"
+
+    @property
+    def is_about_depth(self) -> bool:
+        return self in {Feedback.TOO_BASIC, Feedback.JUST_RIGHT, Feedback.TOO_ADVANCED}
 
 
 MIN_DEPTH = 1

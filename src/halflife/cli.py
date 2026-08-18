@@ -42,6 +42,12 @@ _FEEDBACK_ALIASES = {
     "too-advanced": Feedback.TOO_ADVANCED,
     "too_advanced": Feedback.TOO_ADVANCED,
     "advanced": Feedback.TOO_ADVANCED,
+    "already-knew": Feedback.ALREADY_KNEW,
+    "already_knew": Feedback.ALREADY_KNEW,
+    "knew": Feedback.ALREADY_KNEW,
+    "wrong-subject": Feedback.WRONG_SUBJECT,
+    "wrong_subject": Feedback.WRONG_SUBJECT,
+    "wrong": Feedback.WRONG_SUBJECT,
 }
 
 
@@ -242,12 +248,24 @@ def read(
 @app.command()
 def feedback(
     delivery: str = typer.Argument(..., help="Delivery id or prefix."),
-    verdict: str = typer.Argument(..., help="too-basic | just-right | too-advanced"),
+    verdict: str = typer.Argument(
+        ...,
+        help="too-basic | just-right | too-advanced | already-knew | wrong-subject",
+    ),
 ) -> None:
-    """Record depth feedback. Too basic or too advanced nudges the subscription's depth."""
+    """Record feedback on an issue.
+
+    Two axes. too-basic and too-advanced are about the *level*, and nudge the
+    subscription's depth. already-knew and wrong-subject are about the
+    *subject* — the pitch was right, the ground was wrong — and leave depth
+    alone; the next few issues are told to go elsewhere instead.
+    """
     parsed = _FEEDBACK_ALIASES.get(verdict.lower())
     if parsed is None:
-        _fail("Verdict must be one of: too-basic, just-right, too-advanced.")
+        _fail(
+            "Verdict must be one of: too-basic, just-right, too-advanced, "
+            "already-knew, wrong-subject."
+        )
         return
 
     with session_scope() as session:
@@ -259,7 +277,12 @@ def feedback(
         subscription = target.subscription
         before = subscription.depth
         after = subscription_repo.apply_feedback_to_depth(session, subscription, parsed)
-        if after == before:
+        if not parsed.is_about_depth:
+            console.print(
+                f"[green]Noted.[/green] Depth stays at {after}; the next issues will "
+                "be told to take different ground."
+            )
+        elif after == before:
             console.print(f"[green]Noted.[/green] Depth stays at {after}.")
         else:
             console.print(f"[green]Noted.[/green] Depth {before} -> {after} for future issues.")

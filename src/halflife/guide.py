@@ -24,8 +24,10 @@ Your harness writes the issues using its own model. No API key is needed.
 3. **Write** whatever is due. The tool hands over the prompt, the depth rubric, and everything
    already covered; your harness writes the issue and hands it back.
 4. **Read** it.
-5. **Give feedback** — `too_basic` or `too_advanced` moves the subscription's depth for future
-   issues. This is the main way it learns to pitch itself correctly for you.
+5. **Give feedback** — on either of two axes. `too_basic` and `too_advanced` are about the
+   *level*, and move the subscription's depth. `already_knew` and `wrong_subject` are about the
+   *subject*: the level was right and the ground was wrong. Those leave depth alone and steer
+   the next few issues somewhere else. This is the main way it learns to pitch itself for you.
 
 Steps 3-5 are the daily habit. Steps 1-2 happen once per topic.
 
@@ -52,7 +54,9 @@ Depth sets **what you are assumed to already know**, not the length.
 | 4 | You are competent and want what experience teaches. Interactions, second-order effects. |
 | 5 | You are at the edge of the published material. Internals, edge cases, version specifics. |
 
-If issues feel wrong, do not re-subscribe — give feedback and let the depth move.
+If issues feel wrong, do not re-subscribe — give feedback. Say `too_basic` or `too_advanced`
+when the level is off, and `already_knew` or `wrong_subject` when the level was fine but the
+material was not what you needed.
 
 **Flavour** is `learning` (new ground) or `maintaining` (a refresher on something you already
 know well, which assumes competence and leads with what decays first). Cadence defaults to
@@ -68,7 +72,7 @@ daily; `weekly` suits maintaining series, and `hourly` exists for cramming.
 | `halflife_next_brief` | the prompt, depth, word budget, ledger and open threads |
 | `halflife_record_issue` | save a written issue and advance the series |
 | `halflife_pending_reads` / `halflife_read` | what is waiting, and its text |
-| `halflife_feedback` | `too_basic` / `just_right` / `too_advanced` |
+| `halflife_feedback` | `too_basic` / `just_right` / `too_advanced` (level), `already_knew` / `wrong_subject` (subject) |
 | `halflife_compaction_brief` / `halflife_record_compaction` | compress the ledger when it grows too long |
 | `halflife_help` | this guide |
 
@@ -83,7 +87,7 @@ Run from a terminal. These need no API key.
 | `halflife ls` | subscriptions, issue counts, next due time |
 | `halflife inbox` | issues written but not yet read |
 | `halflife read [id\\|latest]` | read an issue and mark it read |
-| `halflife feedback <id> too-basic\\|just-right\\|too-advanced` | adjust future depth |
+| `halflife feedback <id> <verdict>` | `too-basic`, `just-right`, `too-advanced` move depth; `already-knew`, `wrong-subject` move the subject |
 | `halflife series <sub>` | the plan, the coverage ledger, and open threads. `--full` includes compacted entries |
 | `halflife cost` | spend to date and projected monthly run rate |
 | `halflife pause` / `resume <sub>` | stop and restart delivery, keeping the series |

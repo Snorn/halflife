@@ -67,6 +67,28 @@ def render_ledger_block(points: list[str]) -> str:
     return "\n".join(lines)
 
 
+def render_feedback_block(entries: list[tuple[int, str, str]]) -> str:
+    """Recent *subject* feedback, as (issue number, title, verdict).
+
+    Depth feedback is deliberately excluded: it has already moved the depth
+    parameter, and showing it here would invite the generator to correct for it
+    a second time.
+    """
+    if not entries:
+        return "Reader feedback: none so far."
+
+    labels = {
+        "already_knew": "already knew this material",
+        "wrong_subject": "this was not what they needed",
+    }
+    lines = ["Reader feedback on recent issues — let this override the plan:"]
+    lines.extend(
+        f"  - issue {number} ({title}): {labels.get(verdict, verdict)}"
+        for number, title, verdict in entries
+    )
+    return "\n".join(lines)
+
+
 def render_threads_block(threads: list[str]) -> str:
     if not threads:
         return "Open threads: none."
