@@ -305,6 +305,7 @@ def build_brief(
     series = ensure_series(session, subscription)
     issue_number = series.issue_count + 1
     active = continuity.active_points(series)
+    subject_feedback = delivery_repo.subject_feedback(session, subscription.id)
 
     return IssueBrief(
         subscription_id=subscription.id,
@@ -323,13 +324,14 @@ def build_brief(
             flavour=subscription.flavour,
             issue_number=issue_number,
             plan_block=continuity.render_plan_block(
-                series.plan, series.arc_summary, issue_number
+                series.plan,
+                series.arc_summary,
+                issue_number,
+                rejected={number: verdict for number, _, verdict in subject_feedback},
             ),
             ledger_block=continuity.render_ledger_block([p.point for p in active]),
             threads_block=continuity.render_threads_block(list(series.open_threads)),
-            feedback_block=continuity.render_feedback_block(
-                delivery_repo.recent_subject_feedback(session, subscription.id)
-            ),
+            feedback_block=continuity.render_feedback_block(subject_feedback),
         ),
         ledger_size=len(active),
         needs_compaction=continuity.needs_compaction(series),

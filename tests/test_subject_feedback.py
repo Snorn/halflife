@@ -15,7 +15,7 @@ from typer.testing import CliRunner
 
 from halflife import cli, mcp_server
 from halflife.generation import engine
-from halflife.generation.continuity import render_feedback_block
+from halflife.generation.continuity import render_feedback_block, render_plan_block
 from halflife.models.base import Feedback, GenerationSource
 from halflife.repository import deliveries as delivery_repo
 from halflife.repository import subscriptions as subscription_repo
@@ -48,6 +48,42 @@ def test_the_block_names_the_issue_and_translates_the_verdict():
     assert "override the plan" in block
 
 
+def _plan(n=4):
+    return [
+        {"index": i, "title": f"Entry {i}", "focus": f"Focus {i}."} for i in range(1, n + 1)
+    ]
+
+
+def test_a_rejected_plan_entry_is_marked_and_says_why():
+    block = render_plan_block(_plan(), "", issue_number=4, rejected={2: "wrong_subject"})
+
+    lines = {line.split(".")[0].strip(): line for line in block.split(chr(10))[1:]}
+    assert "not what they needed" in lines["2"]
+    assert lines["1"].endswith("[already written]")
+
+
+def test_an_unrejected_plan_keeps_the_plain_marker():
+    block = render_plan_block(_plan(), "", issue_number=3)
+
+    assert "already written]" in block
+    assert "do not return" not in block
+
+
+def test_rejections_survive_past_the_prose_window(session):
+    """The list of verdicts is trimmed to the last few; the plan marks are not."""
+    sub = subscription_repo.create(session, parse_shorthand("x, 3, 5, 1d"))
+    engine.ensure_series(session, sub).plan = _plan(6)
+    for n in range(1, 6):
+        delivery_repo.set_feedback(
+            session, _deliver(session, sub, n), Feedback.ALREADY_KNEW
+        )
+
+    prompt = engine.build_brief(session=session, subscription=sub).user_prompt
+
+    assert "1. Entry 1 — Focus 1. [already written; the reader already knew" in prompt
+    assert "issue 1 (" not in prompt  # trimmed out of the prose list
+
+
 # ----------------------------------------------------------------- repository
 
 
@@ -58,21 +94,31 @@ def test_only_subject_feedback_reaches_the_generator(session):
     delivery_repo.set_feedback(session, depth_rated, Feedback.TOO_BASIC)
     delivery_repo.set_feedback(session, subject_rated, Feedback.WRONG_SUBJECT)
 
-    entries = delivery_repo.recent_subject_feedback(session, sub.id)
+    entries = delivery_repo.subject_feedback(session, sub.id)
 
     assert [e[0] for e in entries] == [2]
 
 
-def test_subject_feedback_is_capped_and_ordered_oldest_last(session):
+def test_every_rejection_is_returned_oldest_first(session):
+    """The plan block marks all of them; only the prose list is trimmed."""
     sub = subscription_repo.create(session, parse_shorthand("x, 3, 5, 1d"))
     for n in range(1, 5):
         delivery_repo.set_feedback(
             session, _deliver(session, sub, n), Feedback.ALREADY_KNEW
         )
 
-    entries = delivery_repo.recent_subject_feedback(session, sub.id, limit=3)
+    entries = delivery_repo.subject_feedback(session, sub.id)
 
-    assert [e[0] for e in entries] == [2, 3, 4]
+    assert [e[0] for e in entries] == [1, 2, 3, 4]
+
+
+def test_the_prose_list_spells_out_only_the_last_few():
+    entries = [(n, f"Issue {n}", "already_knew") for n in range(1, 6)]
+
+    block = render_feedback_block(entries)
+
+    assert "issue 1 " not in block
+    assert [n for n in range(1, 6) if f"issue {n} " in block] == [3, 4, 5]
 
 
 # --------------------------------------------------------------------- engine

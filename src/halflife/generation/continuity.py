@@ -35,20 +35,47 @@ COMPACT_TRIGGER = MAX_LEDGER_POINTS
 COMPACT_OLDEST = 80
 COMPACT_RATIO = 4
 
+# How many subject-feedback entries are spelled out in full. The plan block
+# marks every rejected entry regardless; this only bounds the prose list.
+FEEDBACK_SHOWN = 3
+
+_REJECTION_NOTES = {
+    "already_knew": "the reader already knew this, so do not return to it",
+    "wrong_subject": "the reader said this was not what they needed, so take a different line",
+}
+
 
 def render_plan_block(
-    plan: list[dict[str, Any]], arc_summary: str, issue_number: int
+    plan: list[dict[str, Any]],
+    arc_summary: str,
+    issue_number: int,
+    rejected: dict[int, str] | None = None,
 ) -> str:
+    """Render the advisory arc, marking what has been written and what missed.
+
+    ``rejected`` maps an issue number to a subject verdict. Entries are matched
+    to issues by position, which is the same assumption the "already written"
+    marker has always made: the plan is advisory, so a generation that took an
+    open thread instead breaks the correspondence. The cost of a wrong mark is
+    that the generator steers away from ground the reader never rejected, and
+    the feedback block still carries the real signal. Recording which plan
+    entry an issue actually took would remove the guess, and would mean a new
+    field on the generated-issue schema.
+    """
     if not plan:
         return "Series plan: none — this is an unplanned series. Choose the subject yourself."
 
+    rejected = rejected or {}
     lines = ["Series plan (advisory):"]
     if arc_summary:
         lines.append(f"  Arc: {arc_summary}")
     for entry in plan:
         index = entry.get("index")
         marker = "->" if index == issue_number else "  "
-        status = " [already written]" if isinstance(index, int) and index < issue_number else ""
+        status = ""
+        if isinstance(index, int) and index < issue_number:
+            note = _REJECTION_NOTES.get(rejected.get(index, ""))
+            status = f" [already written; {note}]" if note else " [already written]"
         lines.append(f"  {marker} {index}. {entry.get('title', '')} — {entry.get('focus', '')}{status}")
     return "\n".join(lines)
 
@@ -76,6 +103,8 @@ def render_feedback_block(entries: list[tuple[int, str, str]]) -> str:
     """
     if not entries:
         return "Reader feedback: none so far."
+
+    entries = entries[-FEEDBACK_SHOWN:]
 
     labels = {
         "already_knew": "already knew this material",

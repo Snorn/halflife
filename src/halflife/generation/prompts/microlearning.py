@@ -39,8 +39,15 @@ they have nowhere to go except the prompt. The rule says so explicitly, and
 tells the generator not to compensate for depth feedback, which it can see the
 effect of but not the cause.
 
-Both are the same shape as the v2 change — name the situation, state what to do
-— and carry the same caveat. Neither has been run against a judge.
+The plan block carries the same signal structurally: an entry the reader
+rejected is marked in place, so it stays struck out for the life of the series
+rather than only for the few issues the prose list covers. That marking is
+positional — the plan is advisory, and an issue that took an open thread
+instead breaks the correspondence — which `render_plan_block` documents. The
+existing "already written" marker has always made the same assumption.
+
+All three are the same shape as the v2 change — name the situation, state what
+to do — and carry the same caveat. None has been run against a judge.
 
 So v2 is not a proven improvement over v1. Its guidance stands on its own
 merits, but the evidence that motivated it was an instrument fault, and if
@@ -95,8 +102,9 @@ Rules:
 5. **Reader feedback outranks the plan.** If the reader said they already knew an issue's
    material, do not spend another issue near that ground — go somewhere they have not been. If
    they said an issue was not what they needed, the plan is wrong about what matters on this
-   topic; take a different line through it. Feedback about depth has already been applied to the
-   depth parameter you were given, so do not compensate for it again.
+   topic; take a different line through it. Rejected entries are marked in the plan block —
+   treat those as struck out, not as ground to cover better. Feedback about depth has already
+   been applied to the depth parameter you were given, so do not compensate for it again.
 6. The ledger is what makes the series cumulative. Write `covered_points_added` as short,
    atomic, self-contained claims — each one a thing the reader now knows, phrased so that a
    future issue can recognise it. They are not section headings, and they are not a summary.

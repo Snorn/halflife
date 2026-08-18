@@ -54,19 +54,25 @@ def list_for_subscription(session: Session, subscription_id: str) -> list[Delive
     return list(session.scalars(stmt).all())
 
 
-def recent_subject_feedback(
-    session: Session, subscription_id: str, *, limit: int = 3
+def subject_feedback(
+    session: Session, subscription_id: str
 ) -> list[tuple[int, str, str]]:
-    """The last few issues the reader said were mis-aimed rather than mis-pitched."""
+    """Every issue the reader said was mis-aimed rather than mis-pitched.
+
+    Oldest first, as (issue number, title, verdict). All of them, not a recent
+    slice: the plan block marks each rejected entry for the life of the series,
+    and it is the prompt renderer that decides how many to spell out.
+    """
     stmt = (
         select(Delivery)
         .where(Delivery.subscription_id == subscription_id)
         .where(Delivery.feedback.in_([Feedback.ALREADY_KNEW, Feedback.WRONG_SUBJECT]))
-        .order_by(Delivery.issue_number.desc())
-        .limit(limit)
+        .order_by(Delivery.issue_number)
     )
-    rows = list(session.scalars(stmt).all())
-    return [(d.issue_number, d.title, d.feedback.value) for d in reversed(rows)]
+    return [
+        (d.issue_number, d.title, d.feedback.value)
+        for d in session.scalars(stmt).all()
+    ]
 
 
 def mark_read(session: Session, delivery: Delivery) -> Delivery:
