@@ -44,7 +44,12 @@ class Settings(BaseSettings):
     # shows otherwise — but measure, because the intuition is wrong here.
     model_id: str = "claude-opus-5"
     effort: str = "medium"
-    max_tokens: int = 16000
+    # Thinking bills as output on this model and is the bulk of it: a 1,000-word
+    # issue is some 1,400 tokens of prose behind ten times that of reasoning. A
+    # depth-5 eval generation hit the old 16,000 ceiling mid-run, which fails the
+    # whole call and takes the run with it. Raised with room, and it costs
+    # nothing to carry — billing is per token produced, not per token allowed.
+    max_tokens: int = 32000
 
     # Roughly how many words a reader gets through in a minute of technical prose.
     words_per_minute: int = 200
