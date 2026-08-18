@@ -246,7 +246,7 @@ def _run_dir(kind: str) -> Path:
 # --------------------------------------------------------------------------- depth
 
 
-def run_depth(client: Meter) -> int:
+def run_depth(client: Meter, topics: list[str] | None = None) -> int:
     case = _load_cases()["depth"]
     depths: list[int] = case["depths"]
     minutes: int = case["duration_minutes"]
@@ -258,7 +258,7 @@ def run_depth(client: Meter) -> int:
     inferred: dict[int, list[int]] = {d: [] for d in depths}
     repeats = 0
 
-    for topic in case["topics"]:
+    for topic in topics or case["topics"]:
         print(f"\n{topic}", flush=True)
         pieces: dict[int, GeneratedIssue] = {}
         for depth in depths:
@@ -832,7 +832,10 @@ def main() -> int:
     parser.add_argument(
         "--topic",
         action="append",
-        help="Override the topics in cases.yaml. Repeatable. Continuity suite only.",
+        help=(
+            "Override the topics in cases.yaml. Repeatable. Depth and continuity suites — "
+            "use it to iterate on a subset, and run the full set before believing a result."
+        ),
     )
     parser.add_argument(
         "--run",
@@ -847,14 +850,14 @@ def main() -> int:
     client = Meter(GenerationClient(get_settings()))
     try:
         if args.suite == "depth":
-            return run_depth(client)
+            return run_depth(client, args.topic)
         if args.suite == "continuity":
             return run_continuity(client, args.topic)
         if args.suite == "plan-ab":
             return run_plan_ab(client)
         if args.suite == "distance":
             return run_distance(client, args.run)
-        return run_depth(client) | run_continuity(client) | run_plan_ab(client)
+        return run_depth(client, args.topic) | run_continuity(client, args.topic) | run_plan_ab(client)
     except GenerationError as exc:
         print(f"\n{exc}", file=sys.stderr)
         return 2

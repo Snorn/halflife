@@ -7,13 +7,46 @@
 depth:
   # Each topic is generated at every depth listed, as issue 1 of a fresh series
   # with no plan, so the only variable is depth.
+  #
+  # The set is chosen along two axes, because three rubric revisions were fitted
+  # against the first four topics and a single judge, and further gains against
+  # that set are as likely to be fitting the judge as improving the rubric.
+  #
+  # Axis one, what a depth-5 piece can cite, since checkable specificity is the
+  # rubric's own 4-vs-5 boundary and it is not equally reachable everywhere:
+  #
+  #   open source     source symbols, files, commits, version-specific defaults
+  #   standards       RFC and specification sections, errata, interop notes
+  #   closed source   vendor notes, documented defaults, support advisories
+  #   practice        none of the above — the deliberate stress case
+  #
+  # Axis two, whether the topic is configurable or conceptual. Every depth-1
+  # miss so far has been judged a 2, and on conceptual topics: the piece
+  # withholds the vocabulary correctly and then maps relationships anyway,
+  # which is depth 2's deliverable. Half the set is conceptual so that failure
+  # is measured rather than stumbled on.
+  #
+  # Eight topics is 56 calls, roughly $4.50 at effort=medium. Use --topic to
+  # run a subset when iterating; run the whole set before believing a result.
   depths: [1, 3, 5]
   duration_minutes: 5
   topics:
-    - SAP Web Dispatcher
+    # open source, configurable
     - Kubernetes admission controllers
     - Postgres connection pooling
+    # open source, conceptual
+    - Linux cgroups v2
+    # standards, configurable
     - TLS certificate chains
+    # standards, conceptual
+    - OAuth 2.0 device authorization flow
+    # closed source, configurable
+    - SAP Web Dispatcher
+    - SAP HANA memory management
+    # practice — no source, no RFC, no vendor notes, and no version numbers.
+    # If depth 5 cannot be reached without artefacts to cite, the rubric has a
+    # hole, and it is better to find it here than in someone's subscription.
+    - Blameless incident review
 
 plan_ab:
   # Does the series plan earn the extra generation it costs at subscribe time?
@@ -28,6 +61,10 @@ plan_ab:
 continuity:
   # One series, generated straight through, to see whether issue N knows what
   # issues 1..N-1 established.
+  #
+  # Deliberately narrow where the depth set is wide: a continuity run is nine
+  # calls per topic, and its output is also the baseline the distance suite
+  # scores against, so topics here are worth adding one at a time and keeping.
   issues: 6
   depth: 4
   duration_minutes: 5

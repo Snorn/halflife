@@ -27,13 +27,24 @@ you what it spent. An unrecognised model reports tokens and no dollar figure rat
 one — if you change `HALFLIFE_MODEL_ID`, add it to `_PRICING` in
 [run_evals.py](run_evals.py).
 
-Rough scale at the time of writing: a depth run is 28 calls, plan-ab 15, continuity 9, distance 4
-per series judged. Generating
+Rough scale at the time of writing: a depth run is 56 calls across the eight topics (~$4.50 at
+effort=medium), plan-ab 15, continuity 9 per topic, distance 4 per series judged. `--topic` runs a
+subset of the depth or continuity topics while iterating — but a subset is how three rubric
+revisions ended up fitted to four topics, so run the full set before believing a result.
+Generating
 one real issue for yourself is a single call — the evals are the expensive part, not the product.
 
 Every run writes the generated text to `evals/output/<suite>-<timestamp>/`. Read it.
 
 ## depth
+
+The topic set is chosen along two axes rather than by convenience. What a depth-5 piece can *cite*
+varies by topic — source symbols for open source, specification sections for standards, vendor
+notes for closed source, and nothing at all for a practice topic — and checkable specificity is the
+rubric's own boundary between depths 4 and 5. Crossed against that, half the topics are
+configurable and half conceptual, because every depth-1 miss so far has been on a conceptual topic
+and judged a 2. `Blameless incident review` is in there deliberately: if depth 5 cannot be reached
+without artefacts to cite, that is a hole in the rubric, and it is better found here.
 
 Generates issue 1 of a fresh, unplanned series for each topic at each depth, so depth is the only
 variable. Then two checks:
