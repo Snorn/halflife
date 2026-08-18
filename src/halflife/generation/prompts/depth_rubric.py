@@ -77,6 +77,37 @@ implicit. If anyone takes another run at depth 1, that is the seam: constrain
 what it may *do*, not only what it may *name*. Repeat runs first, per the note
 below.
 
+Fifth run, and the first against the widened eight-topic set (56 calls, $4.49,
+effort medium): 22/24, disjointness 0/8. Depth 3 and depth 5 were both 8/8.
+Depth 1 was 6/8, missing on Postgres connection pooling and TLS certificate
+chains, both judged 2.
+
+Three things that set was built to find out, and what it said:
+
+* **Depth 5 does not need code to cite.** Blameless incident review — chosen
+  precisely because it has no source, no RFC, no vendor notes and no version
+  numbers — was judged 5 on journal volumes and page numbers, book editions and
+  chapters, plus a contested trade-off. The predicted hole is not there: the
+  artefact classes extend to literature, and the rubric generalises past
+  configurable software.
+* **The closed-source class is not carried by one topic.** SAP HANA memory
+  management reached depth 5 on SAP Notes and revision caveats, as SAP Web
+  Dispatcher now does. The artefact-class change in v3 holds on a second
+  product rather than on the one it was written against.
+* **Conceptual topics are not what breaks depth 1.** The comment in cases.yaml
+  asserted that, and it was wrong even about the earlier runs. All three of the
+  new conceptual topics — cgroups v2, the OAuth device flow, incident review —
+  were judged 1 correctly. Both misses were configurable topics.
+
+What depth 1 actually looks like across runs: on the original four topics it
+scored 2/4 in both this run and the last, with the *identity* of the misses
+swapping — Kubernetes admission controllers missed last time and was clean
+here, Postgres connection pooling the reverse. Only TLS certificate chains
+missed twice. So depth 1 has a stable rate and unstable membership, which is
+variance, not a property of particular topics. The shape of the miss is stable
+too, and is the seam recorded above: the vocabulary is correctly withheld, and
+the piece then maps relationships and walks a scenario end to end anyway.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set

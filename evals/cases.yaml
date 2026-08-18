@@ -21,10 +21,13 @@ depth:
   #   practice        none of the above — the deliberate stress case
   #
   # Axis two, whether the topic is configurable or conceptual. Every depth-1
-  # miss so far has been judged a 2, and on conceptual topics: the piece
-  # withholds the vocabulary correctly and then maps relationships anyway,
-  # which is depth 2's deliverable. Half the set is conceptual so that failure
-  # is measured rather than stumbled on.
+  # miss is judged a 2, in the same shape: the piece withholds the vocabulary
+  # correctly and then maps relationships and walks a scenario anyway, which is
+  # depth 2's deliverable. This axis was added on a guess that conceptual
+  # topics were the ones drifting up, and the first run against the wide set
+  # disproved it — all three conceptual additions were judged 1 correctly and
+  # both misses were configurable topics. The axis stays because it is now
+  # measured on both sides rather than assumed on one.
   #
   # Eight topics is 56 calls, roughly $4.50 at effort=medium. Use --topic to
   # run a subset when iterating; run the whole set before believing a result.
