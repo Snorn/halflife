@@ -203,6 +203,40 @@ of value:
   other way would test whether the artefact classes hold or whether they were
   fitted to a single example.
 
+Eighth run, and the first to grade all five levels (96 calls, $7.60, effort
+medium):
+
+  depth accuracy 40/40, every level 8/8, signed error 0.00 at all five
+  disjointness, depth 1 vs 5:  0/8
+  disjointness, depth 2 vs 4:  2/8
+
+Depths 2 and 4 were judged correctly on all eight topics at the first attempt,
+which is the better outcome than it looks: those are the levels every miss in
+seven previous runs drifted into, and the concern was that they were absorbing
+errors because their own descriptions were loose. They are not.
+
+The failure is the pair. Depth 2 against depth 4 is the disjointness claim this
+rubric makes in its own opening sentence, and it fails on two topics of eight
+while the wide pair passes on all of them. Both failures are the same fault:
+
+* Postgres connection pooling — the depth-4 piece re-illustrates depth 2's
+  pods-times-pool-size example with fresh numbers, teaching nothing new.
+* SAP Web Dispatcher — the depth-4 piece re-explains session affinity under a
+  heading that restates depth 2's conclusion, adding only the cookie names, and
+  then restates that conclusion again in different words.
+
+A candidate cause, untested: depth 4 is told to "assume all level-3 material
+and do not restate it", naming level 3 alone, while depth 5 is told to "assume
+everything below". So depth 4 has never been told to assume depth 2, and depth
+2 owns exactly the material both failures re-teach — the relationships between
+the moving parts. Widening depth 4's assume-clause the way depth 5 already
+words it is the obvious thing to try, and it is a hypothesis about two failures,
+which is thin.
+
+Note that this fault was invisible for seven runs. The suite compared the
+widest pair, where nesting has little chance to occur, and reported 0/8 every
+time. The claim the rubric actually makes was the one going unmeasured.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
