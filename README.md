@@ -111,8 +111,8 @@ The tools it uses:
 | `halflife_subscribe` / `halflife_list_subscriptions` | create and list subscriptions |
 | `halflife_plan_brief` / `halflife_record_plan` | sketch a new series' arc — once per subscription |
 | `halflife_list_due` | what is due now |
-| `halflife_next_brief` | the prompt, depth, word budget, ledger and open threads |
-| `halflife_record_issue` | saves the issue, updates the ledger, advances the schedule |
+| `halflife_next_brief` | the prompt, depth, word budget, ledger, open threads and reader feedback |
+| `halflife_record_issue` | saves the issue and which plan entry it took, updates the ledger, advances the schedule |
 | `halflife_pending_reads` / `halflife_read` | what is waiting, and its text |
 | `halflife_feedback` | `too_basic` / `just_right` / `too_advanced` move depth; `already_knew` / `wrong_subject` move the subject |
 | `halflife_compaction_brief` / `halflife_record_compaction` | compress the ledger when it outgrows a prompt |
@@ -154,16 +154,38 @@ reversible, and there is no reason a model needs to remove your reading history.
 
 ## How a series stays coherent
 
-Three pieces of state, rather than one prose summary:
+Four pieces of state, rather than one prose summary:
 
 * a **plan** — an advisory arc drawn once per subscription, so the series does not random-walk
   around the topic;
 * a **coverage ledger** — append-only, one short claim per line, fed into every generation as
   ground that may be referred to but not re-explained;
-* **open threads** — things an issue deliberately deferred, which the next one picks up or drops.
+* **open threads** — things an issue deliberately deferred, which the next one picks up or drops;
+* **your feedback** — see below.
 
 Each generation returns the body *and* the updated bookkeeping together, so the ledger cannot
-drift from what was actually written. `halflife series <sub>` shows all three.
+drift from what was actually written. `halflife series <sub>` shows the first three.
+
+The plan is annotated rather than merely listed. Each generation reports which plan entry it
+actually covered, so entries show as written, as struck out where you rejected them, or as
+untouched — and an entry the series skipped is visibly different from one it covered. Deviating
+from the plan is allowed, which is exactly why position in the series is not evidence of what was
+covered.
+
+## Feedback has two axes
+
+Saying an issue missed is not the same as saying it was pitched wrong, and collapsing the two
+loses the more useful half.
+
+* **Level** — `too_basic` and `too_advanced` move the subscription's depth one step, clamped to
+  1–5. This is the main way it learns to pitch itself for you.
+* **Subject** — `already_knew` and `wrong_subject` say the level was right and the ground was
+  wrong. They leave depth alone. Instead the rejection reaches the next generations directly:
+  recent ones are spelled out, and the rejected plan entry stays struck out for the life of the
+  series.
+
+Unlike the depth rubric and the coverage ledger, this is not measured yet. It is a mechanism with
+a rationale, not a result.
 
 ## Design and constraints
 
@@ -251,7 +273,12 @@ Nothing in `tests/` touches the network:
 
 # Appendix B: schema changes
 
-Alembic owns the schema; there is no `create_all` path.
+Alembic owns the schema; there is no `create_all` path. After pulling a change that adds a
+migration, re-run `halflife init` — it is idempotent and reports when there was nothing to do:
+
+```bash
+.venv/bin/halflife init
+```
 
 ```bash
 .venv/bin/alembic revision --autogenerate -m "what changed"
