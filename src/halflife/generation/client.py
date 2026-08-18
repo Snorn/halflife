@@ -55,9 +55,12 @@ def _sdk_supports_fallbacks(client: anthropic.Anthropic) -> bool:
     Catching TypeError to discover this was a trap: the SDK also raises
     TypeError when it cannot resolve credentials, so a missing key looked
     exactly like an old SDK.
+
+    Inspects ``stream`` because that is what generation calls. Checking
+    ``create`` instead would be asking about a method this code never reaches.
     """
     try:
-        return "fallbacks" in inspect.signature(client.beta.messages.create).parameters
+        return "fallbacks" in inspect.signature(client.beta.messages.stream).parameters
     except (TypeError, ValueError):  # pragma: no cover - signature not introspectable
         return False
 
@@ -133,13 +136,19 @@ class GenerationClient:
         If the *server* rejects the fallbacks beta, drop it for the rest of the
         process rather than failing the user's generation over it. Any other
         bad request is a real error and is raised.
+
+        Streamed, because ``max_tokens`` is large enough that the SDK refuses a
+        non-streaming request outright: anything that could run past ten minutes
+        has to stream. The assembled final message is the same shape the
+        non-streaming call returned, so nothing downstream changes.
         """
         try:
             if self._use_fallbacks:
                 try:
-                    return self._client.beta.messages.create(
+                    with self._client.beta.messages.stream(
                         **params, betas=[_FALLBACK_BETA], fallbacks="default"
-                    )
+                    ) as stream:
+                        return stream.get_final_message()
                 except anthropic.BadRequestError as exc:
                     if "fallback" not in str(exc).lower():
                         raise
@@ -147,7 +156,8 @@ class GenerationClient:
                         "Server rejected the fallbacks beta, continuing without it: %s", exc
                     )
                     self._use_fallbacks = False
-            return self._client.messages.create(**params)
+            with self._client.messages.stream(**params) as stream:
+                return stream.get_final_message()
         except TypeError as exc:
             # The SDK reports unresolvable credentials as a TypeError from
             # header validation, which is otherwise a very confusing traceback.

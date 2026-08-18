@@ -8,6 +8,8 @@ when it cannot resolve credentials — so a missing API key was reported as
 
 from __future__ import annotations
 
+import contextlib
+
 import anthropic
 import httpx
 import pytest
@@ -32,15 +34,23 @@ def _bad_request(message: str) -> anthropic.BadRequestError:
 
 
 class _Endpoint:
+    """Stands in for ``client.messages`` / ``client.beta.messages``.
+
+    Generation streams, so the error under test has to surface from entering
+    the stream context rather than from a plain call.
+    """
+
     def __init__(self, error: Exception | None = None) -> None:
         self.error = error
         self.calls = 0
 
-    def create(self, **kwargs):
+    @contextlib.contextmanager
+    def stream(self, **kwargs):
         self.calls += 1
         if self.error:
             raise self.error
         raise AssertionError("unexpected successful call in this test")
+        yield  # pragma: no cover - unreachable, but makes this a generator
 
 
 class _FakeSDK:
