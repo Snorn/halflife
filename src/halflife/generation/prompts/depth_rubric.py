@@ -108,6 +108,29 @@ variance, not a property of particular topics. The shape of the miss is stable
 too, and is the seam recorded above: the vocabulary is correctly withheld, and
 the piece then maps relationships and walks a scenario end to end anyway.
 
+v4 changes depth 1 alone, and does not add a rule. v3 already said not to map
+how the parts interconnect and not to walk a scenario end to end, and the two
+misses in the wide-set run did both of those things — so the rule is not
+missing, it is being ignored, which is the third time this file has recorded
+that pattern. Both previous times the fix was the same: give the rule a
+concrete test the writer can run against its own draft, as depth 5 got with
+"name the artefact" and depth 1's vocabulary rule got with "replace the term
+with an ordinary description".
+
+So v4 names the two tells the judge actually convicted on — a sequence of
+steps, and a paragraph whose subject is a part rather than the thing — and asks
+for a check against each. It also says what to spend the words on instead,
+because a ban with nothing behind it produces padding, and the level's stated
+failure mode is thinness. And it names the quiet failure explicitly: a piece
+that withholds the vocabulary correctly, exactly as asked, and then explains
+the mechanism anyway.
+
+Whether it works is unmeasured. Depth 1 has a stable rate and unstable
+membership, so a single run cannot tell a real improvement from the swap that
+happened between the last two runs — this needs repeated runs against the wide
+set before anyone believes a number, and 6/8 is a high enough base that a real
+effect is a small effect.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
@@ -116,7 +139,7 @@ before iterating again, and repeat runs before believing a two-point move.
 
 from __future__ import annotations
 
-DEPTH_RUBRIC_VERSION = "3"
+DEPTH_RUBRIC_VERSION = "4"
 
 DEPTH_RUBRIC = """\
 ## Depth rubric
@@ -138,8 +161,23 @@ becomes a depth-2 piece.
 
 Stay on the one thing. Do not map the surrounding landscape — no comparison against sibling or
 adjacent components, no disambiguation from what it gets confused with, no account of how the
-parts interconnect — and do not walk a scenario end to end. All of that is depth 2.
-*Failure at this level: a glossary entry with no "so what" — correct and useless.*
+parts interconnect — and do not walk a scenario end to end. All of that is depth 2, and taking
+it here leaves depth 2 with nothing to say.
+
+Two tells, both taken from real depth-1 drafts that were judged depth 2. Check the draft for
+each before answering:
+
+* **A sequence.** If a passage runs *first this happens, then that, then the other*, you have
+  walked a scenario. Give the outcome and cut the steps that produce it.
+* **A second subject.** If a paragraph is about one of the thing's parts, or about something it
+  talks to, rather than about the thing itself, it belongs to depth 2.
+
+Spend the words on the problem instead: what goes wrong without it, who feels that, what it
+costs them, and one concrete situation in which the reader would meet it. That is what keeps
+orientation from thinning into a glossary entry.
+*Failure at this level: a glossary entry with no "so what" — correct and useless. The other
+failure is quieter and more common: a piece that withholds the vocabulary correctly, exactly as
+asked, and then explains the mechanism anyway. That is depth 2 written in plain language.*
 
 **Depth 2 — Working literacy.** The reader could follow a conversation about it and recognise
 when it is relevant to their work. This level owns **the vocabulary and the relationships**: the
