@@ -37,7 +37,12 @@ sys.path.insert(0, str(ROOT / "src"))
 # These runs take minutes per suite and print progress as they go. Without line
 # buffering the output arrives in one block at the end, and a working run is
 # indistinguishable from a hung one.
-sys.stdout.reconfigure(line_buffering=True)
+#
+# errors="replace" because everything printed here is model-generated text and
+# the console is not necessarily UTF-8. A run died 32 calls in when a judge
+# wrote an arrow, which cp1252 cannot encode: losing a character from a
+# rationale is a nuisance, losing the run is $2.57 and forty minutes.
+sys.stdout.reconfigure(line_buffering=True, errors="replace")
 
 from halflife import pricing  # noqa: E402
 from halflife.config import get_settings  # noqa: E402
