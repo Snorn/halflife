@@ -131,6 +131,41 @@ happened between the last two runs — this needs repeated runs against the wide
 set before anyone believes a number, and 6/8 is a high enough base that a real
 effect is a small effect.
 
+Sixth run, first against v4 (56 calls, $4.50, effort medium): 23/24, with
+depth 1 at 8/8 — the first clean sweep of that level — depth 5 at 8/8, and
+disjointness 0/8. All three topics that had ever missed depth 1 came back
+clean, TLS certificate chains for the first time in three attempts, and the
+judge's reasons quote v4's test back almost verbatim: "orientation plus stakes,
+no parts, no walked scenario".
+
+That is suggestive and not settled. Against the 6/8 base rate a clean sweep
+comes up about one run in ten by chance, and this run carries its own warning
+about variance: depth 3 fell to 7/8 on a topic whose rubric text v4 did not
+touch. A level that moves without its rule changing is the reason two more runs
+are needed before anyone treats 8/8 as the new rate.
+
+The miss is worth more than the improvement, and is what v5 answers. Blameless
+incident review was judged 4 at depth 3: it assumed the vocabulary correctly
+and then delivered experience-taught judgement — power dynamics, timing
+windows, a named disagreement between Google SRE and Allspaw — because depth
+3's concreteness test asked for "real configuration, commands, or API shapes"
+and a practice topic has none of those. Depth 5 had already been given artefact
+classes so it could generalise past software, and it did, on literature. Depth
+3 had not, so a topic with nothing to configure had nowhere to be concrete and
+reached up a level for material.
+
+v5 therefore gives depth 3 the same treatment depth 5 got in v3: name what
+concreteness *is* for practice and process topics — the artefact and its
+fields, the step order, who is in the room and for how long, the question in
+the words you would use, the threshold at which you act — and say plainly that
+having nothing to configure is not a licence to reach for judgement. Its
+failure note now names the inverted failure too, since on those topics the
+level fails by arriving early rather than by hedging.
+
+Only the wide topic set could surface this. The original four are all
+configurable software, so depth 3 looked like the most reliable level in the
+rubric for five runs; it was untested rather than solid.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
