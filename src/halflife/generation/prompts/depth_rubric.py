@@ -237,6 +237,19 @@ Note that this fault was invisible for seven runs. The suite compared the
 widest pair, where nesting has little chance to occur, and reported 0/8 every
 time. The claim the rubric actually makes was the one going unmeasured.
 
+v6 acts on the candidate cause above: depth 4 now assumes everything below
+rather than level 3 alone, worded as depth 5 already words it, and names the
+two tells the judge convicted on — an example re-run with different numbers,
+and a conclusion restated with one detail appended. It also says why the fault
+is easy to commit, which is the pattern that worked at depth 1 in v4: re-
+teaching a relationship feels like setting up the interaction you are about to
+describe.
+
+Fitted to two failures, so it is thin, and the run that checks it is
+deliberately narrow — the two topics that failed, the nearest-miss control that
+passed at 12 references, and the practice topic, which has produced a finding
+in each of the last three runs.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
@@ -245,7 +258,7 @@ before iterating again, and repeat runs before believing a two-point move.
 
 from __future__ import annotations
 
-DEPTH_RUBRIC_VERSION = "5"
+DEPTH_RUBRIC_VERSION = "6"
 
 DEPTH_RUBRIC = """\
 ## Depth rubric
@@ -316,7 +329,19 @@ in for the concrete practice, which is depth 4 arriving a level early.*
 **Depth 4 — Non-obvious.** The reader is competent at level 3 and wants what experience teaches.
 Cover interactions between features; why it is built the way it is; second-order effects;
 performance and failure characteristics under load; the cases where the obvious answer is wrong.
-Assume all level-3 material and do not restate it.
+
+**Assume everything below and restate none of it.** Not level 3's configuration, and not depth
+2's account of how the parts relate — that second one is what actually gets re-taught here, and
+it is easy to miss, because re-teaching a relationship feels like setting up the interaction you
+are about to describe. Two tells, both from real depth-4 drafts convicted of re-explaining
+depth 2:
+
+* **A re-illustrated example.** Running depth 2's example again with different numbers teaches
+  nothing. If the numbers are the only thing that changed, cut it.
+* **A restated conclusion.** A heading or a sentence that says what depth 2 already concluded,
+  with one further detail appended, is a restatement with decoration. Put the conclusion in a
+  clause and spend the sentence on what follows from it.
+
 *Failure: level-3 content at greater length. If a competent practitioner would say "yes, I know
 that", cut it.*
 
