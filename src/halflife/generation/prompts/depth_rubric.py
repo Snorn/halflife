@@ -166,6 +166,41 @@ Only the wide topic set could surface this. The original four are all
 configurable software, so depth 3 looked like the most reliable level in the
 rubric for five runs; it was untested rather than solid.
 
+Seventh run, first against v5 (56 calls, $4.42, effort medium): 24/24, every
+level 8/8, disjointness 0/8. Both open questions closed as well as this
+instrument can close them.
+
+Depth 1 swept a second consecutive time. Two clean sweeps against a 6/8 base
+is about one run in a hundred by chance, which is the replication v4 was
+recorded as needing. The judge's reasons keep naming the test rather than the
+outcome — TLS certificate chains, which failed this level twice before v4, was
+credited with "only a light scenario used to illustrate the cost rather than
+teach the mechanism", which is the distinction v4 draws rather than a blanket
+avoidance of scenarios.
+
+Depth 3 on blameless incident review went 4 to 3, and the reason reads as v5's
+list handed back: "artefact fields, timings, agenda minutes, verbatim
+questions, thresholds for action — exactly depth 3's 'what a competent person
+does' for a process topic". One cell, so the effect is single-topic, but it is
+the cell the change was written for and the mechanism is visible in the
+verdict.
+
+The honest conclusion is about the instrument rather than the rubric: at 24/24
+this eval has no headroom left. It cannot now detect a further improvement, and
+it cannot detect a mild regression either, so running it again buys nothing
+until it is made harder. Two things would make it informative again, in order
+of value:
+
+* **Measure depths 2 and 4.** The suite has only ever tested 1, 3 and 5. Every
+  miss in seven runs was a piece landing in an untested neighbour — depth 1
+  judged 2, depth 3 judged 4 — so the levels doing the absorbing have never
+  themselves been graded. Adding them is 5 depths against 8 topics, 40
+  generations plus judging, and it is the obvious next spend.
+* **Harder topics.** Seven of the eight are technical, and the one practice
+  topic is what produced both of the last two findings. A set weighted the
+  other way would test whether the artefact classes hold or whether they were
+  fitted to a single example.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
