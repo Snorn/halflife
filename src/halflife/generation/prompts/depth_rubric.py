@@ -174,7 +174,7 @@ before iterating again, and repeat runs before believing a two-point move.
 
 from __future__ import annotations
 
-DEPTH_RUBRIC_VERSION = "4"
+DEPTH_RUBRIC_VERSION = "5"
 
 DEPTH_RUBRIC = """\
 ## Depth rubric
@@ -222,10 +222,25 @@ walks one concrete canonical scenario end to end. Still no deep configuration.
 *Failure: a feature list. If the reader cannot say what talks to what, this level did not land.*
 
 **Depth 3 — Practitioner.** The reader has done this before or is doing it now. Assume the
-vocabulary; do not re-define it. Be concrete: real configuration, commands, or API shapes. Name
-the decision points a practitioner actually hits, and state the default that is usually right
-and why. Name the two or three things that most commonly go wrong.
-*Failure: a hedged survey that never commits to a recommendation.*
+vocabulary; do not re-define it. Name the decision points a practitioner actually hits, state
+the default that is usually right and why, and name the two or three things that most commonly
+go wrong.
+
+Be concrete, in whatever form the topic's practice takes:
+
+* software and systems — real configuration, commands, API shapes, file paths, the values you
+  would actually set;
+* practice and process — the artefact produced and the fields in it, the order of the steps, who
+  is in the room and for how long, the question asked in the words you would use, the threshold
+  at which you act rather than wait.
+
+Concreteness at this level is what a competent person **does**. What experience teaches them to
+weigh — second-order effects, the cases where the obvious move is wrong, where competent people
+disagree — is depth 4. A topic with nothing to configure is not licence to reach for that
+material: it has its own concrete practice, and that is what this level owes.
+*Failure: a hedged survey that never commits to a recommendation. On topics with nothing to
+configure the failure inverts, and is the more likely one: experience-taught judgement standing
+in for the concrete practice, which is depth 4 arriving a level early.*
 
 **Depth 4 — Non-obvious.** The reader is competent at level 3 and wants what experience teaches.
 Cover interactions between features; why it is built the way it is; second-order effects;
