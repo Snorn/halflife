@@ -270,6 +270,32 @@ failures and then checked on them, n=2, one judge. The claim it supports is
 2-vs-4 pair is solved. The next full run is what would say that, and it should
 be read for that pair before anything else.
 
+Tenth run, nine topics, and the first test of v6 against topics it was not
+fitted to (106 of 108 calls, $8.63): 44/45, and no disjointness failure in any
+of the sixteen pair checks that completed.
+
+That answers the question v6 was left with. It was written against two failures
+and then checked on those same two; the 2-vs-4 pair is now clean on six further
+topics it was never tuned against, including both practice topics, where depth
+2's account of the relationships is the only thing depth 4 has to lean on.
+Depth 3 on giving feedback also passed on its first outing in the standing set,
+which is v5's practice artefact class holding on a topic it was not written
+against — it had rested on blameless incident review alone until now.
+
+The single miss is TLS certificate chains at depth 4, judged 5, on named
+OpenSSL flags, an RFC section and a dated CA expiry. Depth 4 held on the other
+eight, so the likeliest reading is that TLS has the richest artefact supply in
+the set and a depth-4 piece there reaches for citations whatever the rubric
+says. It is still the level v6 rewrote, and the first depth-4 miss ever
+recorded, so it wants a second run before it is dismissed as topic noise.
+
+Two caveats on the run itself. A judge call overran its token ceiling on the
+last topic, so its two pair checks never ran and the numbers above were
+reconstructed from the log rather than reported by the harness; the suite no
+longer discards a run over one failed call. That topic was re-run alone
+afterwards and scored 5/5 with both pairs clean, on freshly generated pieces —
+which is a separate sample, not the missing cells filled in.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
