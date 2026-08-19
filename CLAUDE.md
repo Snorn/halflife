@@ -107,3 +107,8 @@ inspect is worse than an admitted gap. That mistake has been made once already, 
   FastAPI, all go through them.
 - Tests that assert on model output belong in `evals/`, not `tests/`. `tests/` must be deterministic and
   offline.
+- **The product name is `HalfLife` in prose, everywhere.** Two spellings are not the name and must not be
+  "corrected": code identifiers (the `halflife` command, `halflife-mcp`, the `halflife_*` MCP tools,
+  `HALFLIFE_*` variables, import paths, the repository URL) are API surface, and the physics term in
+  "every skill has a half-life" is a different word. `tests/test_naming.py` enforces this across the
+  README, this file, the microsite, `NOTICE`, the evals README and the design doc.
