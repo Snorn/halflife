@@ -24,6 +24,14 @@ the seam. The API path (`generate_next`) stays for evals and prompt tuning, wher
 is the whole point; the harness path serves anyone without API access. Every `Delivery` records
 `source` (`api` | `harness`), and `model_id` / `effort` are nullable rather than guessed.
 
+**Gate on step 4 — dependencies must be locked before anything is deployed.** `pyproject.toml`
+declares floor pins (`anthropic>=0.69`, `mcp>=2.0`, and six others) and there is no lockfile, so
+two installs a week apart resolve to different code. That is fine for a single machine where the
+person running it is the person who broke it, and it is how a supply-chain compromise reaches a
+server: a transitive release lands between builds and nothing records what was there before. Add
+a lockfile and pin the image build to it as part of containerisation, not after. Raised by static
+review 2026-08-19; nothing else from that pass is outstanding.
+
 **Do NOT scaffold, stub, or add config for:** Kubernetes, Helm, Dockerfiles, SSO/OIDC/Keycloak, multi-tenant
 auth, dashboards, the skill graph, or connectors. Not "just a placeholder", not "while we're here". If a
 step-1 change seems to need one of these, say so and stop rather than adding it.
