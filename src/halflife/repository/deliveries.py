@@ -8,19 +8,32 @@ from sqlalchemy.orm import Session
 from halflife import LOCAL_TENANT_ID
 from halflife.models.base import Feedback, utcnow
 from halflife.models.delivery import Delivery
+from halflife.repository._prefix import prefix_match
 
 
-def get(session: Session, delivery_id: str) -> Delivery | None:
-    return session.get(Delivery, delivery_id)
+def get(
+    session: Session, delivery_id: str, *, tenant_id: str = LOCAL_TENANT_ID
+) -> Delivery | None:
+    """Fetch by id, within one tenant. Another tenant's row reads as absent."""
+    delivery = session.get(Delivery, delivery_id)
+    if delivery is None or delivery.tenant_id != tenant_id:
+        return None
+    return delivery
 
 
-def get_by_prefix(session: Session, prefix: str) -> Delivery | None:
-    matches = [
-        d for d in session.scalars(select(Delivery)).all() if d.id.startswith(prefix)
-    ]
-    if len(matches) == 1:
-        return matches[0]
-    return None
+def get_by_prefix(
+    session: Session, prefix: str, *, tenant_id: str = LOCAL_TENANT_ID
+) -> Delivery | None:
+    if not prefix:
+        return None
+    stmt = (
+        select(Delivery)
+        .where(Delivery.tenant_id == tenant_id)
+        .where(prefix_match(Delivery.id, prefix))
+        .limit(2)
+    )
+    matches = list(session.scalars(stmt).all())
+    return matches[0] if len(matches) == 1 else None
 
 
 def list_recent(

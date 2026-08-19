@@ -82,3 +82,60 @@ def test_advance_schedule_anchors_to_now_not_to_the_missed_slot(session):
 
     assert sub.next_due_at == now + timedelta(days=1)
     assert subscription_repo.list_due(session) == []
+
+
+# ------------------------------------------------------------------ tenancy
+
+
+OTHER_TENANT = "another-tenant"
+
+
+def test_lookup_by_id_will_not_cross_tenants(session):
+    """Step 1 has one tenant, so this is latent — but a repository that can
+    return another tenant's row makes correctness the caller's problem, and
+    step 3 has a lot of callers."""
+    sub = _subscribe(session)
+
+    assert subscription_repo.get(session, sub.id) is sub
+    assert subscription_repo.get(session, sub.id, tenant_id=OTHER_TENANT) is None
+
+
+def test_prefix_lookup_will_not_cross_tenants(session):
+    sub = _subscribe(session)
+
+    assert subscription_repo.get_by_prefix(session, sub.id[:8]) is sub
+    assert subscription_repo.get_by_prefix(session, sub.id[:8], tenant_id=OTHER_TENANT) is None
+
+
+def test_a_wildcard_prefix_matches_nothing(session):
+    """The prefix arrives from a CLI argument or a model-supplied tool call.
+    Under a bare LIKE, % would match every row and hand back a record the
+    caller never named."""
+    _subscribe(session)
+
+    assert subscription_repo.get_by_prefix(session, "%") is None
+    assert subscription_repo.get_by_prefix(session, "_") is None
+    assert subscription_repo.get_by_prefix(session, "") is None
+
+
+def test_an_underscore_is_matched_literally(session):
+    """_ is a single-character wildcard in LIKE, so escaping has to leave it
+    matching only itself."""
+    sub = _subscribe(session)
+    real = sub.id
+
+    assert subscription_repo.get_by_prefix(session, real[0] + "_") is None
+    assert subscription_repo.get_by_prefix(session, real[:8]) is sub
+
+
+def test_an_ambiguous_prefix_still_returns_nothing(session):
+    """Two rows share a prefix here only because they are given one; the point
+    is that limiting the query did not turn ambiguity into a wrong answer."""
+    first = _subscribe(session, "a, 3, 5, 1d")
+    second = _subscribe(session, "b, 3, 5, 1d")
+    first.id = "shared-prefix-1"
+    second.id = "shared-prefix-2"
+    session.flush()
+
+    assert subscription_repo.get_by_prefix(session, "shared-prefix") is None
+    assert subscription_repo.get_by_prefix(session, "shared-prefix-1") is first

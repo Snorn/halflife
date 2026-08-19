@@ -23,6 +23,7 @@ from halflife.models.base import (
     utcnow,
 )
 from halflife.models.subscription import Subscription
+from halflife.repository._prefix import prefix_match
 from halflife.shorthand import ParsedSubscription
 
 
@@ -50,20 +51,38 @@ def create(
     return subscription
 
 
-def get(session: Session, subscription_id: str) -> Subscription | None:
-    return session.get(Subscription, subscription_id)
+def get(
+    session: Session, subscription_id: str, *, tenant_id: str = LOCAL_TENANT_ID
+) -> Subscription | None:
+    """Fetch by id, within one tenant.
+
+    A row belonging to another tenant reads as absent rather than raising,
+    because the caller was never entitled to know it exists.
+    """
+    subscription = session.get(Subscription, subscription_id)
+    if subscription is None or subscription.tenant_id != tenant_id:
+        return None
+    return subscription
 
 
-def get_by_prefix(session: Session, prefix: str) -> Subscription | None:
-    """Look up by an id prefix, so the CLI can take the short form shown in `ls`."""
-    matches = [
-        s
-        for s in session.scalars(select(Subscription)).all()
-        if s.id.startswith(prefix)
-    ]
-    if len(matches) == 1:
-        return matches[0]
-    return None
+def get_by_prefix(
+    session: Session, prefix: str, *, tenant_id: str = LOCAL_TENANT_ID
+) -> Subscription | None:
+    """Look up by an id prefix, so the CLI can take the short form shown in `ls`.
+
+    Ambiguous and unmatched both return None, so two rows are limit-ed rather
+    than counted — the third onwards changes nothing a caller can act on.
+    """
+    if not prefix:
+        return None
+    stmt = (
+        select(Subscription)
+        .where(Subscription.tenant_id == tenant_id)
+        .where(prefix_match(Subscription.id, prefix))
+        .limit(2)
+    )
+    matches = list(session.scalars(stmt).all())
+    return matches[0] if len(matches) == 1 else None
 
 
 def list_all(
