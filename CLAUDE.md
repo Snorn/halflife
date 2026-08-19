@@ -8,7 +8,8 @@ constraints that must hold in code; read the design doc for the "why".
 
 1. ✅ **Micro-learning generation engine, standalone, against SQLite.** Depth rubric + series
    continuity, driven from a CLI.
-2. ✅ **MCP server + in-harness delivery** (`halflife-mcp`), targeting Claude Code and Claude Cowork.
+2. ✅ **MCP server + in-harness delivery and extraction** (`halflife-mcp`), targeting Claude Code
+   and Claude Cowork. Extraction runs only when the user asks for it — there is no ambient capture.
 3. Wrap in FastAPI; move to Postgres; add tenancy enforcement.
 4. Containerise → Helm → k3d → EKS.
 
@@ -48,8 +49,9 @@ step-1 change seems to need one of these, say so and stop rather than adding it.
   - As of step 2 there are two backends. **API generation** is the control-plane path, used for
     evals and prompt tuning, and is the only one whose output is comparable across deliveries.
     **Harness generation** runs the same prompts through the user's own tool via MCP, for
-    deployments where API access is not available. Extraction (step 2's other half, not yet built)
-    is a local agent function using the harness model. Do not add a third path.
+    deployments where API access is not available. **Extraction** is step 2's other half and is
+    now built: a local agent function using the harness model, on the same brief/record seam, so
+    conversation text is never an argument to anything in this codebase. Do not add a third path.
 
 ## The privacy boundary — non-negotiable
 
@@ -58,9 +60,10 @@ step-1 change seems to need one of these, say so and stop rather than adding it.
 - Signal body is exactly: `topics[]`, `signal_type`, `confidence`, `context_category`, `session_id`,
   `evidence`. Envelope: `schema_version`, `signal_id`, `tenant_id`, `user_id`, `timestamp`,
   `agent {harness, agent_version, extraction_prompt_version}`.
-- **`evidence` is permanently `null` in v1.** The column will be nullable and nothing will write to it. It
-  is there so the privacy stance is auditable, not because it is a staging area. Do not populate it, do not
-  add an "opt-in" flag for it, do not add a debug mode that fills it.
+- **`evidence` is permanently `null` in v1.** The column exists, is nullable, and nothing writes it —
+  `repository.signals.assert_no_content` refuses any row that carries one, so this is enforced rather than
+  intended. It is there so the privacy stance is auditable, not because it is a staging area. Do not
+  populate it, do not add an "opt-in" flag for it, do not add a debug mode that fills it.
 - `session_id` is a **hash**. No conversation IDs, no user text, no model output, no prompt text, no
   duration or keystroke telemetry — not in the DB, not in logs, not in error payloads.
 - `signal_type` is a coarse behavioural verb, never a numeric score:
@@ -72,10 +75,14 @@ step-1 change seems to need one of these, say so and stop rather than adding it.
 - The extraction prompt is versioned and identical across harnesses. The topic taxonomy never ships to the
   agent — topics are free text at the edge, normalised centrally.
 
-**Tense matters here.** None of the above is built: there is no signal table, no `evidence` column, and no
-code that writes either. The schema is fixed as a specification, and that is the whole of what exists — so
-this section says what must hold *when it is built*, not what holds today. Do not describe any of it in a
-README, a site, or a commit message as though it were already in the schema; a claimed control nobody can
+**What is built, precisely.** The signal table exists and extraction writes to it, on request only. The
+`evidence` column exists and is refused a value. There is no read path for individual signals and no
+aggregate surface beyond a window count — nothing consumes signals yet, and the control plane that would
+does not exist.
+
+The tense of this section still matters. Everything above about aggregation, org admins and the control
+plane describes what must hold *when there is one*, not what holds today. Do not describe any unbuilt part
+in a README, a site or a commit message as though it were already there; a claimed control nobody can
 inspect is worse than an admitted gap. That mistake has been made once already, from this very wording.
 
 ## Data model rules
@@ -101,8 +108,9 @@ inspect is worse than an admitted gap. That mistake has been made once already, 
 
 ## Conventions
 
-- Prompts live in `generation/prompts/` as versioned Python constants, never inline f-strings at the call
-  site. Changing a prompt means bumping its version.
+- Prompts live in a `prompts` module as versioned Python constants, never inline f-strings at the call
+  site — `generation/prompts/` for the writing prompts, `extraction/prompts.py` for the signal one.
+  Changing a prompt means bumping its version, and every row it produced records that version.
 - Repositories (`repository/`) are the only place that touches the session; the CLI, and later MCP and
   FastAPI, all go through them.
 - Tests that assert on model output belong in `evals/`, not `tests/`. `tests/` must be deterministic and

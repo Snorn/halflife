@@ -31,6 +31,19 @@ Your harness writes the issues using its own model. No API key is needed.
 
 Steps 3-5 are the daily habit. Steps 1-2 happen once per topic.
 
+## Logging what you worked on
+
+Separately from the loop, you can ask your harness to log a working session: *"log what I worked
+on"*. It classifies the conversation it is already in and records subject names and one of seven
+behavioural verbs — asked about it, explained it, applied it, struggled with it, and so on.
+
+Nothing about the conversation itself goes anywhere. The tool is never sent the session; your
+harness reads it, and what comes back is subjects and verbs, with no field in which anything else
+could travel. It only ever runs when you ask.
+
+What this is for is knowing which subjects are decaying without you having to tell it. Nothing
+reads these signals back yet — there is no surface built on them.
+
 ## Things to say to your harness
 
 - *"Subscribe me to Kubernetes admission controllers at depth 4, five minutes, daily."*
@@ -40,6 +53,7 @@ Steps 3-5 are the daily habit. Steps 1-2 happen once per topic.
 - *"Read me the latest issue."*
 - *"That was too advanced."* — or *"that was pitched about right."*
 - *"What has the SAP Web Dispatcher series covered so far?"*
+- *"Log what I worked on."* — records subjects and verbs from this session, nothing else.
 - *"What is HalfLife and how do I use it?"* — returns this guide.
 
 ## Choosing a depth
@@ -74,6 +88,7 @@ daily; `weekly` suits maintaining series, and `hourly` exists for cramming.
 | `halflife_pending_reads` / `halflife_read` | what is waiting, and its text |
 | `halflife_feedback` | `too_basic` / `just_right` / `too_advanced` (level), `already_knew` / `wrong_subject` (subject) |
 | `halflife_compaction_brief` / `halflife_record_compaction` | compress the ledger when it grows too long |
+| `halflife_extraction_brief` / `halflife_record_signals` | classify a session into subjects and verbs, when you ask |
 | `halflife_help` | this guide |
 
 ## Commands

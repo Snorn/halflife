@@ -25,8 +25,9 @@ from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 
-from halflife import __version__, guide
+from halflife import __version__, extraction, guide
 from halflife.db import session_scope
+from halflife.extraction import ExtractedSignal
 from halflife.generation import engine
 from halflife.generation.schemas import GeneratedIssue, PlannedIssue
 from halflife.models.base import Feedback, GenerationSource
@@ -458,6 +459,74 @@ def halflife_subscribe(spec: str) -> str:
                 "duration_minutes": subscription.duration_minutes,
                 "frequency": subscription.frequency.value,
                 "flavour": subscription.flavour.value,
+            }
+        )
+
+
+@server.tool()
+def halflife_extraction_brief() -> str:
+    """Get the prompt for classifying the session you are in, when the user asks.
+
+    Call this only when the user asks for their session to be logged. Nothing
+    here runs on its own, and nothing should be recorded without them asking.
+
+    Returns a system prompt and a user prompt to follow exactly, plus the
+    vocabularies the classification must use. Follow them, then call
+    halflife_record_signals with the result — or call nothing, if the session
+    produced nothing worth recording, which is a normal outcome.
+
+    You classify the conversation yourself. The conversation is never sent
+    anywhere: what goes back are subject names and behavioural verbs, and there
+    is no field in which anything else could travel.
+    """
+    brief = extraction.build_extraction_brief()
+    return _ok(
+        {
+            "system_prompt": brief.system_prompt,
+            "user_prompt": brief.user_prompt,
+            "extraction_prompt_version": brief.prompt_version,
+            "signal_types": brief.signal_types,
+            "confidence_levels": brief.confidence_levels,
+            "context_categories": brief.context_categories,
+        }
+    )
+
+
+@server.tool()
+def halflife_record_signals(
+    signals: list[ExtractedSignal],
+    session_key: str,
+    harness: str,
+    agent_version: str = "unknown",
+) -> str:
+    """Save the classifications from halflife_extraction_brief.
+
+    Each signal is topics, signal_type, confidence and context_category, and
+    nothing else — no excerpts, no summaries, no identifiers. Send an empty
+    list, or do not call this at all, if the session produced nothing.
+
+    Args:
+        signals: the classifications, following the brief exactly.
+        session_key: any stable string identifying this session. It is hashed
+            on arrival and the hash is what is stored, so that two signals from
+            one sitting can be seen as related without the sitting being
+            identifiable. The value you pass is never stored or logged.
+        harness: which tool you are, e.g. "claude-code".
+        agent_version: your version, if you know it.
+    """
+    with session_scope() as session:
+        rows = extraction.record_signals(
+            session=session,
+            signals=signals,
+            session_key=session_key,
+            harness=harness,
+            agent_version=agent_version,
+        )
+        return _ok(
+            {
+                "recorded": len(rows),
+                "extraction_prompt_version": rows[0].extraction_prompt_version if rows else None,
+                "note": "Signals are write-only. There is no read path for individual signals.",
             }
         )
 

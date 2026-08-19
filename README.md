@@ -126,6 +126,7 @@ The tools it uses:
 | `halflife_pending_reads` / `halflife_read` | what is waiting, and its text |
 | `halflife_feedback` | `too_basic` / `just_right` / `too_advanced` move depth; `already_knew` / `wrong_subject` move the subject |
 | `halflife_compaction_brief` / `halflife_record_compaction` | compress the ledger when it outgrows a prompt |
+| `halflife_extraction_brief` / `halflife_record_signals` | classify a working session into subjects and behavioural verbs, only when you ask |
 | `halflife_help` | the built-in guide: the loop, depths, and everything above |
 
 You do not have to remember any of this. Ask your harness *"what is HalfLife and how do I use
@@ -207,14 +208,20 @@ before contributing:
 containerisation. Kubernetes, Helm, SSO and tenancy enforcement are explicitly *not* to be
 scaffolded ahead of time, not even as placeholders.
 
-**The privacy boundary is non-negotiable.** When the agent half is built, the control plane will
-see classifications and never content, and the signal body is specified down to its fields —
-including an `evidence` field that stays permanently null, so the stance can be audited rather
-than trusted.
+**The privacy boundary is non-negotiable, and now partly inspectable.** Ask your harness to log a
+session and it classifies the conversation *it is already in*, sending back subject names and one
+of seven behavioural verbs. The conversation is never passed to HalfLife — not withheld, never
+sent — and the recording function has no parameter that could carry it.
 
-Be clear about the tense, though: none of it is built. There is no signal table, no `evidence`
-column and no code that writes either. The specification is fixed in [CLAUDE.md](CLAUDE.md) and
-that is all it is today — a constraint on record, not a control you can inspect.
+The `evidence` column exists, is nullable, and is refused a value by the write path, so "nothing
+populates it" is a test rather than a promise. `session_id` is stored as a digest of whatever the
+harness calls the session, so two signals from one sitting relate without the sitting being
+identifiable.
+
+Still unbuilt, and worth stating plainly: nothing reads signals back. There is no aggregate
+surface beyond a count over a time window, no control plane, and no dashboard — so the parts of
+[CLAUDE.md](CLAUDE.md) about org admins and aggregation describe what must hold when there is
+one, not what holds today.
 
 ## Contributing
 

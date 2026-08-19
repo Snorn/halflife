@@ -1,3 +1,3 @@
-from halflife.repository import deliveries, series, subscriptions
+from halflife.repository import deliveries, series, signals, subscriptions
 
-__all__ = ["deliveries", "series", "subscriptions"]
+__all__ = ["deliveries", "series", "signals", "subscriptions"]

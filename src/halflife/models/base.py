@@ -112,5 +112,49 @@ class Feedback(str, enum.Enum):
         return self in {Feedback.TOO_BASIC, Feedback.JUST_RIGHT, Feedback.TOO_ADVANCED}
 
 
+class SignalType(str, enum.Enum):
+    """A coarse behavioural verb, never a score.
+
+    Verbs survive the variance between one harness's model and another's; a
+    number does not, and a number also invites being read as a competence
+    rating of the person, which no signal here is.
+    """
+
+    ASKED_BASIC = "asked_basic"
+    ASKED_ADVANCED = "asked_advanced"
+    EXPLAINED_TO_AI = "explained_to_ai"
+    APPLIED = "applied"
+    STRUGGLED = "struggled"
+    DELEGATED = "delegated"
+    TOPIC_SUBMISSION = "topic_submission"
+
+
+class Confidence(str, enum.Enum):
+    """How sure the extracting agent is of its own classification.
+
+    Not a competence score, and deliberately three coarse steps rather than a
+    float: a number here would be averaged by somebody eventually, and the
+    average of a model's self-assessment means nothing.
+    """
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class ContextCategory(str, enum.Enum):
+    """What kind of work the session was, not what it was about."""
+
+    CODING = "coding"
+    TROUBLESHOOTING = "troubleshooting"
+    RESEARCH = "research"
+    WRITING = "writing"
+    MEETING_PREP = "meeting-prep"
+
+
 MIN_DEPTH = 1
 MAX_DEPTH = 5
+
+# Bumped when the signal envelope or body changes shape, so a control plane can
+# tell which contract a stored row was written against.
+SIGNAL_SCHEMA_VERSION = "1"
