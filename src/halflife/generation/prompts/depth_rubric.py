@@ -195,13 +195,16 @@ of value:
   had only ever tested 1, 3 and 5, while every miss in seven runs was a piece
   landing in an untested neighbour — depth 1 judged 2, depth 3 judged 4 — so
   the levels absorbing the errors were never themselves graded. A 24/24 on the
-  odd levels is not a rubric known to work. The full set is now 96 calls,
-  around $7.70. Read the next run for depths 2 and 4 alone: the odd levels have
+  odd levels is not a rubric known to work. The full set is now 108 calls,
+  around $8.70. Read the next run for depths 2 and 4 alone: the odd levels have
   passed twice and will mostly restate what is already known.
-* **Harder topics.** Seven of the eight are technical, and the one practice
-  topic is what produced both of the last two findings. A set weighted the
-  other way would test whether the artefact classes hold or whether they were
-  fitted to a single example.
+* **Harder topics.** Seven of the eight were technical, and the one practice
+  topic produced both of the last two findings. A second one — giving feedback
+  to a direct report — has since been added, and scored 5/5 with both
+  disjointness pairs clean on its first run, reaching depth 5 on journal
+  citations rather than source symbols. Two is still not a weighting. A set
+  where the practice topics are the majority is what would say whether the
+  artefact classes hold or were fitted to a single example.
 
 Eighth run, and the first to grade all five levels (96 calls, $7.60, effort
 medium):

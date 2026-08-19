@@ -27,8 +27,8 @@ you what it spent. An unrecognised model reports tokens and no dollar figure rat
 one — if you change `HALFLIFE_MODEL_ID`, add it to `_PRICING` in
 [run_evals.py](run_evals.py).
 
-Rough scale at the time of writing: a depth run is 96 calls across eight topics at five depths
-(~$7.70 at effort=medium), plan-ab 15, continuity 9 per topic, distance 4 per series judged. `--topic` runs a
+Rough scale at the time of writing: a depth run is 108 calls across nine topics at five depths
+(~$8.70 at effort=medium), plan-ab 15, continuity 9 per topic, distance 4 per series judged. `--topic` runs a
 subset of the depth or continuity topics while iterating — but a subset is how three rubric
 revisions ended up fitted to four topics, so run the full set before believing a result.
 Generating

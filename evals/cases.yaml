@@ -35,7 +35,7 @@ depth:
   # the errors were never themselves graded. A rubric that scores 24/24 on the
   # odd levels while 2 and 4 go unmeasured is not a rubric known to work.
   #
-  # Eight topics across five depths is 96 calls, roughly $7.70 at effort=medium:
+  # Nine topics across five depths is 108 calls, roughly $8.70 at effort=medium:
   # five generations and five depth judgements per topic, plus two disjointness
   # checks — the widest pair, and depth 2 against depth 4, which is the pair the
   # rubric names in its own opening words and the harder of the two.
@@ -57,10 +57,15 @@ depth:
     # closed source, configurable
     - SAP Web Dispatcher
     - SAP HANA memory management
-    # practice — no source, no RFC, no vendor notes, and no version numbers.
-    # If depth 5 cannot be reached without artefacts to cite, the rubric has a
-    # hole, and it is better to find it here than in someone's subscription.
+    # practice — no source, no RFC, no vendor notes, no version numbers. Added
+    # to find out whether depth 5 is reachable without artefacts to cite, which
+    # would have been a hole in the rubric; it is, on literature. Both of these
+    # have since earned their place by producing findings the technical topics
+    # did not: the first exposed depth 3's concreteness test having no
+    # non-software form, and both are the only topics measuring whether the
+    # artefact classes generalise or were fitted to one example.
     - Blameless incident review
+    - Giving feedback to a direct report
 
 plan_ab:
   # Does the series plan earn the extra generation it costs at subscribe time?
