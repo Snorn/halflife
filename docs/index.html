@@ -61,7 +61,7 @@
     text-transform: uppercase; color: var(--ink-faint); margin: 0 0 20px;
   }
   .lede { font-size: clamp(1.1rem, 2.2vw, 1.3rem); color: var(--ink-soft); max-width: 60ch; }
-  .note { font-size: 0.88rem; color: var(--ink-faint); max-width: 68ch; }
+  .note { font-size: 0.88rem; color: var(--ink-faint); max-width: 70ch; }
 
   /* hero */
   header { padding: 88px 0 64px; }
@@ -81,8 +81,22 @@
   }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--paper); }
 
-  /* depth explorer */
-  .depths { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0 0; padding: 0; list-style: none; }
+  /* subject switch */
+  .subjects {
+    display: inline-flex; flex-wrap: wrap; gap: 4px; margin: 30px 0 0; padding: 4px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+  }
+  .subjects button {
+    font: inherit; font-size: 0.88rem; cursor: pointer; white-space: nowrap;
+    padding: 8px 16px; border-radius: 6px; border: 1px solid transparent;
+    background: transparent; color: var(--ink-faint);
+  }
+  .subjects button[aria-pressed="true"] { background: var(--accent); color: var(--paper); font-weight: 550; }
+  .subjects button:hover:not([aria-pressed="true"]) { color: var(--ink); }
+  .switch-hint { font-family: var(--mono); font-size: 0.74rem; color: var(--ink-faint); margin: 10px 0 0; }
+
+  /* depth tabs */
+  .depths { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; padding: 0; list-style: none; }
   .depths button {
     font: inherit; font-size: 0.88rem; cursor: pointer;
     padding: 9px 15px; border-radius: 6px; border: 1px solid var(--line);
@@ -101,14 +115,13 @@
     color: var(--ink-faint); text-transform: uppercase; margin: 0 0 10px;
   }
   .piece h3 { font-family: var(--serif); font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 14px; }
-  .piece p { font-family: var(--serif); font-size: 1.04rem; color: var(--ink-soft); margin: 0; }
+  .piece p.body { font-family: var(--serif); font-size: 1.04rem; color: var(--ink-soft); margin: 0; }
 
   /* grids */
   .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); margin-top: 32px; }
   .card { padding: 22px 24px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
   .card h3 { margin-bottom: 8px; }
   .card p { font-size: 0.93rem; color: var(--ink-soft); margin: 0; }
-  .card .n { font-family: var(--mono); font-size: 1.7rem; color: var(--accent); display: block; margin-bottom: 4px; }
 
   table { width: 100%; border-collapse: collapse; margin: 28px 0 14px; font-size: 0.93rem; }
   th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); }
@@ -138,10 +151,10 @@
   <p class="eyebrow">Professional skill maintenance</p>
   <h1>Every skill has a<br><span>half&#8209;life.</span></h1>
   <p class="lede">
-    You learned Kubernetes admission control properly, once. Two years on you could not write a
-    webhook config without the docs open. Nothing went wrong — that is simply what unused knowledge
-    does. HalfLife tops it back up: one short, depth&#8209;controlled read on a schedule, written
-    inside the AI harness you already use.
+    You learned to run a difficult conversation properly, once. Or admission control, or the
+    accounts. Two years on you would want the notes open. Nothing went wrong — that is simply what
+    unused knowledge does. HalfLife tops it back up: one short, depth&#8209;controlled read on a
+    schedule, written inside the AI harness you already use.
   </p>
 
   <svg class="curve" viewBox="0 0 900 250" role="img" aria-label="Two decay curves. Left to right, unmaintained knowledge falls away steadily; a maintained skill decays too but is topped back up by regular short reads.">
@@ -154,12 +167,10 @@
     <line x1="40" y1="205" x2="870" y2="205" stroke="var(--line)" stroke-width="1"/>
     <line x1="40" y1="30" x2="40" y2="205" stroke="var(--line)" stroke-width="1"/>
 
-    <!-- unmaintained decay -->
     <path d="M40 45 C 180 100, 300 150, 440 172 S 700 195, 870 199"
           fill="none" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="5 5"/>
     <text x="640" y="188" font-family="ui-monospace, monospace" font-size="12" fill="var(--ink-faint)">left alone</text>
 
-    <!-- maintained sawtooth -->
     <path d="M40 45 C 90 72, 120 86, 150 92 L 150 55 C 200 82, 230 96, 260 101
              L 260 58 C 310 85, 340 98, 370 103 L 370 56 C 420 83, 450 96, 480 100
              L 480 54 C 530 81, 560 94, 590 98 L 590 52 C 640 79, 670 92, 700 96
@@ -195,8 +206,14 @@
   <p class="lede" style="margin-bottom:6px">
     Most "levels" are the same article at three lengths. Here, a level sets what may be
     <em>skipped</em>, so two pieces on one topic should be disjoint, not nested. Below are five
-    pieces on certificate chains, each written to a different level. Same topic. Same five minutes.
+    pieces on one subject, each written to a different level. Same subject. Same five minutes.
   </p>
+
+  <div class="subjects" role="group" aria-label="Choose a subject">
+    <button type="button" aria-pressed="true"  data-topic="feedback">Giving feedback to a report</button>
+    <button type="button" aria-pressed="false" data-topic="tls">TLS certificate chains</button>
+  </div>
+  <p class="switch-hint">Same five levels, same rubric, different subject &mdash; switch and stay on a level.</p>
 
   <ul class="depths" role="tablist" aria-label="Depth levels">
     <li><button role="tab" id="t1" aria-controls="panel" aria-selected="true"  data-d="1">1 · Orientation</button></li>
@@ -209,13 +226,15 @@
   <div class="piece" id="panel" role="tabpanel" aria-labelledby="t1">
     <p class="assumes" id="assumes"></p>
     <h3 id="title"></h3>
-    <p id="body"></p>
+    <p class="body" id="body"></p>
   </div>
 
   <p class="note" style="margin-top:18px">
-    Unedited openings from an eval run, not marketing copy. Every level was generated fresh, judged
-    blind against the rubric by a separate model, and scored correct. The full pieces are in the
-    repository under <code>evals/output/</code>.
+    Openings from real eval runs, trimmed for length and otherwise unedited. Every piece was
+    generated fresh, judged blind against the rubric by a separate model, and scored correct at
+    the level it was asked for. The full pieces are in the repository under
+    <code>evals/output/</code>. The level descriptions above are shared between subjects, because
+    the rubric does not know what it is being pointed at.
   </p>
 </section>
 
@@ -262,7 +281,7 @@
   <pre>$ halflife init                      # once per machine: creates the database
 # then, in your harness, in plain language:
 
-  "Subscribe me to Kubernetes admission controllers at depth 4, five minutes, daily."
+  "Subscribe me to giving feedback to a direct report, depth 3, five minutes, daily."
   "Plan the series."
   "Anything due? Write it."</pre>
   <p class="note">
@@ -350,60 +369,102 @@
 </footer>
 
 <script>
-  const PIECES = {
-    1: {
-      assumes: "Assumes: you have heard the term and cannot place it",
-      title: "Why a Certificate Comes With Company",
-      body: "A certificate is just a file. Anyone can make one that says example.com on it, in about four seconds, on a laptop, for free. Nothing about the file itself is scarce or hard to produce. So the interesting question in TLS was never “how do I get a certificate” — it was “why should the other side believe mine?”"
+  const ASSUMES = {
+    1: "Assumes: you have heard the term and cannot place it",
+    2: "Assumes: nothing, but you want the vocabulary and the parts",
+    3: "Assumes: the vocabulary. You have done this before",
+    4: "Assumes: competence. You want what experience teaches",
+    5: "Assumes: everything below. You are at the edge of the published material"
+  };
+
+  const TOPICS = {
+    feedback: {
+      1: {
+        title: "The Information Only You Have",
+        body: "A person cannot see their own work the way other people experience it. They see their intentions, their effort, and the constraints they were under. Everyone else sees only the result. That gap is permanent and it is nobody’s fault — it is just how being a person works — and it is the entire reason feedback exists as a management activity."
+      },
+      2: {
+        title: "Three Different Things, All Called Feedback",
+        body: "Most feedback conversations go badly because two people are having different ones. You think you are helping someone get better; they are trying to work out whether their job is safe. Douglas Stone and Sheila Heen’s useful split names three separate transactions that all travel under the word feedback…"
+      },
+      3: {
+        title: "The Three Fields, and the First Sentence",
+        body: "Most feedback conversations go wrong before anyone speaks. They go wrong at the desk, five minutes earlier, when you decide you’ll “raise it” without deciding what it is."
+      },
+      4: {
+        title: "The severity channel: what your report hears that you didn’t say",
+        body: "The question a report is actually running while you talk is not what did I do but how much trouble am I in. You are answering the first question carefully and the second one by accident, and the second answer is the one that determines what they do next."
+      },
+      5: {
+        title: "What the Feedback Literature Actually Licenses You to Say",
+        body: "One issue cannot do “feedback” at this level, so this is about one slice: what the primary literature will actually support about the moment of delivery. The number everybody quotes from Kluger & DeNisi (Psychological Bulletin 119(2), 1996, 254–284) is the wrong one. Yes: 607 effect sizes, 131 papers, ~23,000 participants, mean d ≈ 0.41, and over a third of effects negative…"
+      }
     },
-    2: {
-      assumes: "Assumes: nothing, but you want the vocabulary and the parts",
-      title: "What a certificate chain actually is, and who holds which link",
-      body: "A server that presents one certificate has told you almost nothing. The useful object in TLS is not a certificate but a chain: an ordered set of certificates, each one signed by the next, ending at something the client already trusts. Getting fluent in TLS troubleshooting starts with being able to say which certificate is which, who holds it, and who sends it."
-    },
-    3: {
-      assumes: "Assumes: the vocabulary. You have done this before",
-      title: "Ship the chain your server is actually responsible for",
-      body: "The single most common TLS misconfiguration in production is not a bad cipher suite or an expired leaf. It is a server that presents its own certificate and nothing else, and then behaves fine in Chrome on the engineer’s laptop and fails in curl, in a Java client, in an Alpine container, and in whatever partner system calls you at 3am."
-    },
-    4: {
-      assumes: "Assumes: competence. You want what experience teaches",
-      title: "The chain you send is a hint, not the path",
-      body: "The most useful mental correction for anyone who debugs TLS trust problems: the certificate list your server puts in the handshake is not the path that gets validated. It is input to the client’s path builder, which then hands a path to the path validator. Those are two distinct algorithms with different failure modes."
-    },
-    5: {
-      assumes: "Assumes: everything below. You are at the edge of the published material",
-      title: "Chain building is a search, not a check",
-      body: "Certificate chains carry more depth-5 material than one issue can hold, so this one is about a single thing: path building — the search for a chain — as distinct from path validation, the checking of one. RFC 4158 exists solely because building is the hard half. Issuer/subject name matching yields a graph, not a list."
+    tls: {
+      1: {
+        title: "Why a Certificate Comes With Company",
+        body: "A certificate is just a file. Anyone can make one that says example.com on it, in about four seconds, on a laptop, for free. Nothing about the file itself is scarce or hard to produce. So the interesting question in TLS was never “how do I get a certificate” — it was “why should the other side believe mine?”"
+      },
+      2: {
+        title: "What a certificate chain actually is, and who holds which link",
+        body: "A server that presents one certificate has told you almost nothing. The useful object in TLS is not a certificate but a chain: an ordered set of certificates, each one signed by the next, ending at something the client already trusts. Getting fluent in TLS troubleshooting starts with being able to say which certificate is which, who holds it, and who sends it."
+      },
+      3: {
+        title: "Ship the chain your server is actually responsible for",
+        body: "The single most common TLS misconfiguration in production is not a bad cipher suite or an expired leaf. It is a server that presents its own certificate and nothing else, and then behaves fine in Chrome on the engineer’s laptop and fails in curl, in a Java client, in an Alpine container, and in whatever partner system calls you at 3am."
+      },
+      4: {
+        title: "The chain you send is a hint, not the path",
+        body: "The most useful mental correction for anyone who debugs TLS trust problems: the certificate list your server puts in the handshake is not the path that gets validated. It is input to the client’s path builder, which then hands a path to the path validator. Those are two distinct algorithms with different failure modes."
+      },
+      5: {
+        title: "Chain building is a search, not a check",
+        body: "Certificate chains carry more depth-5 material than one issue can hold, so this one is about a single thing: path building — the search for a chain — as distinct from path validation, the checking of one. RFC 4158 exists solely because building is the hard half. Issuer/subject name matching yields a graph, not a list."
+      }
     }
   };
 
+  const subjectButtons = document.querySelectorAll(".subjects button");
   const tabs = document.querySelectorAll(".depths button");
   const panel = document.getElementById("panel");
 
-  function show(level, tab) {
-    const piece = PIECES[level];
-    document.getElementById("assumes").textContent = piece.assumes;
+  let topic = "feedback";
+  let level = "1";
+
+  function render() {
+    const piece = TOPICS[topic][level];
+    document.getElementById("assumes").textContent = ASSUMES[level];
     document.getElementById("title").textContent = piece.title;
     document.getElementById("body").textContent = piece.body;
-    tabs.forEach(t => t.setAttribute("aria-selected", String(t === tab)));
-    panel.setAttribute("aria-labelledby", tab.id);
+    subjectButtons.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.topic === topic)));
+    tabs.forEach(t => t.setAttribute("aria-selected", String(t.dataset.d === level)));
+    panel.setAttribute("aria-labelledby", "t" + level);
   }
 
-  tabs.forEach(tab => {
-    tab.addEventListener("click", () => show(tab.dataset.d, tab));
-    tab.addEventListener("keydown", e => {
-      const keys = { ArrowRight: 1, ArrowLeft: -1 };
-      if (!(e.key in keys)) return;
-      e.preventDefault();
-      const list = [...tabs];
-      const next = list[(list.indexOf(tab) + keys[e.key] + list.length) % list.length];
-      next.focus();
-      show(next.dataset.d, next);
+  subjectButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      // Deliberately keeps the current level: switching subject at a fixed
+      // level is the demonstration that the rubric is topic-independent.
+      topic = button.dataset.topic;
+      render();
     });
   });
 
-  show(1, tabs[0]);
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => { level = tab.dataset.d; render(); });
+    tab.addEventListener("keydown", e => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      const list = [...tabs];
+      const next = list[(list.indexOf(tab) + step + list.length) % list.length];
+      next.focus();
+      level = next.dataset.d;
+      render();
+    });
+  });
+
+  render();
 </script>
 
 </body>
