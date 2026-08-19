@@ -27,7 +27,7 @@ from halflife.models.delivery import Delivery
 from halflife.repository import deliveries as delivery_repo
 from halflife.repository import series as series_repo
 from halflife.repository import subscriptions as subscription_repo
-from halflife.shorthand import ShorthandError, parse_shorthand
+from halflife.shorthand import ShorthandError, parse_flavour, parse_shorthand
 
 app = typer.Typer(add_completion=False, help="HalfLife — keep your skills from decaying.")
 console = Console()
@@ -286,6 +286,51 @@ def feedback(
             console.print(f"[green]Noted.[/green] Depth stays at {after}.")
         else:
             console.print(f"[green]Noted.[/green] Depth {before} -> {after} for future issues.")
+
+
+@app.command()
+def flavour(
+    subscription: str = typer.Argument(..., help="Subscription id or prefix."),
+    value: str = typer.Argument(..., help="learning or maintaining"),
+) -> None:
+    """Switch a series between learning and maintaining.
+
+    `learning` assumes you are building the skill up and wants ground gained
+    each issue. `maintaining` assumes you were good at this once: it leads with
+    what decays first — exact syntax, thresholds and defaults, the ordering of
+    steps, what has changed since you last used it — and does not re-motivate
+    the topic.
+
+    Depth is unaffected. This is a different question from how deep to pitch,
+    and answering one does not answer the other.
+    """
+    try:
+        parsed = parse_flavour(value)
+    except ShorthandError as exc:
+        _fail(str(exc))
+        return
+
+    with session_scope() as session:
+        sub = subscription_repo.get_by_prefix(session, subscription)
+        if sub is None:
+            _fail(f"No single subscription matches {subscription!r}.")
+            return
+
+        before = sub.flavour
+        if before is parsed:
+            console.print(f"[green]Unchanged.[/green] {sub.topic} is already {parsed.value}.")
+            return
+
+        subscription_repo.update_parameters(session, sub, flavour=parsed)
+        console.print(
+            f"[green]{sub.topic}[/green]: {before.value} -> {parsed.value}, from the next issue."
+        )
+        if sub.series is not None and sub.series.plan:
+            # The arc was drawn under the old flavour and is not redrawn here.
+            # Saying so beats letting the next issue quietly disagree with it.
+            console.print(
+                "  The series plan stays as drawn; the change is in how each issue is written."
+            )
 
 
 @app.command()

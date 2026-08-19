@@ -67,7 +67,7 @@ def parse_shorthand(raw: str) -> ParsedSubscription:
     depth = _parse_depth(parts[1]) if len(parts) > 1 and parts[1] else DEFAULT_DEPTH
     duration = _parse_duration(parts[2]) if len(parts) > 2 and parts[2] else DEFAULT_DURATION_MINUTES
     frequency = _parse_frequency(parts[3]) if len(parts) > 3 and parts[3] else DEFAULT_FREQUENCY
-    flavour = _parse_flavour(parts[4]) if len(parts) > 4 and parts[4] else DEFAULT_FLAVOUR
+    flavour = parse_flavour(parts[4]) if len(parts) > 4 and parts[4] else DEFAULT_FLAVOUR
 
     return ParsedSubscription(
         topic=topic,
@@ -108,7 +108,12 @@ def _parse_frequency(value: str) -> Frequency:
         ) from None
 
 
-def _parse_flavour(value: str) -> Flavour:
+def parse_flavour(value: str) -> Flavour:
+    """Public because the CLI's `flavour` command reuses it.
+
+    Duplicating the alias map would let the two drift, and "maintain" working
+    in one place and not the other is the kind of difference nobody reports.
+    """
     try:
         return _FLAVOUR_ALIASES[value.lower()]
     except KeyError:

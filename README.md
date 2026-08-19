@@ -153,6 +153,7 @@ These need no API key and work regardless of how issues were generated:
 | `ls` | Subscriptions, with issue counts and next due time. |
 | `inbox` / `read [id\|latest]` | What is unread; read it. |
 | `feedback <delivery> <verdict>` | Two axes: `too-basic` / `just-right` / `too-advanced` nudge the subscription's depth; `already-knew` / `wrong-subject` leave depth alone and tell the next few issues to take different ground. |
+| `flavour <sub> learning\|maintaining` | Switch between building a skill up and keeping one alive. Depth is unaffected; the series plan is not redrawn. |
 | `series <sub>` | The continuity state: plan, coverage ledger, open threads. `--full` includes compacted entries. |
 | `cost` | Spend to date per subscription, and the projected monthly run rate. |
 | `pause` / `resume <sub>` | Stop and restart delivery, keeping the series. |

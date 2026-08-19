@@ -103,6 +103,7 @@ Run from a terminal. These need no API key.
 | `halflife inbox` | issues written but not yet read |
 | `halflife read [id\\|latest]` | read an issue and mark it read |
 | `halflife feedback <id> <verdict>` | `too-basic`, `just-right`, `too-advanced` move depth; `already-knew`, `wrong-subject` move the subject |
+| `halflife flavour <sub> learning\|maintaining` | switch between building a skill up and keeping one alive |
 | `halflife series <sub>` | the plan, the coverage ledger, and open threads. `--full` includes compacted entries |
 | `halflife cost` | spend to date and projected monthly run rate |
 | `halflife pause` / `resume <sub>` | stop and restart delivery, keeping the series |

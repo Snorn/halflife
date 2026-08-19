@@ -155,3 +155,58 @@ def test_no_plan_skips_the_arc_call(migrated_db, monkeypatch):
 
     assert "Subscribed" in output
     assert client.calls == []
+
+
+def test_flavour_switches_a_series(migrated_db, fake_generation):
+    _run("subscribe", "sap web dispatcher, 4, 5, 1d")
+
+    sub_id = _run("ls").strip().split("\n")[1].split()[0]
+    output = _run("flavour", sub_id, "maintaining")
+
+    assert "learning -> maintaining" in output
+    assert " maintaining " in _run("ls")
+
+
+def test_flavour_accepts_the_same_aliases_as_subscribe(migrated_db, fake_generation):
+    """One alias map, so "m" cannot work in one place and not the other."""
+    _run("subscribe", "terraform state, 3, 5, 1d")
+    sub_id = _run("ls").strip().split("\n")[1].split()[0]
+
+    assert "-> maintaining" in _run("flavour", sub_id, "m")
+    assert "-> learning" in _run("flavour", sub_id, "learn")
+
+
+def test_flavour_says_when_nothing_changed(migrated_db, fake_generation):
+    _run("subscribe", "postgres connection pooling, 3, 5, 1d, learning")
+    sub_id = _run("ls").strip().split("\n")[1].split()[0]
+
+    assert "already learning" in _run("flavour", sub_id, "learning")
+
+
+def test_flavour_rejects_an_unknown_value(migrated_db, fake_generation):
+    _run("subscribe", "kubernetes, 3, 5, 1d")
+    sub_id = _run("ls").strip().split("\n")[1].split()[0]
+
+    result = runner.invoke(cli.app, ["flavour", sub_id, "nonsense"])
+
+    assert result.exit_code != 0
+    assert "learning" in result.output and "maintaining" in result.output
+
+
+def test_flavour_leaves_depth_alone(migrated_db, fake_generation):
+    """Pitch and stance are separate questions; the command answers one."""
+    _run("subscribe", "tls certificate chains, 5, 5, 1d")
+    sub_id = _run("ls").strip().split("\n")[1].split()[0]
+
+    _run("flavour", sub_id, "maintaining")
+
+    assert " 5 " in _run("ls")
+
+
+def test_flavour_warns_that_the_plan_is_not_redrawn(migrated_db, fake_generation):
+    """The arc was drawn under the old stance and is not rewritten, which the
+    next issue would otherwise quietly contradict."""
+    _run("subscribe", "linux cgroups v2, 3, 5, 1d")
+    sub_id = _run("ls").strip().split("\n")[1].split()[0]
+
+    assert "series plan stays as drawn" in _run("flavour", sub_id, "maintaining")
