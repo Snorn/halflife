@@ -353,9 +353,12 @@
         server, the CLI, and the eval harness that grades all of it.</li>
     <li><strong>Not built:</strong> no server, no accounts, no multi-user, no dashboard, no
         deployment story. Single machine, single reader, SQLite.</li>
-    <li><strong>By design:</strong> when the signal half arrives, the control plane will see
-        classifications and never content. The <code>evidence</code> field exists in the schema and
-        is permanently null, so the stance is auditable rather than promised.</li>
+    <li><strong>Written down, not yet built:</strong> when the signal half arrives, the control
+        plane will see classifications and never content — including an <code>evidence</code> field
+        specified to stay permanently null. That is a
+        <a href="https://github.com/Snorn/halflife/blob/main/CLAUDE.md">recorded constraint</a>
+        today, not a schema you can inspect: no signal table exists and no code writes one. Judge
+        it when there is something to audit.</li>
   </ul>
   <p style="margin-top:24px">
     Useful today if you want a daily read on something you are keeping alive. Not yet a product.

@@ -201,10 +201,14 @@ before contributing:
 containerisation. Kubernetes, Helm, SSO and tenancy enforcement are explicitly *not* to be
 scaffolded ahead of time, not even as placeholders.
 
-**The privacy boundary is non-negotiable.** When the agent half is built, the control plane sees
-classifications and never content — an `evidence` field exists in the signal schema and is
-permanently null, present so the stance is auditable. No signals are written yet, but the schema
-is fixed now.
+**The privacy boundary is non-negotiable.** When the agent half is built, the control plane will
+see classifications and never content, and the signal body is specified down to its fields —
+including an `evidence` field that stays permanently null, so the stance can be audited rather
+than trusted.
+
+Be clear about the tense, though: none of it is built. There is no signal table, no `evidence`
+column and no code that writes either. The specification is fixed in [CLAUDE.md](CLAUDE.md) and
+that is all it is today — a constraint on record, not a control you can inspect.
 
 ## Contributing
 
