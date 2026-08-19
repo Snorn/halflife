@@ -28,8 +28,14 @@ Two mechanisms, both measured rather than assumed:
 **A depth rubric.** Depth 1–5 sets *what the reader is assumed to already know*, not the word
 count. A depth-2 and a depth-4 piece on the same topic should be disjoint, not one a longer
 version of the other. The rubric is a versioned constant, and
-[its own source file](src/halflife/generation/prompts/depth_rubric.py) records what each revision
+[its own source file](src/halflife/generation/prompts/depth_rubric.py) records what each version
 changed, what it measured, and where it still fails.
+
+The current text is v6. Against nine topics at all five levels, judged blind by a separate model:
+**44 of 45** pieces landed at the level asked for, and **0 of 18** disjointness checks found a
+later level re-teaching an earlier one. Read that with the caveats it deserves — one judge model,
+nine topics, and a rubric tuned against them, so further gains on that set may be fitting the
+judge rather than improving the writing.
 
 **A coverage ledger.** Every issue returns the claims it established; these accumulate and are fed
 into the next generation as ground that may be referred to but not taught again. When the ledger
@@ -255,9 +261,10 @@ daily subscription runs to roughly $2.50 a month. Most of the bill is output tok
 thinking bills as output.
 
 `effort` is the dominant cost lever, and the intuitive setting is the wrong one: two depth-eval
-runs at `medium` each scored **11/12** against `high`'s 9/12, at roughly 40% of the price. Higher
-effort explores more before answering, which is not what a tightly-rubric-constrained task wants.
-Measure before raising it.
+runs at `medium` each scored **11/12** against `high`'s 9/12, at roughly 40% of the price. That
+was the old twelve-cell suite, before depths 2 and 4 were graded and before the topic set grew,
+so treat the ratio rather than the scores as the finding. Higher effort explores more before
+answering, which is not what a tightly-rubric-constrained task wants. Measure before raising it.
 
 `halflife cost` reports spend from the tokens recorded on each delivery. Harness-written issues
 are excluded rather than costed — whatever they cost was paid inside the tool you were already
@@ -269,8 +276,10 @@ running.
 python evals/run_evals.py depth
 ```
 
-A depth run is 28 API calls (~$2 at medium); tuning the rubric across three revisions cost around
-$20. Every run prints what it spent. The `distance` suite judges output already on disk, so a
+A depth run is 108 API calls (~$8.70 at medium): nine topics at five depths, plus two
+disjointness checks each. Use `--topic` to iterate on a subset, and run the whole set before
+believing a result — iterating on a subset is how three rubric versions ended up fitted to four
+topics. Every run prints what it spent. The `distance` suite judges output already on disk, so a
 prompt revision can be compared against an older run without regenerating either arm. See [evals/](evals/README.md) — that is where you find out
 whether the depth rubric actually holds, and whether issue 6 knows what issue 1 said.
 
