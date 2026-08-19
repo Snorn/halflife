@@ -323,6 +323,26 @@ artefact, thresholds, exact wording to use". Two runs is not proof, but v5's
 practice artefact class no longer rests on the single topic it was written
 against.
 
+On reader ratings, which are the other thing that looks like evidence: six
+deliveries have been rated by the one person reading them, all "just right".
+That is not weak evidence, it is **non-independent** evidence — the rater is
+the person who curated the rubric through six versions, and someone who has
+spent a day tuning a scale will read output as landing on it. Do not treat a
+run of "just right" as validation, and do not read this as the reader being
+generous either; the ratings and the rubric simply do not have separate
+sources.
+
+Two things would be independent, and neither exists yet. **Ambient signals**,
+because extraction classifies what a person actually did rather than what they
+say about a piece of writing — a `struggled` on a subject they have been
+reading about at depth 4 is a contradiction the reader cannot produce by being
+agreeable. And **other readers**, who did not build the thing and have no stake
+in it working.
+
+Until one of those arrives, the depth rubric has exactly one instrument — a
+judge model, run against topics chosen by the same person who wrote the rubric
+it grades.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
