@@ -296,6 +296,33 @@ longer discards a run over one failed call. That topic was re-run alone
 afterwards and scored 5/5 with both pairs clean, on freshly generated pieces —
 which is a separate sample, not the missing cells filled in.
 
+Eleventh run, nine topics, all 108 calls completed ($8.64): 44/45, and 0/9 on
+both disjointness pairs — the first run in which every pair check ran and every
+one passed.
+
+  requested 1: 8/9   requested 2: 9/9   requested 3: 9/9
+  requested 4: 9/9   requested 5: 9/9
+
+The depth-4 miss did not reproduce. Last run TLS was judged 5 there, the only
+depth-4 miss ever recorded, on a level v6 had just rewritten; this run depth 4
+is 9/9. So v6 did not trade the 2-vs-4 boundary for a 4-vs-5 one, which was the
+open worry, and that reading — TLS has the richest artefact supply in the set,
+so a depth-4 piece there sometimes reaches for citations — now has a second run
+behind it.
+
+TLS missed at depth 1 instead, convicted in almost the words v4 was written in:
+vocabulary correctly withheld, then the mechanism taught and a failure walked
+end to end. It had passed that level twice since v4. Across five runs TLS has
+now missed depth 1 three times and depth 4 once, with the miss moving between
+levels, which is the same stable-rate/unstable-membership pattern recorded for
+depth 1 above rather than a rubric hole. If anything here deserves attention it
+is that one topic supplies most of the misses in the set.
+
+Depth 3 on giving feedback passed a second time, on a "named four-field
+artefact, thresholds, exact wording to use". Two runs is not proof, but v5's
+practice artefact class no longer rests on the single topic it was written
+against.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
