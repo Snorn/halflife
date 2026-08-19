@@ -270,27 +270,57 @@ def run_depth(client: Meter, topics: list[str] | None = None) -> int:
     pairs = [(min(depths), max(depths))]
     if 2 in depths and 4 in depths:
         pairs.append((2, 4))
+    # Failures and attempts, separately: a pair that was never judged must not
+    # be counted as a pair that passed.
     repeats: dict[tuple[int, int], int] = {pair: 0 for pair in pairs}
+    checked: dict[tuple[int, int], int] = {pair: 0 for pair in pairs}
+    lost: list[str] = []
+
+    def attempt(label: str, call):
+        """Run one API call, surviving its failure.
+
+        A single call dying used to end the run and discard everything before
+        it — a judge that overran its token ceiling on the last topic of a
+        nine-topic run cost the summary of 106 completed calls. What is lost is
+        recorded and printed at the end, because a quietly shorter denominator
+        reads as coverage that did not happen.
+        """
+        try:
+            return call()
+        except GenerationError as exc:
+            lost.append(f"{label}: {exc}")
+            print(f"  [LOST] {label} — {exc}", flush=True)
+            return None
 
     for topic in topics or case["topics"]:
         print(f"\n{topic}", flush=True)
         pieces: dict[int, GeneratedIssue] = {}
         for depth in depths:
-            issue = _generate(
-                client, topic=topic, depth=depth, minutes=minutes,
-                issue_number=1, ledger=[], threads=[],
+            issue = attempt(
+                f"{topic}, depth {depth} generation",
+                lambda d=depth: _generate(
+                    client, topic=topic, depth=d, minutes=minutes,
+                    issue_number=1, ledger=[], threads=[],
+                ),
             )
+            if issue is None:
+                continue
             pieces[depth] = issue
             _write(
                 run / _slug(topic) / f"depth-{depth}.md",
                 f"# {issue.title}\n\n_requested depth {depth} · {minutes} min_\n\n{issue.body_markdown}\n",
             )
 
-            verdict = client.generate(
-                system=_DEPTH_JUDGE_SYSTEM,
-                user=f"Which rubric level was this written to?\n\n---\n{issue.body_markdown}\n---",
-                output_model=DepthVerdict,
-            ).parsed
+            verdict = attempt(
+                f"{topic}, depth {depth} judging",
+                lambda i=issue: client.generate(
+                    system=_DEPTH_JUDGE_SYSTEM,
+                    user=f"Which rubric level was this written to?\n\n---\n{i.body_markdown}\n---",
+                    output_model=DepthVerdict,
+                ).parsed,
+            )
+            if verdict is None:
+                continue
 
             inferred[depth].append(verdict.inferred_depth)
             mark = "ok " if verdict.inferred_depth == depth else "MISS"
@@ -301,15 +331,24 @@ def run_depth(client: Meter, topics: list[str] | None = None) -> int:
 
         # The rubric's own claim: levels apart should be disjoint, not nested.
         for lo, hi in pairs:
-            overlap = client.generate(
-                system=_OVERLAP_JUDGE_SYSTEM,
-                user=(
-                    f"Earlier piece (depth {lo}):\n---\n{pieces[lo].body_markdown}\n---\n\n"
-                    f"Later piece (depth {hi}):\n---\n{pieces[hi].body_markdown}\n---\n\n"
-                    f"Does the depth-{hi} piece re-explain material the depth-{lo} piece establishes?"
-                ),
-                output_model=OverlapVerdict,
-            ).parsed
+            if lo not in pieces or hi not in pieces:
+                lost.append(f"{topic}, depth {lo} vs {hi}: a piece was never written")
+                continue
+            overlap = attempt(
+                f"{topic}, depth {lo} vs {hi} disjointness",
+                lambda: client.generate(
+                    system=_OVERLAP_JUDGE_SYSTEM,
+                    user=(
+                        f"Earlier piece (depth {lo}):\n---\n{pieces[lo].body_markdown}\n---\n\n"
+                        f"Later piece (depth {hi}):\n---\n{pieces[hi].body_markdown}\n---\n\n"
+                        f"Does the depth-{hi} piece re-explain material the depth-{lo} piece establishes?"
+                    ),
+                    output_model=OverlapVerdict,
+                ).parsed,
+            )
+            if overlap is None:
+                continue
+            checked[lo, hi] += 1
             repeats[lo, hi] += min(
                 1,
                 _report_overlap(
@@ -342,12 +381,18 @@ def run_depth(client: Meter, topics: list[str] | None = None) -> int:
             "  the centre and not at the extremes."
         )
 
-    judged_topics = len(topics or case["topics"])
+    requested = len(topics or case["topics"]) * len(depths)
     print(f"\ndepth accuracy: {hits}/{total}")
     for (lo, hi), count in repeats.items():
-        print(f"disjointness failures, depth {lo} vs {hi}: {count}/{judged_topics}")
+        print(f"disjointness failures, depth {lo} vs {hi}: {count}/{checked[lo, hi]}")
+    if lost:
+        print(f"\nnot completed — {len(lost)} call(s), so the counts above are of what ran:")
+        for item in lost:
+            print(f"  - {item}")
+        print(f"  ({total} of {requested} pieces were generated and judged)")
     print(f"output: {run}")
-    return 0 if hits == total and not any(repeats.values()) else 1
+    # An incomplete run is not a passing run, whatever the completed part says.
+    return 0 if hits == total and not any(repeats.values()) and not lost else 1
 
 
 # --------------------------------------------------------------------------- continuity
