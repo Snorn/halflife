@@ -223,6 +223,10 @@ surface beyond a count over a time window, no control plane, and no dashboard â€
 [CLAUDE.md](CLAUDE.md) about org admins and aggregation describe what must hold when there is
 one, not what holds today.
 
+None of which stops you reading your own. The signals are rows in your own SQLite file and
+`sqlite3` will print them; there is deliberately no feature for it, because a way to browse
+individual signals is the thing that later becomes somebody else's way to browse yours.
+
 ## Contributing
 
 Issues and pull requests welcome. Two things to know:

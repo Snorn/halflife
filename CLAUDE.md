@@ -72,6 +72,16 @@ step-1 change seems to need one of these, say so and stop rather than adding it.
 - **Aggregation rule:** raw signals are write-only inputs. Every human-visible surface is built from
   time-windowed aggregates. Nobody browses individual signals — including org admins. Don't build a
   signal-detail read path "for debugging".
+- **The exception is the person the signals are about.** They may read their own, and today that needs
+  no feature: the rows are in their own SQLite file and `sqlite3` reads them. Owning your own data is
+  not the same as the product offering a way to browse it, and this note exists to keep the two apart
+  rather than to license the second.
+
+  It is specifically **not** a warrant for a per-user signal endpoint when there is a server. Serving a
+  user their own rows means building exactly the read path this rule forbids, and every such path
+  arrives justified by the most sympathetic case — the data subject asking for their own data. If it is
+  ever built it needs its own decision, taken on the record, with an answer to how it is kept from
+  becoming the manager's view of somebody else.
 - The extraction prompt is versioned and identical across harnesses. The topic taxonomy never ships to the
   agent — topics are free text at the edge, normalised centrally.
 
