@@ -50,8 +50,8 @@ step-1 change seems to need one of these, say so and stop rather than adding it.
 - Signal body is exactly: `topics[]`, `signal_type`, `confidence`, `context_category`, `session_id`,
   `evidence`. Envelope: `schema_version`, `signal_id`, `tenant_id`, `user_id`, `timestamp`,
   `agent {harness, agent_version, extraction_prompt_version}`.
-- **`evidence` is permanently `null` in v1.** The column exists and is nullable; nothing writes to it. It is
-  present so the privacy stance is auditable, not because it is a staging area. Do not populate it, do not
+- **`evidence` is permanently `null` in v1.** The column will be nullable and nothing will write to it. It
+  is there so the privacy stance is auditable, not because it is a staging area. Do not populate it, do not
   add an "opt-in" flag for it, do not add a debug mode that fills it.
 - `session_id` is a **hash**. No conversation IDs, no user text, no model output, no prompt text, no
   duration or keystroke telemetry — not in the DB, not in logs, not in error payloads.
@@ -64,7 +64,11 @@ step-1 change seems to need one of these, say so and stop rather than adding it.
 - The extraction prompt is versioned and identical across harnesses. The topic taxonomy never ships to the
   agent — topics are free text at the edge, normalised centrally.
 
-Signals are step 2. Step 1 writes none. But the schema above is fixed now; don't redesign it later.
+**Tense matters here.** None of the above is built: there is no signal table, no `evidence` column, and no
+code that writes either. The schema is fixed as a specification, and that is the whole of what exists — so
+this section says what must hold *when it is built*, not what holds today. Do not describe any of it in a
+README, a site, or a commit message as though it were already in the schema; a claimed control nobody can
+inspect is worse than an admitted gap. That mistake has been made once already, from this very wording.
 
 ## Data model rules
 
