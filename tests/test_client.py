@@ -9,13 +9,16 @@ when it cannot resolve credentials — so a missing API key was reported as
 from __future__ import annotations
 
 import contextlib
+import json
+import traceback
+import types
 
 import anthropic
 import httpx
 import pytest
 
 from halflife.config import Settings
-from halflife.generation.client import CredentialsError, GenerationClient
+from halflife.generation.client import CredentialsError, GenerationClient, GenerationError
 from halflife.generation.schemas import GeneratedIssue
 
 AUTH_TYPE_ERROR = TypeError(
@@ -151,3 +154,99 @@ def test_fallback_support_is_feature_detected_from_the_sdk():
     # The installed SDK does support it; the point is that this is decided by
     # inspecting the signature, not by catching an exception at call time.
     assert client._use_fallbacks is True
+
+
+# --------------------------------------------------------- schema-fault leaks
+
+
+class _Stream:
+    """A stream context manager whose final message is a fixed payload."""
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def get_final_message(self):
+        block = types.SimpleNamespace(type="text", text=self.text)
+        return types.SimpleNamespace(
+            stop_reason="end_turn",
+            content=[block],
+            usage=types.SimpleNamespace(input_tokens=1, output_tokens=1),
+            model="claude-opus-5",
+        )
+
+
+class _Returning:
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+    def stream(self, **kwargs):
+        return _Stream(self.text)
+
+
+def _client_returning(text: str) -> GenerationClient:
+    client = GenerationClient(Settings(anthropic_api_key="test-key-not-used"))
+    client._client = types.SimpleNamespace(
+        messages=_Returning(text),
+        beta=types.SimpleNamespace(messages=_Returning(text)),
+    )
+    return client
+
+
+SENSITIVE = "The session table is consulted before the balancing logic runs"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        json.dumps(
+            {
+                "title": "T",
+                "body_markdown": [SENSITIVE],  # wrong type: pydantic echoes the value
+                "covered_points_added": [],
+                "open_threads": [],
+                "next_suggested": "n",
+                "plan_index": 0,
+            }
+        ),
+        json.dumps({"title": "T", "next_suggested": SENSITIVE}),  # missing fields
+        '{"title": "T", "body_markdown": "' + SENSITIVE + '"',  # truncated JSON
+    ],
+    ids=["wrong-type", "missing-fields", "bad-json"],
+)
+def test_a_malformed_response_never_quotes_itself(payload):
+    """CLAUDE.md forbids model output in error payloads, and pydantic puts the
+    offending value in its message as input_value=... . The chained cause is
+    dropped too, because a chained exception prints that message in the
+    traceback even when ours does not."""
+    with pytest.raises(GenerationError) as caught:
+        _generate(_client_returning(payload))
+
+    rendered = "".join(
+        traceback.format_exception(type(caught.value), caught.value, caught.value.__traceback__)
+    )
+    assert SENSITIVE[:25] not in str(caught.value)
+    assert SENSITIVE[:25] not in rendered
+    assert "input_value" not in rendered
+    assert caught.value.__cause__ is None
+
+
+def test_the_fault_still_says_which_field_and_why():
+    """Stripping the value must not strip the diagnosis with it."""
+    payload = json.dumps(
+        {
+            "title": "T",
+            "body_markdown": 12345,
+            "covered_points_added": [],
+            "open_threads": [],
+            "next_suggested": "n",
+            "plan_index": 0,
+        }
+    )
+    with pytest.raises(GenerationError, match=r"body_markdown: string_type"):
+        _generate(_client_returning(payload))

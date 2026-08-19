@@ -49,6 +49,26 @@ class CredentialsError(GenerationError):
     """Credentials were missing, or the API rejected them."""
 
 
+def _schema_fault(exc: json.JSONDecodeError | ValidationError) -> str:
+    """Describe a malformed response without quoting any of it.
+
+    Pydantic embeds the offending value in its message as ``input_value=...``,
+    so interpolating the exception put fragments of generated text into an error
+    payload — which CLAUDE.md forbids alongside logs and the database. Field
+    paths and error-type slugs are both fixed vocabularies drawn from the schema
+    rather than from the response, so they carry no content and still say enough
+    to debug a schema mismatch.
+    """
+    if isinstance(exc, json.JSONDecodeError):
+        return f"not valid JSON (line {exc.lineno}, column {exc.colno})"
+
+    faults = [
+        f"{'.'.join(str(part) for part in error['loc']) or '<root>'}: {error['type']}"
+        for error in exc.errors()
+    ]
+    return f"{len(faults)} field error(s) — " + "; ".join(faults[:6])
+
+
 def _sdk_supports_fallbacks(client: anthropic.Anthropic) -> bool:
     """Feature-detect rather than catching the failure.
 
@@ -119,7 +139,12 @@ class GenerationClient:
         try:
             parsed = output_model.model_validate(json.loads(text))
         except (json.JSONDecodeError, ValidationError) as exc:
-            raise GenerationError(f"Response did not match the expected schema: {exc}") from exc
+            # Deliberately not `from exc`: the cause's own message carries the
+            # offending value, and a chained exception prints it in the
+            # traceback even when this message does not.
+            raise GenerationError(
+                f"Response did not match the expected schema — {_schema_fault(exc)}."
+            ) from None
 
         usage = response.usage
         return GenerationResult(
