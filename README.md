@@ -332,6 +332,10 @@ Nothing in `tests/` touches the network:
 Alembic owns the schema; there is no `create_all` path. After pulling a change that adds a
 migration, re-run `halflife init` — it is idempotent and reports when there was nothing to do:
 
+You do not have to remember. A database behind the code refuses to be used and says what to run,
+rather than failing later with a missing column — which is what it did twice before this check
+existed. `python scripts/mcp_doctor.py` reports the schema revision too.
+
 ```bash
 .venv/bin/halflife init
 ```

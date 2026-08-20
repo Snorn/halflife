@@ -13,9 +13,9 @@ from rich.table import Table
 
 from halflife import guide, pricing
 from halflife.config import get_settings
-from halflife.db import session_scope
+from halflife.db import get_engine, session_scope
 from halflife.generation import GenerationError, engine
-from halflife.migrations_runner import upgrade_to_head
+from halflife.migrations_runner import SchemaOutOfDate, upgrade_to_head
 from halflife.models.base import (
     issue_cap,
     CoverageKind,
@@ -39,6 +39,27 @@ from halflife.shorthand import (
 
 app = typer.Typer(add_completion=False, help="HalfLife — keep your skills from decaying.")
 console = Console()
+
+# Commands that must work on a database the code has outgrown: `init` is the
+# remedy and `help` needs no database at all.
+_NEEDS_NO_SCHEMA = {"init", "help"}
+
+
+@app.callback()
+def _check_schema(ctx: typer.Context) -> None:
+    """Turn a stale database into an instruction, before the command runs.
+
+    Without this the first query raises an opaque OperationalError from inside
+    SQLAlchemy — "no such column: delivery.plan_index" — which reads as a bug
+    in the tool rather than as a database left behind by a git pull. It has
+    happened twice on a real install.
+    """
+    if ctx.invoked_subcommand in _NEEDS_NO_SCHEMA:
+        return
+    try:
+        get_engine()
+    except SchemaOutOfDate as exc:
+        _fail(str(exc))
 
 _FEEDBACK_ALIASES = {
     "too-basic": Feedback.TOO_BASIC,

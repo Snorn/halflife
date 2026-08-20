@@ -145,6 +145,32 @@ def check_config() -> bool:
     return good
 
 
+def check_schema() -> bool:
+    """A server that attaches fine can still fail every call on a stale database.
+
+    Worth its own check because the symptom is not a connection problem: the
+    handshake succeeds, tools list, and then the first one that touches a new
+    column fails. Twice on a real install.
+    """
+    print("6. database schema")
+    from halflife.migrations_runner import SchemaOutOfDate, current_revision, head_revision
+
+    try:
+        from halflife.db import get_engine
+
+        get_engine()
+    except SchemaOutOfDate as exc:
+        _fail("the database does not match this code",
+              hint=" ".join(str(exc).split()))
+        return False
+    except Exception as exc:  # pragma: no cover - unreachable in a sane install
+        _fail(f"could not open the database: {exc}")
+        return False
+
+    _ok(f"at head ({head_revision()})")
+    return True
+
+
 def main() -> int:
     print(f"halflife mcp doctor — {ROOT}\n")
     if not check_import():
@@ -157,6 +183,7 @@ def main() -> int:
     if not check_handshake(exe):
         return 1
     config_ok = check_config()
+    schema_ok = check_schema()
 
     print(
         "\nThe server works. If the harness still cannot attach:\n"
@@ -164,7 +191,7 @@ def main() -> int:
         "  - check the harness's own MCP log for the reason it rejected the server\n"
         "  - confirm the harness supports local stdio servers rather than only remote URLs"
     )
-    return 0 if config_ok else 1
+    return 0 if config_ok and schema_ok else 1
 
 
 if __name__ == "__main__":
