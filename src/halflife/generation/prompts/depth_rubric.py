@@ -343,6 +343,32 @@ Until one of those arrives, the depth rubric has exactly one instrument — a
 judge model, run against topics chosen by the same person who wrote the rubric
 it grades.
 
+**First cross-harness datum, and it is not good.** Everything above was
+measured on output written by one harness. Claude Cowork wrote issue 4 of a
+depth-1 series through the same MCP tools, the same rubric and the same brief,
+and the judge scored it **depth 4 against a requested depth 1** — a three-level
+miss, where every depth-1 miss in eleven runs had been judged 2. The reasoning:
+it assumes the mechanism and the running example are known, and spends its words
+on second-order effects and on a judgement test, which is experience-taught
+material rather than orientation.
+
+Continuity was untouched by this: the same piece scored zero restatements
+against issues 1 and 2, with 8 and 7 clean references. So the ledger travelled
+across harnesses and the depth rubric did not.
+
+Read it as one issue, one harness, one topic — and read the confound before
+concluding anything. The eval always generates issue 1 of a fresh series with an
+empty ledger; this was issue 4 with 36 established points in the prompt, and a
+deep ledger of sophisticated claims may push any harness upward regardless of
+which one is writing. Separating "this harness holds the rubric less well" from
+"a deep ledger raises the floor" needs the same harness writing issue 1 of a
+fresh series, which costs nothing but has not been done.
+
+If the first reading is the right one, the consequence is uncomfortable and
+worth stating in advance: the rubric would be doing less of the work than this
+file implies, and the scores above would be a property of the harness that
+produced them rather than of the text in this file.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set

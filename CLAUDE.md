@@ -10,6 +10,11 @@ constraints that must hold in code; read the design doc for the "why".
    continuity, driven from a CLI.
 2. ✅ **MCP server + in-harness delivery and extraction** (`halflife-mcp`), targeting Claude Code
    and Claude Cowork. Extraction runs only when the user asks for it — there is no ambient capture.
+   Both harnesses verified end to end: attach, guide, subscriptions, brief, record, read. Cowork
+   shares the same SQLite file rather than being sandboxed from it. What differed was quality, not
+   plumbing — its issue was judged three levels off the requested depth while its continuity was
+   clean, which `depth_rubric.py` records in full. Plumbing being harness-agnostic does not make
+   output harness-agnostic, and nothing here should be written as though it does.
 3. Wrap in FastAPI; move to Postgres; add tenancy enforcement.
 4. Containerise → Helm → k3d → EKS.
 
