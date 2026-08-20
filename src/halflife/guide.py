@@ -104,7 +104,7 @@ Run from a terminal. These need no API key.
 
 | command | what it does |
 |---|---|
-| `halflife init` | create or upgrade the database. Required once per machine. |
+| `halflife init` | create or upgrade the database. Once per machine, and again after an update adds a migration — anything that touches the database will tell you when. |
 | `halflife help` | this guide |
 | `halflife subscribe "<topic>, <depth>, <mins>, <freq>"` | create a subscription from the terminal instead of asking your harness |
 | `halflife ls` | subscriptions, issue counts, next due time |

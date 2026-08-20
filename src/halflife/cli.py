@@ -6,6 +6,8 @@ Everything here goes through repositories and the engine, so that the MCP server
 
 from __future__ import annotations
 
+import sys
+
 import typer
 from rich.console import Console
 from rich.markdown import Markdown
@@ -45,15 +47,39 @@ console = Console()
 _NEEDS_NO_SCHEMA = {"init", "help"}
 
 
-@app.callback()
-def _check_schema(ctx: typer.Context) -> None:
-    """Turn a stale database into an instruction, before the command runs.
+def _force_utf8() -> None:
+    """Keep the prose intact when output is redirected.
 
-    Without this the first query raises an opaque OperationalError from inside
+    Attached to a console, Python writes through the Windows console API and an
+    em dash arrives as an em dash. Redirected — piped into a pager, captured to
+    a file, read by another process — stdout falls back to the ANSI code page,
+    which is cp1252 on a default Windows install and cannot represent the
+    punctuation this tool is written in.
+
+    Rich substitutes rather than raising, so the failure is silent and
+    cosmetic: `halflife help > guide.txt` produced a file whose every em dash
+    had become a replacement character. `errors="replace"` is kept anyway — a
+    mangled character is a better outcome than a traceback for output that is
+    only ever read by a human.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:  # pytest and other capture layers
+            continue
+        reconfigure(encoding="utf-8", errors="replace")
+
+
+@app.callback()
+def _before_command(ctx: typer.Context) -> None:
+    """Set up output, and turn a stale database into an instruction.
+
+    The schema check runs before the command rather than inside it because
+    without it the first query raises an opaque OperationalError from inside
     SQLAlchemy — "no such column: delivery.plan_index" — which reads as a bug
     in the tool rather than as a database left behind by a git pull. It has
     happened twice on a real install.
     """
+    _force_utf8()
     if ctx.invoked_subcommand in _NEEDS_NO_SCHEMA:
         return
     try:

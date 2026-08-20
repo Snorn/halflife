@@ -326,8 +326,14 @@
       </tr>
       <tr>
         <td>Does the machinery hold together?</td>
-        <td class="num">174 tests</td>
+        <td class="num">233 tests</td>
         <td>fully offline; anything judging output lives in evals</td>
+      </tr>
+      <tr>
+        <td>Does a level ever run out of ground?</td>
+        <td class="num">yes, at depth&nbsp;1</td>
+        <td>one series judged 1, 1, 1, then 4 as its ledger grew — orientation is finite,
+            so a depth-1 series now stops at three issues</td>
       </tr>
     </tbody>
   </table>
@@ -337,7 +343,9 @@
     against them — further gains on that set may be fitting the judge rather than improving the
     writing. Reasoning effort moves the score more than two of the six revisions did. The numbers
     exist to say where to look; you are still the judge of whether your own daily issue was worth
-    five minutes.
+    five minutes. None of them cover the classification half, which has one real run behind it and
+    cannot be graded the way the writing was — a judge able to score it would need the
+    conversation the design exists to keep private.
   </p>
 </section>
 
@@ -345,20 +353,26 @@
   <p class="eyebrow">Status</p>
   <h2>Early, and specific about it</h2>
   <p class="lede">
-    The generation engine and the harness integration are built and measured. Everything else is a
+    The generation engine and the harness integration are built and measured. The half that
+    classifies what you worked on is built and <em>not</em> measured. Everything else is a
     deliberately later step.
   </p>
   <ul class="plain">
     <li><strong>Built:</strong> the depth rubric, series continuity with ledger compaction, the MCP
-        server, the CLI, and the eval harness that grades all of it.</li>
-    <li><strong>Not built:</strong> no server, no accounts, no multi-user, no dashboard, no
-        deployment story. Single machine, single reader, SQLite.</li>
-    <li><strong>Written down, not yet built:</strong> when the signal half arrives, the control
-        plane will see classifications and never content — including an <code>evidence</code> field
-        specified to stay permanently null. That is a
-        <a href="https://github.com/Snorn/halflife/blob/main/CLAUDE.md">recorded constraint</a>
-        today, not a schema you can inspect: no signal table exists and no code writes one. Judge
-        it when there is something to audit.</li>
+        server, the CLI, the eval harness that grades all of it, and session extraction — ask
+        your harness to log what you worked on and it records subject names and one of seven
+        behavioural verbs.</li>
+    <li><strong>Built, and now checkable:</strong> the privacy boundary used to be a
+        <a href="https://github.com/Snorn/halflife/blob/main/CLAUDE.md">written constraint</a> with
+        no schema behind it. The signal table exists now, and the <code>evidence</code> column is
+        <em>refused</em> a value by the write path — so &ldquo;nothing populates it&rdquo; is a
+        test rather than a promise. The conversation is never passed to HalfLife at all: the
+        recording function has no parameter that could carry it.</li>
+    <li><strong>Not built:</strong> nothing reads those signals back. No aggregate surface beyond a
+        count over a time window, no control plane, no dashboard — so everything the design
+        says about org admins and aggregation describes what must hold when there is one, not what
+        holds today. No server, no accounts, no multi-user, no deployment story. Single machine,
+        single reader, SQLite.</li>
   </ul>
   <p style="margin-top:24px">
     Useful today if you want a daily read on something you are keeping alive. Not yet a product.

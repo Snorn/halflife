@@ -349,3 +349,35 @@ def test_thread_needs_a_series(migrated_db, fake_generation):
 
     assert result.exit_code != 0
     assert "No single subscription" in result.output
+
+
+class _NoReconfigure:
+    """A capture layer of the sort pytest and CI runners substitute for stdout."""
+
+    encoding = "utf-8"
+
+    def write(self, text: str) -> int:  # pragma: no cover - never called
+        return len(text)
+
+
+def test_force_utf8_survives_a_stream_it_cannot_reconfigure(monkeypatch):
+    """The guard is the point: this runs before every command, including help."""
+    monkeypatch.setattr(cli.sys, "stdout", _NoReconfigure())
+    monkeypatch.setattr(cli.sys, "stderr", _NoReconfigure())
+
+    cli._force_utf8()  # must not raise
+
+
+def test_force_utf8_asks_for_utf8_and_never_raises(monkeypatch):
+    calls = []
+
+    class _Recording(_NoReconfigure):
+        def reconfigure(self, **kwargs):
+            calls.append(kwargs)
+
+    monkeypatch.setattr(cli.sys, "stdout", _Recording())
+    monkeypatch.setattr(cli.sys, "stderr", _Recording())
+
+    cli._force_utf8()
+
+    assert calls == [{"encoding": "utf-8", "errors": "replace"}] * 2
