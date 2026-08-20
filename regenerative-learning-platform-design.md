@@ -72,7 +72,7 @@ Key decisions:
 
 - Signal types are **coarse behavioural verbs, not scores** — robust to model variance across harnesses. `explained_to_ai` = strongest competence signal; `struggled` = strongest gap signal; `applied` = quiet competence.
 - `confidence` = the agent's confidence in its own classification.
-- `evidence` is **permanently null in v1** but present in the schema — auditable privacy stance.
+- `evidence` is **permanently null** — not "null for now". The column exists so the privacy stance is auditable, not as a staging area for a later opt-in. Enforced rather than intended: `repository.signals.assert_no_content` refuses any row that carries one.
 - `session_id` is a hash (dedupe without content linkage). No conversation IDs, no user text, no model output, no duration/keystroke telemetry.
 - Extraction prompt is versioned and identical across harnesses.
 - **Aggregation rule:** raw signals are write-only inputs; every human-visible surface is built from time-windowed aggregates. Nobody browses individual signals, including org admins.
@@ -100,7 +100,6 @@ Admin flow (tenant/team/invites) stays manual/scripted for a first deployment. I
 - Connector support (email, calendar, docs — beyond harness-only signals)
 - Decay detection proper (needs connector time-depth)
 - Auto-pause/resume maintenance subscriptions based on `applied` signals (candidate)
-- Opt-in `evidence` paraphrase for user self-review (candidate)
 
 ## Open items
 
@@ -108,3 +107,5 @@ Admin flow (tenant/team/invites) stays manual/scripted for a first deployment. I
 2. Pressure-test the signal schema against a concrete scenario (e.g. a field engineer's first week on an unfamiliar customer stack)
 
 *Closed: product name — settled as **HalfLife**.*
+
+*Closed: opt-in `evidence` paraphrase. It was listed here as a v2 candidate while CLAUDE.md forbade it by name, so the two source-of-truth documents disagreed about the same field. Settled against: an opt-in is how a permanently-null column stops being permanently null, and the consent it would rest on is the weakest part of the design — the person clicking it is the one with the least to lose and the most to gain from clicking. If self-review is wanted, it needs a mechanism that does not put content in the control plane, decided on the record.*

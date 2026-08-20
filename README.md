@@ -228,8 +228,9 @@ a rationale, not a result.
 ## Design and constraints
 
 [The design doc](regenerative-learning-platform-design.md) is the product rationale;
-[CLAUDE.md](CLAUDE.md) is the set of constraints that must hold in code. Two are worth knowing
-before contributing:
+[CLAUDE.md](CLAUDE.md) is the set of constraints that must hold in code;
+[BACKLOG.md](BACKLOG.md) is what is known to be outstanding, including the two gates that block
+the next steps. Two things are worth knowing before contributing:
 
 **The build order is deliberate.** Generation engine → MCP server → API and Postgres →
 containerisation. Kubernetes, Helm, SSO and tenancy enforcement are explicitly *not* to be
