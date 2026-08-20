@@ -139,3 +139,70 @@ def test_an_ambiguous_prefix_still_returns_nothing(session):
 
     assert subscription_repo.get_by_prefix(session, "shared-prefix") is None
     assert subscription_repo.get_by_prefix(session, "shared-prefix-1") is first
+
+
+# ------------------------------------------------------- the depth-1 cap
+
+
+def _deliver(session, sub, n):
+    from halflife.generation import engine
+    from halflife.models.base import GenerationSource
+    from tests.conftest import make_issue
+    return engine.record_issue(
+        session=session, subscription=sub, issue=make_issue(n),
+        source=GenerationSource.HARNESS)
+
+
+def test_only_depth_one_has_a_cap():
+    """Orientation runs out of ground; interactions and internals do not, and
+    the measurement behind that is beside ISSUE_CAP_BY_DEPTH."""
+    from halflife.models.base import issue_cap
+
+    assert issue_cap(1) == 4
+    assert all(issue_cap(d) is None for d in (2, 3, 4, 5))
+
+
+def test_a_depth_one_series_completes_at_the_cap(session):
+    sub = _subscribe(session, "x, 1, 5, 1d")
+
+    for n in range(1, 4):
+        _deliver(session, sub, n)
+        assert subscription_repo.is_complete(sub) is False
+
+    _deliver(session, sub, 4)
+    assert subscription_repo.is_complete(sub) is True
+
+
+def test_a_deeper_series_never_completes(session):
+    sub = _subscribe(session, "x, 4, 5, 1d")
+
+    for n in range(1, 7):
+        _deliver(session, sub, n)
+
+    assert subscription_repo.is_complete(sub) is False
+
+
+def test_a_complete_series_is_not_due(session):
+    """Due by the clock and having something left to write are different
+    questions, and nothing downstream should have to know that."""
+    sub = _subscribe(session, "x, 1, 5, 1d")
+    for n in range(1, 5):
+        _deliver(session, sub, n)
+    sub.next_due_at = utcnow()
+    session.flush()
+
+    assert subscription_repo.list_due(session) == []
+
+
+def test_raising_the_depth_lets_a_complete_series_continue(session):
+    """The escape hatch the completion message names: rate an issue too-basic,
+    the depth moves to 2, and the cap no longer applies."""
+    sub = _subscribe(session, "x, 1, 5, 1d")
+    for n in range(1, 5):
+        _deliver(session, sub, n)
+    assert subscription_repo.is_complete(sub) is True
+
+    subscription_repo.apply_feedback_to_depth(session, sub, Feedback.TOO_BASIC)
+
+    assert sub.depth == 2
+    assert subscription_repo.is_complete(sub) is False

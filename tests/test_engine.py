@@ -170,3 +170,23 @@ def test_depth_appears_in_the_generation_prompt_by_name(session):
     assert "Depth: 5 — Internals and edges" in client.last_user_prompt
     # The rubric itself rides on the system prompt, not the user prompt.
     assert "Depth rubric" in client.calls[-1]["system"]
+
+
+def test_a_complete_series_refuses_to_brief(session):
+    """Every route to a new issue goes through build_brief, so the cap is
+    checked there rather than in the three callers."""
+    import pytest
+    from halflife.models.base import GenerationSource
+    from halflife.repository import subscriptions as subscription_repo
+
+    sub = _subscribe(session, "x, 1, 5, 1d")
+    for n in range(1, 5):
+        engine.record_issue(session=session, subscription=sub, issue=make_issue(n),
+                            source=GenerationSource.HARNESS)
+
+    with pytest.raises(engine.SeriesComplete, match="depth 2"):
+        engine.build_brief(session=session, subscription=sub)
+
+    subscription_repo.apply_feedback_to_depth(session, sub, __import__(
+        "halflife.models.base", fromlist=["Feedback"]).Feedback.TOO_BASIC)
+    assert engine.build_brief(session=session, subscription=sub).issue_number == 5

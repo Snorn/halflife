@@ -210,7 +210,10 @@ def halflife_next_brief(subscription_id: str) -> str:
         if subscription is None:
             return _ok({"error": f"no single subscription matches {subscription_id!r}"})
 
-        brief = engine.build_brief(session=session, subscription=subscription)
+        try:
+            brief = engine.build_brief(session=session, subscription=subscription)
+        except engine.SeriesComplete as exc:
+            return _ok({"series_complete": True, "reason": str(exc)})
         return _ok(
             {
                 "subscription_id": brief.subscription_id,

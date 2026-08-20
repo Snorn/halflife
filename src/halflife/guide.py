@@ -68,6 +68,12 @@ Depth sets **what you are assumed to already know**, not the length.
 | 4 | You are competent and want what experience teaches. Interactions, second-order effects. |
 | 5 | You are at the edge of the published material. Internals, edge cases, version specifics. |
 
+**A depth-1 series finishes.** Orientation is a finite amount of material, so a depth-1
+subscription runs to four issues and then reports itself complete rather than padding. That is
+measured: a fifth issue drifts several levels deeper because the ground is gone. Rate an issue
+`too_basic` to move it to depth 2 and carry on, or unsubscribe. Depths 2 and above do not run
+out and are not capped.
+
 If issues feel wrong, do not re-subscribe — give feedback. Say `too_basic` or `too_advanced`
 when the level is off, and `already_knew` or `wrong_subject` when the level was fine but the
 material was not what you needed.

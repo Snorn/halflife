@@ -166,6 +166,25 @@ Ids can be given as any unambiguous prefix, so the eight characters shown in `ls
 Deletion is deliberately **not** exposed over MCP — everything else in the tool is additive or
 reversible, and there is no reason a model needs to remove your reading history.
 
+## A depth-1 series finishes
+
+Orientation is a finite amount of material. A depth-1 subscription runs to four issues and then
+reports itself complete — it stops appearing as due, and `ls` shows `4/4 complete`.
+
+That is measured rather than assumed. Judging one depth-1 series issue by issue against the
+coverage ledger its writer actually saw: 0 points scored depth 1, 11 scored 1, 21 scored 1, and
+36 scored **4**. A depth-4 series at the same ledger sizes held at 4 throughout, so this is not
+deep ledgers pushing everything upward — it is orientation running out of ground. Once the ledger
+holds "what it is and what problem it solves", a writer forbidden to re-explain any of it has
+nothing left at that level.
+
+Two prompt revisions were tried against this and both failed, including one that explicitly
+offered "go sideways rather than up" as the legal move. The prompt was the wrong place to fix it.
+
+To continue past the cap, rate an issue `too-basic`: the depth moves to 2 and the cap no longer
+applies. Depths 2 and above are not capped, because interactions, second-order effects and
+internals do not run out.
+
 ## How a series stays coherent
 
 Four pieces of state, rather than one prose summary:

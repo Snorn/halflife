@@ -155,6 +155,35 @@ class ContextCategory(str, enum.Enum):
 MIN_DEPTH = 1
 MAX_DEPTH = 5
 
+# A depth-1 series has a natural length, and it is short.
+#
+# Measured, not assumed. One depth-1 series was judged issue by issue against
+# the ledger its writer actually saw: 0 points -> depth 1, 11 -> 1, 21 -> 1,
+# and 36 -> depth 4. A depth-4 series at the same ledger sizes held at 4
+# throughout, so this is not deep ledgers pushing everything upward — it is
+# orientation running out of ground. "What it is and what problem it solves" is
+# a finite amount of material, and once the ledger holds it, a writer forbidden
+# to re-explain any of it has nothing left to say at that level.
+#
+# Two prompt revisions were tried against this and both failed, including one
+# that explicitly offered "go sideways rather than up" as the legal move. The
+# prompt is the wrong place to fix it, so the series simply ends.
+#
+# Only depth 1 is capped. Nothing above it runs out: interactions, second-order
+# effects and internals are unbounded, and the measurement says so.
+#
+# The unit is issues rather than ledger points because it is the number a
+# reader can see and reason about before subscribing. It is a proxy — the real
+# variable is ledger size, and at the ~12 points an issue this project measures,
+# four issues is roughly where the ground goes. A series whose issues establish
+# far more or far less than that will hit the wall at a different number.
+ISSUE_CAP_BY_DEPTH = {1: 4}
+
+
+def issue_cap(depth: int) -> int | None:
+    """How many issues this depth supports, or None if it does not run out."""
+    return ISSUE_CAP_BY_DEPTH.get(depth)
+
 # Bumped when the signal envelope or body changes shape, so a control plane can
 # tell which contract a stored row was written against.
 SIGNAL_SCHEMA_VERSION = "1"

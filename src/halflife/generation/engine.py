@@ -24,11 +24,12 @@ from halflife.generation.schemas import (
     PlannedIssue,
     SeriesPlan,
 )
-from halflife.models.base import GenerationSource, new_id, utcnow
+from halflife.models.base import GenerationSource, issue_cap, new_id, utcnow
 from halflife.models.delivery import Delivery
 from halflife.models.series import CoveragePoint, Series
 from halflife.models.subscription import Subscription
 from halflife.repository import deliveries as delivery_repo
+from halflife.repository import subscriptions as subscription_repo
 
 log = logging.getLogger(__name__)
 
@@ -294,13 +295,32 @@ class IssueBrief:
     needs_compaction: bool
 
 
+class SeriesComplete(GenerationError):
+    """The series has delivered everything its depth supports."""
+
+
 def build_brief(
     *,
     session: Session,
     subscription: Subscription,
     settings: Settings | None = None,
 ) -> IssueBrief:
-    """Assemble the prompt for the next issue without generating anything."""
+    """Assemble the prompt for the next issue without generating anything.
+
+    Raises SeriesComplete once a capped depth has run out of ground. The check
+    lives here because every route to a new issue passes through it -- the CLI,
+    the MCP brief and the API path -- and the compaction bug taught this project
+    what happens when a precondition is left to three callers to remember.
+    """
+    if subscription_repo.is_complete(subscription):
+        cap = issue_cap(subscription.depth)
+        raise SeriesComplete(
+            f"This series is complete: depth {subscription.depth} supports about {cap} issues "
+            f"on one topic and it has delivered {cap}. Orientation runs out of ground, which is "
+            "measured rather than assumed. Rate an issue too-basic to move it to depth 2 and "
+            "carry on, or unsubscribe."
+        )
+
     settings = settings or get_settings()
     series = ensure_series(session, subscription)
     issue_number = series.issue_count + 1

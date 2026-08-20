@@ -17,6 +17,7 @@ from halflife.db import session_scope
 from halflife.generation import GenerationError, engine
 from halflife.migrations_runner import upgrade_to_head
 from halflife.models.base import (
+    issue_cap,
     CoverageKind,
     Feedback,
     Frequency,
@@ -56,6 +57,21 @@ _FEEDBACK_ALIASES = {
     "wrong_subject": Feedback.WRONG_SUBJECT,
     "wrong": Feedback.WRONG_SUBJECT,
 }
+
+
+def _issues_cell(sub, series) -> str:
+    """Issue count, against the cap where the depth has one."""
+    written = series.issue_count if series else 0
+    cap = issue_cap(sub.depth)
+    return f"{written}/{cap}" if cap else str(written)
+
+
+def _state_cell(sub) -> str:
+    if sub.status is not SubscriptionStatus.ACTIVE:
+        return "[dim]paused[/dim]"
+    if subscription_repo.is_complete(sub):
+        return "[dim]complete[/dim]"
+    return ""
 
 
 def _short(identifier: str) -> str:
@@ -145,9 +161,9 @@ def list_subscriptions() -> None:
                 str(sub.duration_minutes),
                 sub.frequency.value,
                 sub.flavour.value,
-                str(series.issue_count if series else 0),
+                _issues_cell(sub, series),
                 sub.next_due_at.strftime("%Y-%m-%d %H:%M"),
-                "" if sub.status is SubscriptionStatus.ACTIVE else "[dim]paused[/dim]",
+                _state_cell(sub),
             )
         console.print(table)
 

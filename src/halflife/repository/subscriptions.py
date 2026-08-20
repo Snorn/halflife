@@ -15,6 +15,7 @@ from halflife import LOCAL_TENANT_ID, LOCAL_USER_ID
 from halflife.models.base import (
     MAX_DEPTH,
     MIN_DEPTH,
+    issue_cap,
     Feedback,
     Flavour,
     Frequency,
@@ -105,7 +106,29 @@ def list_due(
         .where(Subscription.next_due_at <= now)
         .order_by(Subscription.next_due_at)
     )
-    return list(session.scalars(stmt).all())
+    # Filtered here rather than in SQL: a finished series is still due by the
+    # clock, and nothing downstream should have to remember that "due" and
+    # "has anything left to write" are different questions.
+    return [sub for sub in session.scalars(stmt).all() if not is_complete(sub)]
+
+
+def is_complete(subscription: Subscription) -> bool:
+    """Has this series delivered everything its depth supports?
+
+    Only depth 1 has a cap, and only because orientation ground is finite --
+    see the measurement beside ISSUE_CAP_BY_DEPTH. A completed series is not
+    an error and not a failure; it is a series that finished.
+    """
+    cap = issue_cap(subscription.depth)
+    if cap is None:
+        return False
+    # series.issue_count, not len(subscription.deliveries): the relationship
+    # collection does not refresh after a write in the same session, so it
+    # reads stale immediately after the issue that completes the series. It is
+    # also the number `ls` prints, and a cap that disagrees with the count on
+    # screen would be indefensible.
+    series = subscription.series
+    return series is not None and series.issue_count >= cap
 
 
 def deletion_summary(session: Session, subscription: Subscription) -> dict[str, int]:
