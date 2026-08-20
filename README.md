@@ -126,6 +126,7 @@ The tools it uses:
 | `halflife_pending_reads` / `halflife_read` | what is waiting, and its text |
 | `halflife_feedback` | `too_basic` / `just_right` / `too_advanced` move depth; `already_knew` / `wrong_subject` move the subject |
 | `halflife_compaction_brief` / `halflife_record_compaction` | compress the ledger when it outgrows a prompt |
+| `halflife_add_thread` | tell a series it missed something; the next issue is told it outranks the plan |
 | `halflife_extraction_brief` / `halflife_record_signals` | classify a working session into subjects and behavioural verbs, only when you ask |
 | `halflife_help` | the built-in guide: the loop, depths, and everything above |
 
@@ -154,6 +155,7 @@ These need no API key and work regardless of how issues were generated:
 | `inbox` / `read [id\|latest]` | What is unread; read it. |
 | `feedback <delivery> <verdict>` | Two axes: `too-basic` / `just-right` / `too-advanced` nudge the subscription's depth; `already-knew` / `wrong-subject` leave depth alone and tell the next few issues to take different ground. |
 | `flavour <sub> learning\|maintaining` | Switch between building a skill up and keeping one alive. Depth is unaffected; the series plan is not redrawn. |
+| `thread <sub> "<text>"` | Tell a series it missed something. The next issue is told it outranks the plan, and may still judge it not worth an issue. |
 | `duration <sub> <minutes>` | How long an issue should take to read. At the same depth a longer issue covers more ground, not the same ground slower. |
 | `frequency <sub> 1h\|1d\|1w` | How often an issue is due. The already-scheduled next issue keeps its slot; the new interval applies after it. |
 | `series <sub>` | The continuity state: plan, coverage ledger, open threads. `--full` includes compacted entries. |

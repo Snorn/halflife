@@ -436,6 +436,39 @@ def frequency(
 
 
 @app.command()
+def thread(
+    subscription: str = typer.Argument(..., help="Subscription id or prefix."),
+    text: str = typer.Argument(..., help="What the series should cover."),
+) -> None:
+    """Tell a series it missed something.
+
+    The next issue is shown this and told it outranks the plan. It is advisory,
+    not a queue: a generator that takes the subject clears it, and one that
+    judges it not worth an issue drops it. Nothing here guarantees coverage.
+
+    Depth is untouched. This says what to write about, never at what level.
+    """
+    with session_scope() as session:
+        sub = subscription_repo.get_by_prefix(session, subscription)
+        if sub is None:
+            _fail(f"No single subscription matches {subscription!r}.")
+            return
+
+        state = series_repo.get_for_subscription(session, sub.id)
+        if state is None:
+            _fail("That subscription has no series yet; write an issue first.")
+            return
+
+        before = len(state.open_threads)
+        threads = series_repo.add_thread(session, state, text)
+        if len(threads) == before:
+            console.print("[green]Already noted.[/green] That thread is on the series.")
+            return
+
+        console.print(f"[green]Noted for {sub.topic}.[/green] The next issue is told about it.")
+
+
+@app.command()
 def series(
     subscription: str = typer.Argument(..., help="Subscription id or prefix."),
     full: bool = typer.Option(False, "--full", help="Include entries folded into summaries."),

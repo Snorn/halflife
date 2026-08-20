@@ -123,10 +123,21 @@ def render_feedback_block(entries: Sequence[tuple[int, str, str, Any]]) -> str:
     return "\n".join(lines)
 
 
+_READER_PREFIX = "Asked for by the reader:"
+
+
 def render_threads_block(threads: list[str]) -> str:
     if not threads:
         return "Open threads: none."
-    lines = ["Open threads — a previous issue deferred these. Pick one up or drop it:"]
+    reader = [t for t in threads if t.startswith(_READER_PREFIX)]
+    header = "Open threads — a previous issue deferred these. Pick one up or drop it:"
+    if reader:
+        header = (
+            "Open threads. Ones marked as asked for by the reader outrank the plan — they are "
+            "the reader saying the series missed something, which they are better placed to "
+            "judge than the plan is. The rest a previous issue deferred; pick one up or drop it:"
+        )
+    lines = [header]
     lines.extend(f"  - {t}" for t in threads)
     return "\n".join(lines)
 

@@ -61,16 +61,21 @@ def test_guide_lists_every_mcp_tool(migrated_db):
 
 
 def test_guide_lists_every_cli_command(migrated_db):
-    """And a command it omits is one nobody finds either."""
-    text = guide.guide_text()
+    """And a command it omits is one nobody finds either.
+
+    Matched as `halflife <name>`, the form the guide's table uses, rather than
+    as a bare substring. The substring version passed for the `thread` command
+    while the guide had no row for it, because "thread" occurs inside "open
+    threads" — a guard satisfied by an unrelated word is not a guard.
+    """
+    listed = set(re.findall(r"`halflife ([a-z-]+)", guide.guide_text()))
 
     # generate is API-only and covered by the closing section rather than the
     # command table; run-due is named there explicitly.
-    missing = sorted(
-        name for name in _cli_command_names() if name not in text and name != "generate"
-    )
+    missing = sorted(name for name in _cli_command_names() if name not in listed
+                     and name != "generate")
 
-    assert not missing, f"guide does not mention: {missing}"
+    assert not missing, f"guide does not list: {missing}"
 
 
 def test_guide_mentions_no_command_that_does_not_exist(migrated_db):

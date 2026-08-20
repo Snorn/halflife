@@ -94,6 +94,7 @@ daily; `weekly` suits maintaining series, and `hourly` exists for cramming.
 | `halflife_pending_reads` / `halflife_read` | what is waiting, and its text |
 | `halflife_feedback` | `too_basic` / `just_right` / `too_advanced` (level), `already_knew` / `wrong_subject` (subject) |
 | `halflife_compaction_brief` / `halflife_record_compaction` | compress the ledger when it grows too long |
+| `halflife_add_thread` | tell a series it missed something you want covered |
 | `halflife_extraction_brief` / `halflife_record_signals` | classify a session into subjects and verbs, when you ask |
 | `halflife_help` | this guide |
 
@@ -105,16 +106,18 @@ Run from a terminal. These need no API key.
 |---|---|
 | `halflife init` | create or upgrade the database. Required once per machine. |
 | `halflife help` | this guide |
+| `halflife subscribe "<topic>, <depth>, <mins>, <freq>"` | create a subscription from the terminal instead of asking your harness |
 | `halflife ls` | subscriptions, issue counts, next due time |
 | `halflife inbox` | issues written but not yet read |
 | `halflife read [id\\|latest]` | read an issue and mark it read |
 | `halflife feedback <id> <verdict>` | `too-basic`, `just-right`, `too-advanced` move depth; `already-knew`, `wrong-subject` move the subject |
 | `halflife flavour <sub> learning\|maintaining` | switch between building a skill up and keeping one alive |
+| `halflife thread <sub> "<text>"` | tell a series it missed something you want covered |
 | `halflife duration <sub> <minutes>` | how long an issue should take to read |
 | `halflife frequency <sub> 1h\|1d\|1w` | how often an issue is due |
 | `halflife series <sub>` | the plan, the coverage ledger, and open threads. `--full` includes compacted entries |
 | `halflife cost` | spend to date and projected monthly run rate |
-| `halflife pause` / `resume <sub>` | stop and restart delivery, keeping the series |
+| `halflife pause <sub>` / `halflife resume <sub>` | stop and restart delivery, keeping the series |
 | `halflife unsubscribe <sub>` | delete a subscription and everything it has delivered. Irreversible |
 
 Ids can be any unambiguous prefix — the eight characters shown by `ls` are enough.

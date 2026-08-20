@@ -467,6 +467,45 @@ def halflife_subscribe(spec: str) -> str:
 
 
 @server.tool()
+def halflife_add_thread(subscription_id: str, thread: str) -> str:
+    """Tell a series it missed something the reader wants covered.
+
+    Use this when the reader says the series left out a subject, or names
+    something it should cover next. The next issue is shown it and told it
+    outranks the series plan.
+
+    Advisory rather than a queue: a generator that takes the subject clears the
+    thread, and one that judges it not worth an issue drops it. Do not promise
+    the reader it will definitely appear.
+
+    This says what to write about and never at what level. Depth is moved by
+    halflife_feedback, not here.
+
+    Args:
+        subscription_id: the series that missed it, full id or a unique prefix.
+        thread: what it should cover, in the reader's terms.
+    """
+    with session_scope() as session:
+        subscription = subscription_repo.get_by_prefix(session, subscription_id)
+        if subscription is None:
+            return _ok({"error": f"no single subscription matches {subscription_id!r}"})
+
+        state = series_repo.get_for_subscription(session, subscription.id)
+        if state is None:
+            return _ok({"error": "that subscription has no series yet; write an issue first"})
+
+        threads = series_repo.add_thread(session, state, thread)
+        return _ok(
+            {
+                "topic": subscription.topic,
+                "open_threads": len(threads),
+                "note": "Advisory. The next issue is told it outranks the plan, and may still "
+                        "judge it not worth an issue.",
+            }
+        )
+
+
+@server.tool()
 def halflife_extraction_brief() -> str:
     """Get the prompt for classifying the session you are in, when the user asks.
 

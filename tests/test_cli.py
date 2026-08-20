@@ -287,3 +287,65 @@ def test_changing_one_parameter_leaves_the_others_alone(migrated_db, fake_genera
     assert " 4 " in listing
     assert " daily " in listing
     assert " maintaining " in listing
+
+
+def test_thread_tells_the_next_issue_what_was_missed(migrated_db, fake_generation):
+    from halflife.db import session_scope
+    from halflife.repository import series as series_repo
+    from halflife.repository import subscriptions as subscription_repo
+
+    _run("subscribe", "sap web dispatcher, 4, 5, 1d")
+    sub_id = _run("ls").strip().split("\n")[1].split()[0]
+
+    assert "Noted" in _run("thread", sub_id, "the semantic layer")
+
+    with session_scope() as session:
+        sub = subscription_repo.get_by_prefix(session, sub_id)
+        threads = series_repo.get_for_subscription(session, sub.id).open_threads
+
+    assert threads == [f"{series_repo.READER_THREAD_PREFIX} the semantic layer"]
+
+
+def test_the_same_thread_twice_is_noted_once(migrated_db, fake_generation):
+    _run("subscribe", "kubernetes, 3, 5, 1d")
+    sub_id = _run("ls").strip().split("\n")[1].split()[0]
+
+    _run("thread", sub_id, "admission webhook ordering")
+
+    assert "Already noted" in _run("thread", sub_id, "admission webhook ordering")
+
+
+def test_a_reader_thread_reaches_the_brief_marked_as_theirs(migrated_db, fake_generation):
+    """The prefix is the whole mechanism: without it the generator cannot tell
+    a reader's request from something a previous issue deferred."""
+    from halflife.db import session_scope
+    from halflife.generation import engine
+    from halflife.repository import subscriptions as subscription_repo
+
+    _run("subscribe", "postgres connection pooling, 3, 5, 1d")
+    sub_id = _run("ls").strip().split("\n")[1].split()[0]
+    _run("thread", sub_id, "connection pool sizing under pgbouncer")
+
+    with session_scope() as session:
+        sub = subscription_repo.get_by_prefix(session, sub_id)
+        prompt = engine.build_brief(session=session, subscription=sub).user_prompt
+
+    assert "Asked for by the reader: connection pool sizing under pgbouncer" in prompt
+    assert "outrank the plan" in prompt
+
+
+def test_threads_do_not_touch_depth(migrated_db, fake_generation):
+    """This says what to write about, never at what level."""
+    _run("subscribe", "tls certificate chains, 5, 5, 1d")
+    sub_id = _run("ls").strip().split("\n")[1].split()[0]
+
+    _run("thread", sub_id, "cross-signed chain expiry")
+
+    assert " 5 " in _run("ls")
+
+
+def test_thread_needs_a_series(migrated_db, fake_generation):
+    result = runner.invoke(cli.app, ["thread", "zzzzzzzz", "anything"])
+
+    assert result.exit_code != 0
+    assert "No single subscription" in result.output
