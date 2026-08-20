@@ -52,6 +52,56 @@ now keyed on what generation reported rather than on where an issue landed in
 the sequence. An entry the plan lists but nothing took stays unmarked, which
 position could never express.
 
+v4 answers a defect the eval could not see, because the eval only ever writes
+issue 1 of a fresh series. Depth held on a real depth-1 series at 0, 11 and 21
+ledger points and broke to depth 4 at 36 — the run is in depth_rubric.py. The
+diagnosis is that two instructions pull against each other and the ledger wins
+as it grows: told not to re-explain a page of established claims, on a topic
+whose ground at that level is largely taken, the cheapest escape is to write
+above the level.
+
+So the depth constraint moves to the end of the user prompt, after the ledger
+rather than before it, and says what it now has to say — that it outranks the
+block above, that clearing the ledger by climbing a level is a wrong-level piece
+rather than a resourceful one, and that the legal move when a level runs out of
+ground is sideways rather than up. That last part matters as much as the
+placement: the previous wording left the writer forbidden to repeat and
+forbidden to climb with no third option named, and a prompt that closes every
+door gets one kicked open.
+
+**v4 was tested against the defect and did not fix it.** Two arms, identical
+36-point ledgers replayed from a real series, depth 1, both written by the
+pinned API model so that neither was written by anyone who had seen the
+failure. Judged blind: the old prompt scored 4 and the new prompt scored 4.
+
+That result is worth more than a success would have been, for two reasons. The
+defect reproduced independently — the pinned model climbed on a fresh replay,
+so the 36-point failure is not something one harness does. And placement was
+not the cause: the v4 text explicitly names "go sideways rather than up" as the
+legal move and the writer climbed regardless.
+
+The deciding test was the other direction. A depth-4 series with the same
+ledger sizes, judged issue by issue:
+
+  depth 1 series:  0 -> 1,  11 -> 1,  21 -> 1,  36 -> 4
+  depth 4 series:  0 -> 4,  11 -> 4,  21 -> 4,  36 -> 4
+
+Deep ledgers do not push everything upward. Depth 4 held at every ledger size.
+Only the depth-1 series climbed, which makes this a statement about depth 1
+rather than about ledgers: orientation ground on a topic is finite, and a
+ledger of 36 established claims has taken essentially all of it. A writer
+forbidden to re-explain any of that, on a topic whose "what it is and what
+problem it solves" is exhausted, has nothing left to write at that level. Depth
+4 never runs out, because interactions and second-order effects are unbounded.
+
+So this is a product question, not a prompt one, and no wording will fix it.
+The options are to cap a depth-1 series at roughly the length its ground
+supports — three or four issues on the evidence here — or to let the depth rise
+deliberately once orientation is covered, which is arguably what a reader wants
+anyway and is a different product from the one described in this file. Neither
+is chosen. What is settled is that the failure is structural and that the
+prompt is the wrong place to attack it.
+
 All of this is the same shape as the v2 change — name the situation, state what
 to do — and carries the same caveat.
 
@@ -91,7 +141,7 @@ from __future__ import annotations
 from halflife.generation.prompts.depth_rubric import DEPTH_RUBRIC, depth_label
 from halflife.models.base import Flavour
 
-GENERATION_PROMPT_VERSION = "3"
+GENERATION_PROMPT_VERSION = "4"
 
 _SYSTEM = """\
 You write micro-learning for working professionals — short, single-sitting reads that keep a
@@ -178,8 +228,21 @@ Length: about {word_budget} words (a {duration_minutes}-minute read)
 
 {feedback_block}
 
-Write to the depth requested. At depths 4 and 5, if the length forces a choice, narrow the
-subject and treat it properly rather than covering more ground thinly.\
+Now re-read the depth line at the top. It outranks everything between here and there.
+
+The ledger and the depth pull against each other, and the pull gets stronger as the ledger
+grows: the easiest way to avoid re-explaining anything already established is to write above the
+level you were asked for. That is the failure this instruction exists to prevent. A piece that
+clears the ledger by climbing a level is a wrong-level piece, not a resourceful one.
+
+**Depth {depth_label} is the constraint.** Where the ledger has taken most of the ground
+available at that level, go sideways rather than up — a different subject at the same level, a
+narrower one, or the same ground reached through a situation the reader has not been shown.
+Running out of room at a level is a real outcome, and saying so in `next_suggested` is the
+correct response to it. It is never a licence to write the next level up.
+
+At depths 4 and 5, if the length forces a choice, narrow the subject and treat it properly rather
+than covering more ground thinly.\
 """
 
 _FLAVOUR_NOTES = {
