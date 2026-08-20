@@ -12,6 +12,7 @@ from rich.markdown import Markdown
 from rich.table import Table
 
 from halflife import guide, pricing
+from halflife.config import get_settings
 from halflife.db import session_scope
 from halflife.generation import GenerationError, engine
 from halflife.migrations_runner import upgrade_to_head
@@ -27,7 +28,13 @@ from halflife.models.delivery import Delivery
 from halflife.repository import deliveries as delivery_repo
 from halflife.repository import series as series_repo
 from halflife.repository import subscriptions as subscription_repo
-from halflife.shorthand import ShorthandError, parse_flavour, parse_shorthand
+from halflife.shorthand import (
+    ShorthandError,
+    parse_duration,
+    parse_flavour,
+    parse_frequency,
+    parse_shorthand,
+)
 
 app = typer.Typer(add_completion=False, help="HalfLife — keep your skills from decaying.")
 console = Console()
@@ -288,6 +295,35 @@ def feedback(
             console.print(f"[green]Noted.[/green] Depth {before} -> {after} for future issues.")
 
 
+def _change(prefix: str, describe, note=None, **updates) -> None:
+    """Apply one parameter change to a subscription and report what moved.
+
+    Shared by the three change commands because the interesting part of each is
+    the one line that parses its own value; everything around it — resolving a
+    prefix, noticing that nothing changed, saying when it takes effect — is the
+    same question every time and only stays consistent if it is answered once.
+    """
+    with session_scope() as session:
+        sub = subscription_repo.get_by_prefix(session, prefix)
+        if sub is None:
+            _fail(f"No single subscription matches {prefix!r}.")
+            return
+
+        before = describe(sub)
+        subscription_repo.update_parameters(session, sub, **updates)
+        after = describe(sub)
+
+        if before == after:
+            console.print(f"[green]Unchanged.[/green] {sub.topic} is already {after}.")
+            return
+
+        console.print(f"[green]{sub.topic}[/green]: {before} -> {after}, from the next issue.")
+        if note is not None:
+            line = note(sub)
+            if line:
+                console.print(f"  {line}")
+
+
 @app.command()
 def flavour(
     subscription: str = typer.Argument(..., help="Subscription id or prefix."),
@@ -310,27 +346,77 @@ def flavour(
         _fail(str(exc))
         return
 
-    with session_scope() as session:
-        sub = subscription_repo.get_by_prefix(session, subscription)
-        if sub is None:
-            _fail(f"No single subscription matches {subscription!r}.")
-            return
+    _change(
+        subscription,
+        lambda sub: sub.flavour.value,
+        # The arc was drawn under the old stance and is not redrawn here.
+        note=lambda sub: (
+            "The series plan stays as drawn; the change is in how each issue is written."
+            if sub.series is not None and sub.series.plan
+            else ""
+        ),
+        flavour=parsed,
+    )
 
-        before = sub.flavour
-        if before is parsed:
-            console.print(f"[green]Unchanged.[/green] {sub.topic} is already {parsed.value}.")
-            return
 
-        subscription_repo.update_parameters(session, sub, flavour=parsed)
-        console.print(
-            f"[green]{sub.topic}[/green]: {before.value} -> {parsed.value}, from the next issue."
-        )
-        if sub.series is not None and sub.series.plan:
-            # The arc was drawn under the old flavour and is not redrawn here.
-            # Saying so beats letting the next issue quietly disagree with it.
-            console.print(
-                "  The series plan stays as drawn; the change is in how each issue is written."
-            )
+@app.command()
+def duration(
+    subscription: str = typer.Argument(..., help="Subscription id or prefix."),
+    minutes: str = typer.Argument(..., help="Minutes per issue, e.g. 5 or 10m"),
+) -> None:
+    """Change how long an issue should take to read.
+
+    Length is the only thing this moves. Depth sets what you are assumed to
+    already know, so a longer issue at the same depth covers more ground rather
+    than explaining the same ground more slowly.
+    """
+    try:
+        parsed = parse_duration(minutes)
+    except ShorthandError as exc:
+        _fail(str(exc))
+        return
+
+    settings = get_settings()
+    _change(
+        subscription,
+        lambda sub: f"{sub.duration_minutes} min",
+        note=lambda sub: (
+            f"Issues will run to about {sub.duration_minutes * settings.words_per_minute:,} words."
+        ),
+        duration_minutes=parsed,
+    )
+
+
+@app.command()
+def frequency(
+    subscription: str = typer.Argument(..., help="Subscription id or prefix."),
+    value: str = typer.Argument(..., help="hourly/1h, daily/1d or weekly/1w"),
+) -> None:
+    """Change how often an issue is due.
+
+    Daily is the default. Weekly suits a maintaining series; hourly exists for
+    cramming and has to be asked for.
+    """
+    try:
+        parsed = parse_frequency(value)
+    except ShorthandError as exc:
+        _fail(str(exc))
+        return
+
+    _change(
+        subscription,
+        lambda sub: sub.frequency.value,
+        # next_due_at was fixed when the last issue was recorded, using the
+        # interval in force then. Saying so beats a user waiting a week for an
+        # issue that was always going to arrive tomorrow.
+        note=lambda sub: (
+            f"The next issue is already scheduled for {sub.next_due_at:%Y-%m-%d %H:%M}; "
+            "the new interval applies after that."
+            if sub.next_due_at is not None
+            else ""
+        ),
+        frequency=parsed,
+    )
 
 
 @app.command()

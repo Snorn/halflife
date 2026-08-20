@@ -154,6 +154,8 @@ These need no API key and work regardless of how issues were generated:
 | `inbox` / `read [id\|latest]` | What is unread; read it. |
 | `feedback <delivery> <verdict>` | Two axes: `too-basic` / `just-right` / `too-advanced` nudge the subscription's depth; `already-knew` / `wrong-subject` leave depth alone and tell the next few issues to take different ground. |
 | `flavour <sub> learning\|maintaining` | Switch between building a skill up and keeping one alive. Depth is unaffected; the series plan is not redrawn. |
+| `duration <sub> <minutes>` | How long an issue should take to read. At the same depth a longer issue covers more ground, not the same ground slower. |
+| `frequency <sub> 1h\|1d\|1w` | How often an issue is due. The already-scheduled next issue keeps its slot; the new interval applies after it. |
 | `series <sub>` | The continuity state: plan, coverage ledger, open threads. `--full` includes compacted entries. |
 | `cost` | Spend to date per subscription, and the projected monthly run rate. |
 | `pause` / `resume <sub>` | Stop and restart delivery, keeping the series. |

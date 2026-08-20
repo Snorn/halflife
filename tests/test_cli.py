@@ -210,3 +210,80 @@ def test_flavour_warns_that_the_plan_is_not_redrawn(migrated_db, fake_generation
     sub_id = _run("ls").strip().split("\n")[1].split()[0]
 
     assert "series plan stays as drawn" in _run("flavour", sub_id, "maintaining")
+
+
+def _one_subscription(spec: str) -> str:
+    _run("subscribe", spec)
+    return _run("ls").strip().split("\n")[1].split()[0]
+
+
+def test_duration_changes_the_word_budget(migrated_db, fake_generation):
+    sub_id = _one_subscription("oauth device flow, 3, 5, 1d")
+
+    output = _run("duration", sub_id, "10")
+
+    assert "5 min -> 10 min" in output
+    assert "2,000 words" in output
+
+
+def test_duration_accepts_the_same_suffixes_as_subscribe(migrated_db, fake_generation):
+    sub_id = _one_subscription("linux cgroups, 3, 5, 1d")
+
+    assert "-> 12 min" in _run("duration", sub_id, "12m")
+
+
+def test_duration_rejects_a_non_number(migrated_db, fake_generation):
+    sub_id = _one_subscription("redis eviction, 3, 5, 1d")
+
+    result = runner.invoke(cli.app, ["duration", sub_id, "nonsense"])
+
+    assert result.exit_code != 0
+    assert "number of minutes" in result.output
+
+
+def test_frequency_changes_the_cadence(migrated_db, fake_generation):
+    sub_id = _one_subscription("sap hana memory, 3, 5, 1d")
+
+    output = _run("frequency", sub_id, "1w")
+
+    assert "daily -> weekly" in output
+
+
+def test_frequency_says_the_scheduled_issue_keeps_its_slot(migrated_db, fake_generation):
+    """next_due_at was fixed when the last issue was recorded, so the change
+    cannot move an issue that is already scheduled."""
+    sub_id = _one_subscription("blameless incident review, 3, 5, 1d")
+
+    output = _run("frequency", sub_id, "weekly")
+
+    assert "already scheduled" in output
+    assert "applies after that" in output
+
+
+def test_frequency_rejects_an_unknown_cadence(migrated_db, fake_generation):
+    sub_id = _one_subscription("tls chains, 3, 5, 1d")
+
+    result = runner.invoke(cli.app, ["frequency", sub_id, "fortnightly"])
+
+    assert result.exit_code != 0
+    assert "hourly" in result.output and "weekly" in result.output
+
+
+def test_a_change_that_changes_nothing_says_so(migrated_db, fake_generation):
+    sub_id = _one_subscription("postgres pooling, 3, 5, 1d")
+
+    assert "already 5 min" in _run("duration", sub_id, "5")
+    assert "already daily" in _run("frequency", sub_id, "1d")
+
+
+def test_changing_one_parameter_leaves_the_others_alone(migrated_db, fake_generation):
+    """The three commands share a helper; the helper must not become a way to
+    move something the caller did not name."""
+    sub_id = _one_subscription("kubernetes admission, 4, 5, 1d, maintaining")
+
+    _run("duration", sub_id, "15")
+
+    listing = _run("ls")
+    assert " 4 " in listing
+    assert " daily " in listing
+    assert " maintaining " in listing

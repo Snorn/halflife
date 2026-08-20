@@ -65,8 +65,8 @@ def parse_shorthand(raw: str) -> ParsedSubscription:
 
     topic = parts[0]
     depth = _parse_depth(parts[1]) if len(parts) > 1 and parts[1] else DEFAULT_DEPTH
-    duration = _parse_duration(parts[2]) if len(parts) > 2 and parts[2] else DEFAULT_DURATION_MINUTES
-    frequency = _parse_frequency(parts[3]) if len(parts) > 3 and parts[3] else DEFAULT_FREQUENCY
+    duration = parse_duration(parts[2]) if len(parts) > 2 and parts[2] else DEFAULT_DURATION_MINUTES
+    frequency = parse_frequency(parts[3]) if len(parts) > 3 and parts[3] else DEFAULT_FREQUENCY
     flavour = parse_flavour(parts[4]) if len(parts) > 4 and parts[4] else DEFAULT_FLAVOUR
 
     return ParsedSubscription(
@@ -88,7 +88,7 @@ def _parse_depth(value: str) -> int:
     return depth
 
 
-def _parse_duration(value: str) -> int:
+def parse_duration(value: str) -> int:
     cleaned = value.removesuffix("min").removesuffix("m").strip()
     try:
         duration = int(cleaned)
@@ -99,7 +99,7 @@ def _parse_duration(value: str) -> int:
     return duration
 
 
-def _parse_frequency(value: str) -> Frequency:
+def parse_frequency(value: str) -> Frequency:
     try:
         return _FREQUENCY_ALIASES[value.lower()]
     except KeyError:
@@ -109,10 +109,10 @@ def _parse_frequency(value: str) -> Frequency:
 
 
 def parse_flavour(value: str) -> Flavour:
-    """Public because the CLI's `flavour` command reuses it.
-
-    Duplicating the alias map would let the two drift, and "maintain" working
-    in one place and not the other is the kind of difference nobody reports.
+    """Public, like the parsers above, because the CLI's change commands reuse
+    them. Duplicating an alias map lets the two drift, and "maintain" or "1w"
+    working in one place and not the other is the kind of difference nobody
+    bothers to report.
     """
     try:
         return _FLAVOUR_ALIASES[value.lower()]
