@@ -356,18 +356,48 @@ Continuity was untouched by this: the same piece scored zero restatements
 against issues 1 and 2, with 8 and 7 clean references. So the ledger travelled
 across harnesses and the depth rubric did not.
 
-Read it as one issue, one harness, one topic — and read the confound before
-concluding anything. The eval always generates issue 1 of a fresh series with an
-empty ledger; this was issue 4 with 36 established points in the prompt, and a
-deep ledger of sophisticated claims may push any harness upward regardless of
-which one is writing. Separating "this harness holds the rubric less well" from
-"a deep ledger raises the floor" needs the same harness writing issue 1 of a
-fresh series, which costs nothing but has not been done.
+**That test was run, and the confound was most of it.** Three arms wrote issue 1
+of a fresh depth-1 series on one topic, empty ledger, no plan — the eval's exact
+conditions — and were judged blind:
 
-If the first reading is the right one, the consequence is uncomfortable and
-worth stating in advance: the rubric would be doing less of the work than this
-file implies, and the scores above would be a property of the harness that
-produced them rather than of the text in this file.
+  api (pinned claude-opus-5)  ->  1
+  claude-code                 ->  1
+  cowork                      ->  2
+
+So Cowork missed by one level with an empty ledger and by three with a deep one.
+Roughly two of those three levels were the ledger, not the harness. A depth-1
+piece judged 2 is also the ordinary failure at this level — it is what every
+depth-1 miss in eleven runs looked like — so one miss at n=1 is not
+distinguishable from the variance already recorded here. The worst reading is
+dead: the rubric is not merely a property of the harness that produced these
+scores.
+
+**What replaced it is a real finding, and the eval is structurally blind to it.**
+Every issue of one depth-1 series, judged by ledger size at the moment it was
+written:
+
+  issue 1   0 points seen  ->  1
+  issue 2  11 points seen  ->  1
+  issue 3  21 points seen  ->  1
+  issue 4  36 points seen  ->  4
+
+Depth holds while the ledger is shallow and breaks somewhere past twenty
+points. The mechanism is plausible on its face: the ledger is a page of dense
+established claims, and a writer told not to re-explain any of them, on a topic
+where most of the orientation ground is now taken, has nowhere to go but up. The
+depth-1 instruction and the ledger instruction pull in opposite directions, and
+past some ledger size the ledger wins.
+
+This is a product defect, not a rubric one, and it is invisible to the eval by
+construction: every eval piece is issue 1 of a fresh series, so the suite has
+never once graded a piece written against a full ledger. Eleven runs of scores
+describe the easiest case the product has.
+
+Two candidate fixes, neither tried. Restate the depth constraint *after* the
+ledger block rather than before it, so it is the last instruction rather than
+the first. Or make depth-1 series cap their ledger far lower than depth-5 ones,
+on the grounds that orientation genuinely runs out of ground and a ten-issue
+depth-1 series may be the wrong product rather than a prompt to fix.
 
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
