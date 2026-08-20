@@ -176,11 +176,21 @@ def needs_compaction(series: Series) -> bool:
 
 
 def points_to_compact(series: Series) -> list[CoveragePoint]:
-    """The oldest slice, which may include summaries from an earlier compaction.
+    """The oldest slice, or nothing at all if the ledger does not need folding.
 
     Summaries are ordinary ledger rows, so a long-running series compacts its
-    own summaries rather than accumulating an ever-growing tier of them.
+    own summaries rather than accumulating an ever-growing tier of them. That
+    is also why the trigger is checked *here* rather than left to callers:
+    compaction is lossy and irreversible, and a second pass over a ledger that
+    did not need one folds the summaries written by the first, losing detail
+    each time.
+
+    Every route in — the API path, the harness brief, and the MCP tool a model
+    may call whenever it likes — goes through this function, so the precondition
+    holds without three callers each remembering to check it.
     """
+    if not needs_compaction(series):
+        return []
     return active_points(series)[:COMPACT_OLDEST]
 
 

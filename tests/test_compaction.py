@@ -209,3 +209,38 @@ def test_plan_generation_is_unaffected(session):
     client = FakeClient([make_plan(3)])
     series = engine.plan_series(session=session, subscription=sub, client=client)
     assert len(series.plan) == 3
+
+
+def test_a_brief_is_refused_below_the_trigger(session):
+    """Found by running the real path: the brief was offered whatever the
+    ledger size, so a model that called the tool speculatively would fold a
+    healthy ledger — and fold the summaries of the previous fold."""
+    sub = _subscribe(session)
+    _fill(session, sub, continuity.COMPACT_TRIGGER - 1)
+
+    assert continuity.needs_compaction(sub.series) is False
+    assert engine.build_compaction_brief(session=session, subscription=sub) is None
+
+
+def test_recording_is_refused_below_the_trigger(session):
+    """The other half: a brief obtained legitimately must not still apply after
+    an earlier compaction has brought the ledger back under the cap."""
+    sub = _subscribe(session)
+    _fill(session, sub, continuity.COMPACT_TRIGGER - 1)
+
+    assert engine.record_compaction(session=session, subscription=sub, claims=["merged"]) == []
+    assert len(continuity.active_points(sub.series)) == continuity.COMPACT_TRIGGER - 1
+
+
+def test_compacting_twice_in_a_row_folds_only_once(session):
+    """The live rehearsal's actual failure mode, end to end."""
+    sub = _subscribe(session)
+    _fill(session, sub, continuity.COMPACT_TRIGGER)
+
+    first = engine.record_compaction(
+        session=session, subscription=sub, claims=["merged one", "merged two"])
+    after_first = len(continuity.active_points(sub.series))
+    second = engine.record_compaction(session=session, subscription=sub, claims=["merged again"])
+
+    assert first and not second
+    assert len(continuity.active_points(sub.series)) == after_first
