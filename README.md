@@ -168,13 +168,16 @@ reversible, and there is no reason a model needs to remove your reading history.
 
 ## A depth-1 series finishes
 
-Orientation is a finite amount of material. A depth-1 subscription runs to four issues and then
-reports itself complete — it stops appearing as due, and `ls` shows `4/4 complete`.
+Orientation is a finite amount of material. A depth-1 subscription runs to three issues and then
+reports itself complete — it stops appearing as due, and `ls` shows `3/3 complete`.
 
 That is measured rather than assumed. Judging one depth-1 series issue by issue against the
 coverage ledger its writer actually saw: 0 points scored depth 1, 11 scored 1, 21 scored 1, and
-36 scored **4**. A depth-4 series at the same ledger sizes held at 4 throughout, so this is not
-deep ledgers pushing everything upward — it is orientation running out of ground. Once the ledger
+36 scored **4**. The cap is three rather than four because the failure is *at* the fourth issue,
+and a series that stops one issue early loses an orientation piece while one that stops one issue
+late delivers a piece at the wrong level. A depth-4 series at the same ledger sizes held at 4
+throughout, so this is not deep ledgers pushing everything upward — it is orientation running out
+of ground. Once the ledger
 holds "what it is and what problem it solves", a writer forbidden to re-explain any of it has
 nothing left at that level.
 

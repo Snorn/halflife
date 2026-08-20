@@ -173,11 +173,20 @@ MAX_DEPTH = 5
 # effects and internals are unbounded, and the measurement says so.
 #
 # The unit is issues rather than ledger points because it is the number a
-# reader can see and reason about before subscribing. It is a proxy — the real
-# variable is ledger size, and at the ~12 points an issue this project measures,
-# four issues is roughly where the ground goes. A series whose issues establish
-# far more or far less than that will hit the wall at a different number.
-ISSUE_CAP_BY_DEPTH = {1: 4}
+# reader can see and reason about before subscribing. It is a proxy: the real
+# variable is ledger size, and at the ~12 points an issue this project
+# measures, three issues is where the ground still holds. A series whose issues
+# establish far more or far less than that will hit the wall at a different
+# number.
+#
+# Three rather than four because the measurement puts the failure *at* the
+# fourth issue: it saw 36 ledger points and was judged three levels off, while
+# the third saw 21 and held. A cap of four would have shipped the issue that
+# broke. The cost of being wrong is asymmetric — a series that stops one issue
+# early loses one orientation piece, while one that stops one issue late
+# delivers a piece at the wrong level, which is the failure the depth rubric
+# exists to prevent.
+ISSUE_CAP_BY_DEPTH = {1: 3}
 
 
 def issue_cap(depth: int) -> int | None:

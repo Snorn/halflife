@@ -69,8 +69,8 @@ Depth sets **what you are assumed to already know**, not the length.
 | 5 | You are at the edge of the published material. Internals, edge cases, version specifics. |
 
 **A depth-1 series finishes.** Orientation is a finite amount of material, so a depth-1
-subscription runs to four issues and then reports itself complete rather than padding. That is
-measured: a fifth issue drifts several levels deeper because the ground is gone. Rate an issue
+subscription runs to three issues and then reports itself complete rather than padding. That is
+measured: the fourth issue drifts several levels deeper because the ground is gone. Rate an issue
 `too_basic` to move it to depth 2 and carry on, or unsubscribe. Depths 2 and above do not run
 out and are not capped.
 

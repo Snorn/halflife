@@ -158,18 +158,21 @@ def test_only_depth_one_has_a_cap():
     the measurement behind that is beside ISSUE_CAP_BY_DEPTH."""
     from halflife.models.base import issue_cap
 
-    assert issue_cap(1) == 4
+    assert issue_cap(1) == 3
     assert all(issue_cap(d) is None for d in (2, 3, 4, 5))
 
 
 def test_a_depth_one_series_completes_at_the_cap(session):
+    from halflife.models.base import issue_cap
+
+    cap = issue_cap(1)
     sub = _subscribe(session, "x, 1, 5, 1d")
 
-    for n in range(1, 4):
+    for n in range(1, cap):
         _deliver(session, sub, n)
         assert subscription_repo.is_complete(sub) is False
 
-    _deliver(session, sub, 4)
+    _deliver(session, sub, cap)
     assert subscription_repo.is_complete(sub) is True
 
 
@@ -185,8 +188,10 @@ def test_a_deeper_series_never_completes(session):
 def test_a_complete_series_is_not_due(session):
     """Due by the clock and having something left to write are different
     questions, and nothing downstream should have to know that."""
+    from halflife.models.base import issue_cap
+
     sub = _subscribe(session, "x, 1, 5, 1d")
-    for n in range(1, 5):
+    for n in range(1, issue_cap(1) + 1):
         _deliver(session, sub, n)
     sub.next_due_at = utcnow()
     session.flush()
@@ -197,8 +202,10 @@ def test_a_complete_series_is_not_due(session):
 def test_raising_the_depth_lets_a_complete_series_continue(session):
     """The escape hatch the completion message names: rate an issue too-basic,
     the depth moves to 2, and the cap no longer applies."""
+    from halflife.models.base import issue_cap
+
     sub = _subscribe(session, "x, 1, 5, 1d")
-    for n in range(1, 5):
+    for n in range(1, issue_cap(1) + 1):
         _deliver(session, sub, n)
     assert subscription_repo.is_complete(sub) is True
 
