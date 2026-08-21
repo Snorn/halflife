@@ -4,6 +4,16 @@ Professional skill *maintenance* platform. Source of truth for product intent:
 [regenerative-learning-platform-design.md](regenerative-learning-platform-design.md). This file captures the
 constraints that must hold in code; read the design doc for the "why".
 
+HalfLife is one instrument of a platform called **Rutherfords**, alongside **Geiger** (assessment,
+which detects decay rather than treating it). The design doc carries the platform architecture as
+of 2026-08-21. **None of it is built and none of it changes anything below** — the build order,
+the do-not-scaffold list and the privacy boundary all stand exactly as written. It is recorded
+there because two of its positions contradict this file, and a contradiction nobody has noticed is
+how the wrong one gets implemented: it says 12-factor containers and *not* Kubernetes, against
+step 4 below, and rubrics versioned as rows in the database, against the convention that prompts
+are versioned Python constants. Both are open decisions, listed in the design doc's open items.
+Neither is settled by having been written down more recently.
+
 ## Build order (deliberate — do not run ahead)
 
 1. ✅ **Micro-learning generation engine, standalone, against SQLite.** Depth rubric + series

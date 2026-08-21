@@ -136,6 +136,23 @@ Skill graph, dashboards, connectors, decay detection proper, auto-pause of maint
 subscriptions on `applied` signals. `CLAUDE.md` forbids scaffolding, stubbing or adding config
 for any of these, including as a placeholder.
 
+Since 2026-08-21 the design doc also carries a platform architecture — Rutherfords, with HalfLife
+and Geiger as heads on a shared rubric engine, plus an LLM gateway, Redis and async workers, and a
+hosted remote MCP server. Same rule: recorded, not started. The forbidden list is not extended by
+it, because everything new in it is further away than the things already on the list.
+
+### D3 — two decisions the platform doc reopened
+
+Neither is work; both are choices that change work already planned, and both are live until
+somebody settles them. They are in the design doc's open items with the full argument.
+
+- **Kubernetes or not.** The platform doc says 12-factor containers and explicitly not Kubernetes.
+  Step 4 says Helm, k3d and EKS. Settling this either removes most of step 4 or keeps it.
+- **Where a rubric version lives.** Rows in a database against versioned Python constants. Today a
+  delivery's `depth_rubric_version` points at a commit; a database rubric points at a row, which
+  is weaker unless the row is immutable. Nothing needs the change yet — the motivation is
+  per-tenant domain rubrics.
+
 ### D2 — any read path over signals
 
 No aggregate surface beyond a window count, and no per-user read path. The second one has a
