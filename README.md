@@ -17,9 +17,12 @@ that speaks MCP — and needs no API key of its own. Your harness's model writes
 HalfLife holds the depth rubric, the schedule and the memory of what has already been said.
 
 > **Status: early, and honest about it.** The generation engine and the harness integration are
-> built and measured. There is no server, no multi-user support and no deployment story — those
-> are deliberately later steps. It is useful today if you want a daily read on a topic you are
-> keeping alive; it is not yet a product.
+> built and measured. Session extraction is built and *not* measured. There is no server, no
+> multi-user support and no deployment story — those are deliberately later steps. It is useful
+> today if you want a daily read on a topic you are keeping alive; it is not yet a product.
+>
+> Known gaps live in [BACKLOG.md](BACKLOG.md) and the
+> [issue tracker](https://github.com/Snorn/halflife/issues) rather than being discovered by you.
 
 ## What makes it different from a prompt
 
@@ -101,6 +104,16 @@ Then **restart the harness** — MCP servers load at startup, not when the confi
 
 If it will not attach, `scripts/mcp_doctor.py` runs the same checks the harness does and stops at
 the first failure, including whether the configured command path actually exists.
+
+**Register with as many harnesses as you like; use one at a time.** They share a single SQLite
+file, which is what makes a series you started in one readable from another. Nothing coordinates
+two that are running *concurrently*: there is no lease between taking a brief and recording the
+issue, and no way for a harness to notice its picture of a subscription went stale while it was
+talking to you. Two harnesses left open on the same subscription can write two issues against the
+same coverage ledger, and the ledger is append-only, so the result does not tidy itself up.
+Nothing prevents this today — see
+[issues #1–#4](https://github.com/Snorn/halflife/issues). It has not been observed happening,
+which is not the same as being prevented.
 
 ## Daily use
 
@@ -237,6 +250,12 @@ containerisation. SSO and tenancy enforcement are explicitly *not* to be scaffol
 time, not even as placeholders. Kubernetes and Helm are not scheduled at all: deployment is
 plain 12-factor containers on a provider-agnostic host, decided 2026-08-21.
 
+**HalfLife is one instrument of a platform that does not exist yet.** The
+[design doc](regenerative-learning-platform-design.md) describes Rutherfords — HalfLife for
+delivery, Geiger for assessment, both heads on a shared rubric engine. None of it is built, Geiger
+has no code at all, and the document is there to record intent rather than to describe this
+repository. Read it for the "why"; read [CLAUDE.md](CLAUDE.md) for what actually holds.
+
 **The privacy boundary is non-negotiable, and now partly inspectable.** Ask your harness to log a
 session and it classifies the conversation *it is already in*, sending back subject names and one
 of seven behavioural verbs. The conversation is never passed to HalfLife — not withheld, never
@@ -264,7 +283,9 @@ Issues and pull requests welcome. Two things to know:
   `evals/`, which costs money to run.
 - Prompts live in `generation/prompts/` as versioned constants. Changing one means bumping its
   version, because every generated issue records the versions that produced it — otherwise
-  quality changes cannot be attributed.
+  quality changes cannot be attributed. That is also why rubrics are not configuration: a version
+  that names a commit is worth recording, and one that names a row somebody can edit afterwards
+  is not.
 
 ## Licence
 
