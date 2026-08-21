@@ -399,6 +399,36 @@ the first. Or make depth-1 series cap their ledger far lower than depth-5 ones,
 on the grounds that orientation genuinely runs out of ground and a ten-issue
 depth-1 series may be the wrong product rather than a prompt to fix.
 
+2026-08-21, and the first reader rating that carries information beyond its
+verdict. Issue 5 of the depth-4 sap web dispatcher series, written against a
+52-point ledger, was rated just right with a stated reason: technical and
+detailed at expert level, understood in full, and *not* depth 5 because it
+"didn't focus on specific vulnerabilities, SAP notes, or error states".
+
+Two things make that worth recording where a run of bare "just right" is not.
+
+It names the 4/5 boundary in the reader's own terms, and the terms land close to
+the rubric's actual criterion — specificity a reader could go and check. It also
+implicitly gets the harder half right: the piece is dense with identifiers
+(icm/max_threads, RegIRewriteUrl, SAP_SESSIONID_<SID>_<CLNT>) and naming a
+parameter is depth-3 furniture, not depth 5. Depth 5 would be that parameter
+together with the release its behaviour changed in. A rater who took identifier
+density for depth would have called this one 5.
+
+And it is the first depth-4 datapoint against a deep ledger. Depth 1 broke at 36
+ledger points on its fourth issue; this held at 52 on its fifth. That is one
+observation, on one topic, and it does not establish that depth 4 has no ceiling
+— but the ledger-decay finding above was drawn from a single series too, and
+this is the first evidence that the effect is not uniform across levels. It is
+consistent with the cap being right to apply only at depth 1.
+
+The non-independence caveat above applies undiminished and is not softened by a
+reason being attached. A rater who can articulate why something is depth 4 is
+still the rater who wrote the definition of depth 4. What changed is only that
+the rating is now falsifiable — "no notes, no version-specific behaviour, no
+errata" is a claim about the text that a third party could check — where "felt
+right" was not.
+
 Note for whoever tunes this next: three rounds have now been fitted against
 four topics and a single judge model. Further gains against that set are as
 likely to be fitting the judge as improving the rubric — widen the topic set
