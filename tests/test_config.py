@@ -26,12 +26,12 @@ def _write(path, text: str, *, bom: bool) -> None:
 
 def test_reads_a_plain_utf8_env_file(env_file):
     _write(env_file, "HALFLIFE_ANTHROPIC_API_KEY=plain-value\n", bom=False)
-    assert Settings().anthropic_api_key == "plain-value"
+    assert Settings().anthropic_api_key.get_secret_value() == "plain-value"
 
 
 def test_reads_an_env_file_written_with_a_bom(env_file):
     _write(env_file, "HALFLIFE_ANTHROPIC_API_KEY=bom-value\n", bom=True)
-    assert Settings().anthropic_api_key == "bom-value"
+    assert Settings().anthropic_api_key.get_secret_value() == "bom-value"
 
 
 def test_bom_does_not_leak_into_the_value(env_file):
@@ -51,3 +51,41 @@ def test_defaults_when_nothing_is_set(env_file):
     # medium, not high: measured better on the depth eval and ~60% cheaper.
     # See the note in config.py before changing this.
     assert Settings().effort == "medium"
+
+
+# The key is a credential, and a Settings object is the sort of thing that ends
+# up in a traceback frame, a debug print or a log line. These assert on the
+# rendered text rather than on the field's type, because the type is the current
+# means and the requirement is that the value does not appear.
+
+SECRET = "sk-ant-api03-not-a-real-key-0123456789"
+
+
+def test_repr_does_not_carry_the_key(env_file):
+    settings = Settings(anthropic_api_key=SECRET)
+
+    assert SECRET not in repr(settings)
+    assert SECRET not in str(settings)
+
+
+def test_the_key_is_still_readable_when_asked_for_explicitly(env_file):
+    settings = Settings(anthropic_api_key=SECRET)
+
+    assert settings.anthropic_api_key.get_secret_value() == SECRET
+
+
+def test_a_traceback_rendering_settings_does_not_carry_the_key(env_file):
+    """The path this was found on: something prints the object while debugging."""
+    settings = Settings(anthropic_api_key=SECRET)
+
+    rendered = f"config was {settings}, resolved from {settings!r}"
+
+    assert SECRET not in rendered
+
+
+def test_an_empty_key_still_reads_as_absent(env_file, monkeypatch):
+    """SecretStr defines __len__, so an empty one is falsy and the SDK resolves
+    its own credentials — the same as before the type changed."""
+    monkeypatch.setenv("HALFLIFE_ANTHROPIC_API_KEY", "")
+
+    assert not Settings().anthropic_api_key

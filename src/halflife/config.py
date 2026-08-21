@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,7 +31,15 @@ class Settings(BaseSettings):
     # Left unset by default: the anthropic SDK resolves ANTHROPIC_API_KEY,
     # ANTHROPIC_AUTH_TOKEN, or an `ant auth login` profile on its own. Only set
     # this when you need to inject a specific key.
-    anthropic_api_key: str | None = None
+    #
+    # SecretStr rather than str, and rather than a field-level repr=False. The
+    # plain type printed the whole key from `print(get_settings())`, which is a
+    # line anybody debugging config writes without thinking — it is how this was
+    # found. repr=False would fix that one path and leave the value bare
+    # everywhere else. SecretStr makes the unwrap explicit at the point of use,
+    # so a new consumer has to write `.get_secret_value()` and see what it is
+    # handling rather than inherit safety from nobody having printed the object.
+    anthropic_api_key: SecretStr | None = None
 
     db_url: str | None = None
 

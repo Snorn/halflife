@@ -90,7 +90,7 @@ class GenerationClient:
         self._settings = settings
         kwargs = {}
         if settings.anthropic_api_key:
-            kwargs["api_key"] = settings.anthropic_api_key
+            kwargs["api_key"] = settings.anthropic_api_key.get_secret_value()
         self._client = anthropic.Anthropic(**kwargs)
         self._use_fallbacks = _sdk_supports_fallbacks(self._client)
 

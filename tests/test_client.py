@@ -17,7 +17,10 @@ import anthropic
 import httpx
 import pytest
 
+from pydantic import SecretStr
+
 from halflife.config import Settings
+from halflife.generation import client as client_module
 from halflife.generation.client import CredentialsError, GenerationClient, GenerationError
 from halflife.generation.schemas import GeneratedIssue
 
@@ -250,3 +253,22 @@ def test_the_fault_still_says_which_field_and_why():
     )
     with pytest.raises(GenerationError, match=r"body_markdown: string_type"):
         _generate(_client_returning(payload))
+
+
+def test_the_sdk_is_handed_the_key_itself_not_the_wrapper(monkeypatch):
+    """The unwrap is easy to forget, and forgetting it authenticates with the
+    string "**********" — which fails at the API rather than at import."""
+    captured = {}
+
+    class _Recording:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+            self.messages = _Endpoint(None)
+            self.beta = type("Beta", (), {"messages": _Endpoint(None)})()
+
+    monkeypatch.setattr(client_module.anthropic, "Anthropic", _Recording)
+
+    GenerationClient(Settings(anthropic_api_key="sk-ant-api03-not-a-real-key"))
+
+    assert captured["api_key"] == "sk-ant-api03-not-a-real-key"
+    assert not isinstance(captured["api_key"], SecretStr)
