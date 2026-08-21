@@ -125,17 +125,25 @@ This is the first entry to live in the tracker rather than here. Anything with a
 patch and a discussion belongs there; this file keeps the one-line pointer so the backlog stays
 the single place to look.
 
-### F7 — `read_at` records a fetch rather than a read
+### F7 — `read_at` records neither a fetch nor a read
 
 [Issue #6](https://github.com/Snorn/halflife/issues/6), opened 2026-08-21. `mark_read` fires
-inside the fetch, and in a harness the thing that fetches is never the thing that reads — so a
-delivery handed to a model that summarises it, or relays it somewhere the human cannot see, is
-recorded as read by somebody who never saw it. Observed the same day on two deliveries.
+inside `halflife read` and inside the MCP read tool, and nowhere else. It went wrong in both
+directions on the day it was found: two deliveries were stamped read while their text went
+somewhere the reader could not see, and one was read and rated while the column still said
+unread, because it reached the reader by a path that does not stamp anything.
 
-Small today: `read_at` has one consumer, the inbox filter, so the only consequence is a delivery
-silently leaving the inbox. It matters because reader feedback moves a subscription's depth and
-a rating is only evidence if the rater read the thing — and because a wrong timestamp in that
-column looks exactly like a right one.
+So the column is a receipt for one particular command rather than for fetching or for reading,
+and in a harness that command is not the path the text usually travels.
+
+Small today: one consumer, the inbox filter, so the consequence is a delivery leaving the inbox
+or refusing to. It matters because reader feedback moves a subscription's depth and a rating is
+only evidence if the rater read the thing — and because a wrong timestamp looks exactly like a
+right one.
+
+The same day also produced a **rated-but-unread** row, since `set_feedback` does not consult
+`read_at`. That is the state the ticket's option 1 would formalise, arriving on its own within
+hours, which makes option 1 cheaper than it first looked and option 2 insufficient.
 
 ### F8 — stored text is parsed as Rich console markup
 
