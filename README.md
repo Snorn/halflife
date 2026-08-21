@@ -165,7 +165,7 @@ These need no API key and work regardless of how issues were generated:
 |---|---|
 | `help` | The built-in guide: the loop, depths, tools and commands. Works before `init`. |
 | `ls` | Subscriptions, with issue counts and next due time. |
-| `inbox` / `read [id\|latest]` | What is unread; read it. |
+| `inbox` / `read [id\|latest]` | What is waiting, and its text. An issue leaves the inbox when you **rate** it, not when you read it — nothing the tool can observe separates text being fetched from a person having read it, so the rating is the acknowledgement. |
 | `feedback <delivery> <verdict>` | Two axes: `too-basic` / `just-right` / `too-advanced` nudge the subscription's depth; `already-knew` / `wrong-subject` leave depth alone and tell the next few issues to take different ground. |
 | `flavour <sub> learning\|maintaining` | Switch between building a skill up and keeping one alive. Depth is unaffected; the series plan is not redrawn. |
 | `thread <sub> "<text>"` | Tell a series it missed something. The next issue is told it outranks the plan, and may still judge it not worth an issue. |

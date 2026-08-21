@@ -48,8 +48,15 @@ def test_subscribe_list_generate_read_feedback(migrated_db, fake_generation):
     assert "Issue 1" in _run("inbox")
     assert "Body of issue 1." in _run("read", "latest")
 
-    # Reading marks it read, so the inbox empties.
-    assert "Nothing unread" in _run("inbox")
+    # Reading marks it fetched, not read. It stays in the inbox, now asking to
+    # be rated, because nothing about a fetch establishes that a person saw it.
+    waiting = _run("inbox")
+    assert "Issue 1" in waiting
+    assert "rate it" in waiting
+
+    # Rating is the acknowledgement, and the only thing that clears the inbox.
+    _run("feedback", _run("inbox").split()[0], "just-right")
+    assert "Nothing waiting" in _run("inbox")
 
 
 def test_feedback_moves_the_subscriptions_depth(migrated_db, fake_generation):
@@ -456,7 +463,7 @@ def test_a_bracketed_title_survives_run_due_inbox_and_read(migrated_db, fake_gen
     assert "#1" in _run("run-due")
 
     with session_scope() as session:
-        delivery = delivery_repo.list_unread(session)[0]
+        delivery = delivery_repo.list_unacknowledged(session)[0]
         delivery.title = f"What {hostile} Actually Does"
         delivery_id = delivery.id
 
@@ -470,3 +477,75 @@ def test_a_bracketed_id_does_not_crash_the_failure_path(migrated_db):
 
     assert result.exit_code == 1
     assert "No single delivery matches" in result.output
+
+
+# Issue #6: read_at tried to be two facts and was reliably neither. fetched_at
+# says the text left the database; read_at says a person engaged with it, and a
+# rating is the only event that establishes the second.
+
+
+def _fetched_and_read(delivery_id: str):
+    from halflife.db import session_scope
+    from halflife.repository import deliveries as delivery_repo
+
+    with session_scope() as session:
+        d = delivery_repo.get_by_prefix(session, delivery_id)
+        return d.fetched_at, d.read_at
+
+
+def test_reading_records_a_fetch_and_not_a_read(migrated_db, fake_generation):
+    _one_subscription("tls handshakes, 3, 5, 1d")
+    _run("run-due")
+    delivery_id = _run("inbox").split()[0]
+
+    _run("read", delivery_id)
+
+    fetched, read = _fetched_and_read(delivery_id)
+    assert fetched is not None
+    assert read is None, "a fetch is not evidence anybody saw it"
+
+
+def test_rating_records_the_read(migrated_db, fake_generation):
+    _one_subscription("tls handshakes, 3, 5, 1d")
+    _run("run-due")
+    delivery_id = _run("inbox").split()[0]
+
+    _run("feedback", delivery_id, "just-right")
+
+    fetched, read = _fetched_and_read(delivery_id)
+    assert read is not None
+    assert fetched is None, "rating something you read elsewhere never fetched it here"
+
+
+def test_a_second_rating_does_not_move_the_read_timestamp(migrated_db, fake_generation):
+    """Changing your mind re-rates something you read once."""
+    _one_subscription("tls handshakes, 3, 5, 1d")
+    _run("run-due")
+    delivery_id = _run("inbox").split()[0]
+
+    _run("feedback", delivery_id, "just-right")
+    _, first = _fetched_and_read(delivery_id)
+    _run("feedback", delivery_id, "too-basic")
+    _, second = _fetched_and_read(delivery_id)
+
+    assert first == second
+
+
+def test_a_fetched_issue_stays_in_the_inbox_asking_to_be_rated(migrated_db, fake_generation):
+    _one_subscription("tls handshakes, 3, 5, 1d")
+    _run("run-due")
+    delivery_id = _run("inbox").split()[0]
+
+    _run("read", delivery_id)
+    assert "rate it" in _run("inbox")
+
+    _run("feedback", delivery_id, "just-right")
+    assert "Nothing waiting" in _run("inbox")
+
+
+def test_an_unfetched_issue_is_not_labelled_rate_it(migrated_db, fake_generation):
+    """The label separates 'you have not seen this' from 'you have not rated it'."""
+    _one_subscription("tls handshakes, 3, 5, 1d")
+    _run("run-due")
+
+    assert "rate it" not in _run("inbox")

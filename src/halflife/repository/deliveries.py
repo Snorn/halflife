@@ -48,9 +48,16 @@ def list_recent(
     return list(session.scalars(stmt).all())
 
 
-def list_unread(
+def list_unacknowledged(
     session: Session, *, tenant_id: str = LOCAL_TENANT_ID
 ) -> list[Delivery]:
+    """Deliveries the reader has not acknowledged, fetched or not.
+
+    An issue leaves this list by being rated, not by having its text read out
+    of the database. Fetching is not evidence a person saw anything — that is
+    the whole finding behind splitting the column — so a delivery that was
+    displayed and never rated stays here, which is the honest state.
+    """
     stmt = (
         select(Delivery)
         .where(Delivery.tenant_id == tenant_id)
@@ -119,14 +126,28 @@ def plan_entries_written(session: Session, subscription_id: str) -> set[int]:
     return written
 
 
-def mark_read(session: Session, delivery: Delivery) -> Delivery:
-    if delivery.read_at is None:
-        delivery.read_at = utcnow()
+def mark_fetched(session: Session, delivery: Delivery) -> Delivery:
+    """The text left the database. Says nothing about anybody having read it."""
+    if delivery.fetched_at is None:
+        delivery.fetched_at = utcnow()
         session.flush()
     return delivery
 
 
 def set_feedback(session: Session, delivery: Delivery, feedback: Feedback) -> Delivery:
+    """Record a rating, which is also the only acknowledgement of a read.
+
+    A rating cannot be produced by a fetch, a summary or a display, so it is
+    the one event in the system that establishes a person engaged with the
+    text. read_at is set here and nowhere else, deliberately: every other
+    candidate turned out to be a receipt for a code path rather than for a
+    reader.
+
+    First rating wins. A reader who changes their mind is re-rating something
+    they read once, and moving the timestamp forward would misdate the reading.
+    """
     delivery.feedback = feedback
+    if delivery.read_at is None:
+        delivery.read_at = utcnow()
     session.flush()
     return delivery

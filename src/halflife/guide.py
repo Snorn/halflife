@@ -109,7 +109,7 @@ Run from a terminal. These need no API key.
 | `halflife subscribe "<topic>, <depth>, <mins>, <freq>"` | create a subscription from the terminal instead of asking your harness |
 | `halflife ls` | subscriptions, issue counts, next due time |
 | `halflife inbox` | issues written but not yet read |
-| `halflife read [id\\|latest]` | read an issue and mark it read |
+| `halflife read [id\\|latest]` | read an issue. Rating it, not reading it, clears the inbox |
 | `halflife feedback <id> <verdict>` | `too-basic`, `just-right`, `too-advanced` move depth; `already-knew`, `wrong-subject` move the subject |
 | `halflife flavour <sub> learning\|maintaining` | switch between building a skill up and keeping one alive |
 | `halflife thread <sub> "<text>"` | tell a series it missed something you want covered |

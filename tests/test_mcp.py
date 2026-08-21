@@ -177,12 +177,16 @@ def test_full_harness_loop_through_the_tools(migrated_db):
     read = _json(mcp_server.halflife_read(pending[0]["delivery_id"]))
     assert read["body_markdown"] == "The body."
 
-    # Reading marks it read.
-    assert _json(mcp_server.halflife_pending_reads()) == []
+    # Reading marks it fetched, not read: the tool handed the text to a model,
+    # which is not evidence anybody saw it. It stays pending until rated.
+    assert len(_json(mcp_server.halflife_pending_reads())) == 1
 
     verdict = _json(mcp_server.halflife_feedback(read["delivery_id"], "too-advanced"))
     assert verdict["depth_before"] == 4
     assert verdict["depth_now"] == 3
+
+    # Rating is the acknowledgement, and the only thing that clears it.
+    assert _json(mcp_server.halflife_pending_reads()) == []
 
     # The next brief reflects both the new depth and the ledger.
     nxt = _json(mcp_server.halflife_next_brief(sub_id))

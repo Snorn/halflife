@@ -295,22 +295,26 @@ def generate(
                 _fail(str(exc))
                 return
         _render(delivery)
-        delivery_repo.mark_read(session, delivery)
+        delivery_repo.mark_fetched(session, delivery)
 
 
 @app.command()
 def inbox() -> None:
-    """Show unread issues."""
+    """Show issues waiting on you: unseen, or seen and not yet rated."""
     with session_scope() as session:
-        unread = delivery_repo.list_unread(session)
-        if not unread:
-            console.print("[dim]Nothing unread.[/dim]")
+        waiting = delivery_repo.list_unacknowledged(session)
+        if not waiting:
+            console.print("[dim]Nothing waiting.[/dim]")
             return
-        for delivery in unread:
+        for delivery in waiting:
+            # Fetched but unrated is a real state and worth showing, because it
+            # is the difference between "you have not seen this" and "you have
+            # not told it how it landed" — and only the second is on you.
+            state = "[dim]rate it[/dim]" if delivery.fetched_at else ""
             console.print(
                 f"  {_short(delivery.id)}  [bold]{_esc(delivery.title)}[/bold]  "
                 f"[dim]{_esc(delivery.subscription.topic)} · depth {delivery.depth} · "
-                f"#{delivery.issue_number}[/dim]"
+                f"#{delivery.issue_number}[/dim]  {state}"
             )
 
 
@@ -321,16 +325,18 @@ def read(
     """Read an issue."""
     with session_scope() as session:
         if delivery == "latest":
-            unread = delivery_repo.list_unread(session)
+            # Oldest unacknowledged first, so "latest" walks the queue rather
+            # than re-serving the newest issue while earlier ones go unread.
+            waiting = delivery_repo.list_unacknowledged(session)
             recent = delivery_repo.list_recent(session, limit=1)
-            target = unread[0] if unread else (recent[0] if recent else None)
+            target = waiting[0] if waiting else (recent[0] if recent else None)
         else:
             target = delivery_repo.get_by_prefix(session, delivery)
         if target is None:
             _fail(f"No single delivery matches {delivery!r}.")
             return
         _render(target)
-        delivery_repo.mark_read(session, target)
+        delivery_repo.mark_fetched(session, target)
 
 
 @app.command()

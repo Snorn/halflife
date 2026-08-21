@@ -363,7 +363,7 @@ def halflife_pending_reads() -> str:
                     "depth": d.depth,
                     "duration_minutes": d.duration_minutes,
                 }
-                for d in delivery_repo.list_unread(session)
+                for d in delivery_repo.list_unacknowledged(session)
             ]
         )
 
@@ -379,7 +379,7 @@ def halflife_read(delivery_id: str) -> str:
         delivery = delivery_repo.get_by_prefix(session, delivery_id)
         if delivery is None:
             return _ok({"error": f"no single delivery matches {delivery_id!r}"})
-        delivery_repo.mark_read(session, delivery)
+        delivery_repo.mark_fetched(session, delivery)
         return _ok(
             {
                 "delivery_id": delivery.id,
