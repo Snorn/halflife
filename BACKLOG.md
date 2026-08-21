@@ -137,6 +137,20 @@ silently leaving the inbox. It matters because reader feedback moves a subscript
 a rating is only evidence if the rater read the thing — and because a wrong timestamp in that
 column looks exactly like a right one.
 
+### F8 — stored text is parsed as Rich console markup
+
+[Issue #7](https://github.com/Snorn/halflife/issues/7), opened 2026-08-21. Coverage points, plan
+entries, threads and topics are interpolated into `console.print`, so `[break]` is read as markup
+and disappears. `[SAP]` survives, because Rich cannot parse it as a style — so which tokens live
+and which die is unpredictable from the content. An unmatched closing tag such as `[/break]`
+raises `MarkupError` and takes the whole command with it, and the ledger is append-only, so a row
+that triggers it cannot be removed through any supported path.
+
+Delivery bodies are safe: they render through `rich.markdown.Markdown`, which ignores console
+markup. So does the generation prompt, which is built as plain text — the model has been receiving
+correct input while the human has not. That is why it went unnoticed for so long: the long-form
+content everybody actually reads is the one path that was already right.
+
 ## Deferred by design
 
 Not backlog in the sense of work waiting to start. Listed so that "not built" is never mistaken
