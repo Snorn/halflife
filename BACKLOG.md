@@ -19,7 +19,7 @@ than deleting it — a backlog that only ever shrinks loses the record of what w
 | 1 | Generation engine, standalone, on SQLite — depth rubric + series continuity, CLI-driven | Done |
 | 2 | MCP server + in-harness delivery and extraction, on Claude Code and Claude Cowork | Built; gate **G1** unmet |
 | 3 | Wrap in FastAPI; move to Postgres; add tenancy enforcement | Not started |
-| 4 | Containerise, then Helm, k3d, EKS | Not started; gate **G2** |
+| 4 | Containerise — 12-factor, provider-agnostic, no Kubernetes | Not started; gate **G2** |
 
 ## Gates
 
@@ -141,13 +141,12 @@ and Geiger as heads on a shared rubric engine, plus an LLM gateway, Redis and as
 hosted remote MCP server. Same rule: recorded, not started. The forbidden list is not extended by
 it, because everything new in it is further away than the things already on the list.
 
-### D3 — two decisions the platform doc reopened
+### D3 — one decision the platform doc reopened
 
-Neither is work; both are choices that change work already planned, and both are live until
-somebody settles them. They are in the design doc's open items with the full argument.
+Not work; a choice that changes work already planned, and live until somebody settles it.
+The design doc's open items carry the full argument. The Kubernetes question that sat here
+beside it was settled on 2026-08-21 and has moved to Closed.
 
-- **Kubernetes or not.** The platform doc says 12-factor containers and explicitly not Kubernetes.
-  Step 4 says Helm, k3d and EKS. Settling this either removes most of step 4 or keeps it.
 - **Where a rubric version lives.** Rows in a database against versioned Python constants. Today a
   delivery's `depth_rubric_version` points at a commit; a database rubric points at a row, which
   is weaker unless the row is immutable. Nothing needs the change yet — the motivation is
@@ -161,6 +160,13 @@ data subject asking for their own data, and it is the same code as the manager's
 else. If it is ever built it needs its own decision, on the record, with an answer to that.
 
 ## Closed
+
+- **Kubernetes or not** — closed 2026-08-21, against. Deployment is 12-factor
+  containers on a provider-agnostic host, Fly or Railway first and ECS or Cloud Run later.
+  Step 4 was "Containerise → Helm → k3d → EKS" and is now containerisation alone, which
+  removes a local cluster, a chart to maintain and a managed control plane to pay for. The
+  lockfile gate **G2** is unaffected: it was always about what goes into the image, not
+  about what schedules it.
 
 - **Ledger compaction, unrehearsed** — closed 2026-08-20. Exercised on a real series; found and
   fixed a defect where `build_compaction_brief` offered folds below the trigger threshold and

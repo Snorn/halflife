@@ -6,13 +6,13 @@ constraints that must hold in code; read the design doc for the "why".
 
 HalfLife is one instrument of a platform called **Rutherfords**, alongside **Geiger** (assessment,
 which detects decay rather than treating it). The design doc carries the platform architecture as
-of 2026-08-21. **None of it is built and none of it changes anything below** — the build order,
-the do-not-scaffold list and the privacy boundary all stand exactly as written. It is recorded
-there because two of its positions contradict this file, and a contradiction nobody has noticed is
-how the wrong one gets implemented: it says 12-factor containers and *not* Kubernetes, against
-step 4 below, and rubrics versioned as rows in the database, against the convention that prompts
-are versioned Python constants. Both are open decisions, listed in the design doc's open items.
-Neither is settled by having been written down more recently.
+of 2026-08-21. **None of it is built**, and nothing in it may be scaffolded — the do-not-scaffold
+list and the privacy boundary stand exactly as written. What a design doc *can* do is change a
+decision, and one of its positions was adopted: no Kubernetes, which step 4 below now reads.
+
+One contradiction is still open — rubrics versioned as rows in the database, against the
+convention that prompts are versioned Python constants. It is listed in the design doc's open
+items. Being written down more recently is not what settles it; someone deciding is.
 
 ## Build order (deliberate — do not run ahead)
 
@@ -26,7 +26,12 @@ Neither is settled by having been written down more recently.
    clean, which `depth_rubric.py` records in full. Plumbing being harness-agnostic does not make
    output harness-agnostic, and nothing here should be written as though it does.
 3. Wrap in FastAPI; move to Postgres; add tenancy enforcement.
-4. Containerise → Helm → k3d → EKS.
+4. **Containerise and deploy.** 12-factor containers, provider-agnostic — Fly or Railway
+   first, ECS or Cloud Run later. **No Kubernetes**, and therefore no Helm, no k3d and no
+   cluster of any kind. Decided 2026-08-21: the complexity budget goes on the rubric
+   engine, the skill graph and the agent, and everything else is rented. A single-node
+   control plane that one person operates does not need an orchestrator, and an
+   orchestrator nobody needs is a second system to keep alive.
 
 Step 2 was brought forward, ahead of the "usable daily for a week first" gate, because the
 deployment environment turned out to forbid API spend without procurement. In-harness generation
@@ -51,6 +56,9 @@ review 2026-08-19; nothing else from that pass is outstanding.
 **Do NOT scaffold, stub, or add config for:** Kubernetes, Helm, Dockerfiles, SSO/OIDC/Keycloak, multi-tenant
 auth, dashboards, the skill graph, or connectors. Not "just a placeholder", not "while we're here". If a
 step-1 change seems to need one of these, say so and stop rather than adding it.
+
+Kubernetes and Helm are on that list permanently rather than until step 4. Everything else there
+is deferred; those two are ruled out, so "we will need it eventually" is not an argument for them.
 
 ## Stack
 

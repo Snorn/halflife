@@ -188,12 +188,13 @@ hosted remote MCP server, and the domain-rubric plug-in point.
 **Three things contradict what is currently written, and are open decisions rather than settled
 ones.** They are listed here rather than merged, because each changes work already planned.
 
-1. **Kubernetes.** This session says "provider-agnostic via 12-factor containers, **not**
-   Kubernetes", with Fly or Railway first and ECS or Cloud Run later. The architecture section
-   below still says Helm/K8s, and step 4 of the build order in [CLAUDE.md](CLAUDE.md) is
-   "Containerise → Helm → k3d → EKS". These cannot both stand. The newer position removes most of
-   step 4, which makes it the larger claim and the one that needs deciding deliberately rather
-   than by whichever document is read last.
+1. ~~**Kubernetes.**~~ **Settled 2026-08-21, in favour of this session's position.** Deployment
+   is 12-factor containers on a provider-agnostic host — Fly or Railway first, ECS or Cloud Run
+   later — and there is no Kubernetes, no Helm and no cluster. Step 4 of the build order in
+   [CLAUDE.md](CLAUDE.md) was "Containerise → Helm → k3d → EKS" and is now containerisation
+   alone. Kubernetes and Helm moved from the deferred list to the ruled-out one, which is a
+   stronger statement: not "later" but "no". The architecture section below still carries the old
+   position and is annotated where it does.
 2. **Rubrics as data.** Rubrics versioned in the database contradicts the convention that prompts
    are versioned Python constants in a `prompts` module, and it moves where a version lives. The
    current arrangement is what makes `depth_rubric_version` on a delivery attributable to a commit;
@@ -209,9 +210,12 @@ ones.** They are listed here rather than merged, because each changes work alrea
 
 ## Architecture — HalfLife
 
-*Predates the platform section above. The control-plane bullet is the one it contradicts:
-Helm/K8s here, 12-factor containers and explicitly not Kubernetes there. Left standing
-rather than edited, because striking it would make the decision look taken.*
+*Predates the platform section above, and the control-plane bullet is superseded by it. The
+Helm/K8s deployment target was dropped on 2026-08-21 in favour of 12-factor containers on a
+provider-agnostic host. The bullet is left standing with this note rather than rewritten,
+because the rest of it — what the control plane holds, and Postgres being enough for the graph
+— is unaffected, and because a design doc that quietly reflows to match every decision stops
+being a record of what was thought at the time.*
 
 - **Control plane:** cloud-native, containerised, deployable to any cloud (Helm/K8s; EKS/AKS/GKE or on-prem later). Holds API, dashboards, micro-learning scheduler/generator, skill graph store. Postgres suffices for the graph (nodes + edges tables).
 - **Agent:** runs locally, **thick** — does extraction/summarisation locally using the harness's own model, ships only conclusions. Harness-agnostic via **MCP**: one MCP server, thin per-harness wrappers only where required. Targets: Copilot, Claude Cowork, Amazon Q.
@@ -302,16 +306,15 @@ Admin flow (tenant/team/invites) stays manual/scripted for a first deployment. I
 
 1. Micro-learning generation quality — depth rubric wording, continuity mechanism (the week-one make-or-break for any first deployment)
 2. Pressure-test the signal schema against a concrete scenario (e.g. a field engineer's first week on an unfamiliar customer stack)
-3. **Kubernetes or not.** The platform section says 12-factor containers and not Kubernetes;
-   the architecture section and step 4 of the build order say Helm, k3d and EKS. Deciding
-   this removes or keeps most of a build step, so it wants deciding on purpose.
-4. **Where a rubric version lives.** Rubrics as data in the database, against prompts as
+3. **Where a rubric version lives.** Rubrics as data in the database, against prompts as
    versioned Python constants. Today `depth_rubric_version` on a delivery points at a commit;
    a database rubric points at a row, which is a weaker guarantee unless the row is
    immutable. The motivation is per-tenant domain rubrics, which nothing needs yet.
-5. **Concurrent harnesses.** The platform assumes many; the code supports one at a time.
+4. **Concurrent harnesses.** The platform assumes many; the code supports one at a time.
    Tracked as [issues #1–#4](https://github.com/Snorn/halflife/issues).
 
 *Closed: product name — settled as **HalfLife**.*
+
+*Closed: Kubernetes or not — settled 2026-08-21 against. Deployment is 12-factor containers on a provider-agnostic host, Fly or Railway first and ECS or Cloud Run later. The argument that decided it is the complexity-budget one: an orchestrator is a second system to keep alive, and a single-node control plane operated by one person has nothing for it to orchestrate. This removes a local cluster, a chart to maintain and a managed control plane to pay for, and it shortens the build order rather than lengthening it — which is the direction a decision taken before the work is worth taking. Revisit only on evidence of a scaling need, not on the general feeling that real platforms run on Kubernetes.*
 
 *Closed: opt-in `evidence` paraphrase. It was listed here as a v2 candidate while CLAUDE.md forbade it by name, so the two source-of-truth documents disagreed about the same field. Settled against: an opt-in is how a permanently-null column stops being permanently null, and the consent it would rest on is the weakest part of the design — the person clicking it is the one with the least to lose and the most to gain from clicking. If self-review is wanted, it needs a mechanism that does not put content in the control plane, decided on the record.*

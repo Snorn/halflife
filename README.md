@@ -233,8 +233,9 @@ a rationale, not a result.
 the next steps. Two things are worth knowing before contributing:
 
 **The build order is deliberate.** Generation engine → MCP server → API and Postgres →
-containerisation. Kubernetes, Helm, SSO and tenancy enforcement are explicitly *not* to be
-scaffolded ahead of time, not even as placeholders.
+containerisation. SSO and tenancy enforcement are explicitly *not* to be scaffolded ahead of
+time, not even as placeholders. Kubernetes and Helm are not scheduled at all: deployment is
+plain 12-factor containers on a provider-agnostic host, decided 2026-08-21.
 
 **The privacy boundary is non-negotiable, and now partly inspectable.** Ask your harness to log a
 session and it classifies the conversation *it is already in*, sending back subject names and one
