@@ -27,12 +27,13 @@ These block a step by the project's own rules. They are not ranked with the rest
 
 ### G1 — "usable daily for a week first" (blocks step 3)
 
-Measured 2026-08-20: issues were written and read on 3 days (16, 19, 20 August), 10 issues, all
-10 read, 9 rated — 8 `just_right`, 1 `too_basic`. Three days out of five, with a three-day gap in
-the middle.
+Measured 2026-08-21: issues were written and read on 4 days (16, 19, 20, 21 August), 13 issues,
+all 13 read and all 13 rated — 12 `just_right`, 1 `too_basic`. Four days out of six, with a
+three-day gap in the middle and the first consecutive pair on the 20th and 21st.
 
 The gap is the part that matters. The gate does not ask whether the tool works; it asks whether
-it is opened on a day when nothing is being built for it. That question is still unanswered.
+it is opened on a day when nothing is being built for it. That question is still unanswered,
+because every day of use so far has been a day something was also being built.
 
 Step 2 was already brought forward past this gate once, for a stated reason recorded in
 `CLAUDE.md` — the deployment environment forbids API spend without procurement, so the harness
@@ -125,40 +126,6 @@ This is the first entry to live in the tracker rather than here. Anything with a
 patch and a discussion belongs there; this file keeps the one-line pointer so the backlog stays
 the single place to look.
 
-### F7 — `read_at` records neither a fetch nor a read
-
-[Issue #6](https://github.com/Snorn/halflife/issues/6), opened 2026-08-21. `mark_read` fires
-inside `halflife read` and inside the MCP read tool, and nowhere else. It went wrong in both
-directions on the day it was found: two deliveries were stamped read while their text went
-somewhere the reader could not see, and one was read and rated while the column still said
-unread, because it reached the reader by a path that does not stamp anything.
-
-So the column is a receipt for one particular command rather than for fetching or for reading,
-and in a harness that command is not the path the text usually travels.
-
-Small today: one consumer, the inbox filter, so the consequence is a delivery leaving the inbox
-or refusing to. It matters because reader feedback moves a subscription's depth and a rating is
-only evidence if the rater read the thing — and because a wrong timestamp looks exactly like a
-right one.
-
-The same day also produced a **rated-but-unread** row, since `set_feedback` does not consult
-`read_at`. That is the state the ticket's option 1 would formalise, arriving on its own within
-hours, which makes option 1 cheaper than it first looked and option 2 insufficient.
-
-### F8 — stored text is parsed as Rich console markup
-
-[Issue #7](https://github.com/Snorn/halflife/issues/7), opened 2026-08-21. Coverage points, plan
-entries, threads and topics are interpolated into `console.print`, so `[break]` is read as markup
-and disappears. `[SAP]` survives, because Rich cannot parse it as a style — so which tokens live
-and which die is unpredictable from the content. An unmatched closing tag such as `[/break]`
-raises `MarkupError` and takes the whole command with it, and the ledger is append-only, so a row
-that triggers it cannot be removed through any supported path.
-
-Delivery bodies are safe: they render through `rich.markdown.Markdown`, which ignores console
-markup. So does the generation prompt, which is built as plain text — the model has been receiving
-correct input while the human has not. That is why it went unnoticed for so long: the long-form
-content everybody actually reads is the one path that was already right.
-
 ## Deferred by design
 
 Not backlog in the sense of work waiting to start. Listed so that "not built" is never mistaken
@@ -190,6 +157,17 @@ data subject asking for their own data, and it is the same code as the manager's
 else. If it is ever built it needs its own decision, on the record, with an answer to that.
 
 ## Closed
+
+- **F8 — stored text parsed as Rich console markup** — closed 2026-08-21,
+  [issue #7](https://github.com/Snorn/halflife/issues/7). `_esc` wraps `rich.markup.escape` and
+  every interpolation of model-written or user-typed text goes through it; 29 call sites, four of
+  which the original scope missed and the tests caught. Ten tests drive each display surface
+  against both a swallowed token and a crashing one.
+- **F7 — `read_at` recorded neither a fetch nor a read** — closed 2026-08-21,
+  [issue #6](https://github.com/Snorn/halflife/issues/6). Split into `fetched_at`, set by both
+  read paths, and `read_at`, set by `set_feedback` and nowhere else. The inbox now empties on
+  rating rather than on display. Migration `64cec47ead2f` re-attributed existing rows and returned
+  one delivery to the inbox — the row the old column was misreporting.
 
 - **Where a rubric version lives** — closed 2026-08-21 by scoping it. Core rubrics stay
   as versioned Python constants; per-tenant domain rubrics may be database rows if they are
