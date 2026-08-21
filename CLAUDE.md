@@ -10,9 +10,9 @@ of 2026-08-21. **None of it is built**, and nothing in it may be scaffolded — 
 list and the privacy boundary stand exactly as written. What a design doc *can* do is change a
 decision, and one of its positions was adopted: no Kubernetes, which step 4 below now reads.
 
-One contradiction is still open — rubrics versioned as rows in the database, against the
-convention that prompts are versioned Python constants. It is listed in the design doc's open
-items. Being written down more recently is not what settles it; someone deciding is.
+Its "rubrics as data" position was scoped rather than adopted or rejected, also on 2026-08-21:
+see the prompts convention below. Both contradictions are now settled and recorded in the design
+doc's closed items with the reasoning.
 
 ## Build order (deliberate — do not run ahead)
 
@@ -144,6 +144,20 @@ inspect is worse than an admitted gap. That mistake has been made once already, 
 - Prompts live in a `prompts` module as versioned Python constants, never inline f-strings at the call
   site — `generation/prompts/` for the writing prompts, `extraction/prompts.py` for the signal one.
   Changing a prompt means bumping its version, and every row it produced records that version.
+  - **Core rubrics stay in code. Domain rubrics may become data — nothing else may.** The
+    platform doc says "rubrics as data", versioned in the database. Decided 2026-08-21:
+    that applies to per-tenant *domain* rubrics (the compliance head is the named case) and
+    to nothing that exists today.
+  - The distinction is what a rubric is for. The depth rubric is **calibration** — it was
+    measured from 5/12 to 44/45 across six versions, the eval suite compares runs by pinning
+    it, and `depth_rubric.py`'s docstring is the measurement log rather than commentary on
+    it. That belongs in a commit, where it is immutable, diffable and reviewed. A domain
+    rubric is **configuration**: per-tenant, written by someone who is not deploying the
+    service, and worthless if it needs a release.
+  - `depth_rubric_version` on a `Delivery` points at a commit, and a version that points at a
+    mutable row means less. So if domain rubrics are ever built, their rows must be
+    append-only with the version in the row's identity — never updated in place. Decide that
+    when building them; do not add the table now.
 - Repositories (`repository/`) are the only place that touches the session; the CLI, and later MCP and
   FastAPI, all go through them.
 - Tests that assert on model output belong in `evals/`, not `tests/`. `tests/` must be deterministic and

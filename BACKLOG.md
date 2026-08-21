@@ -141,16 +141,12 @@ and Geiger as heads on a shared rubric engine, plus an LLM gateway, Redis and as
 hosted remote MCP server. Same rule: recorded, not started. The forbidden list is not extended by
 it, because everything new in it is further away than the things already on the list.
 
-### D3 — one decision the platform doc reopened
+### D3 — the platform doc's two reopened decisions
 
-Not work; a choice that changes work already planned, and live until somebody settles it.
-The design doc's open items carry the full argument. The Kubernetes question that sat here
-beside it was settled on 2026-08-21 and has moved to Closed.
-
-- **Where a rubric version lives.** Rows in a database against versioned Python constants. Today a
-  delivery's `depth_rubric_version` points at a commit; a database rubric points at a row, which
-  is weaker unless the row is immutable. Nothing needs the change yet — the motivation is
-  per-tenant domain rubrics.
+Both settled on 2026-08-21 and moved to Closed. The entry stays so the identifier keeps
+meaning something and so the pair stays findable together: they were the only two places where
+the platform architecture and the working constraints disagreed, and knowing that the count was
+two is worth as much as either answer.
 
 ### D2 — any read path over signals
 
@@ -160,6 +156,13 @@ data subject asking for their own data, and it is the same code as the manager's
 else. If it is ever built it needs its own decision, on the record, with an answer to that.
 
 ## Closed
+
+- **Where a rubric version lives** — closed 2026-08-21 by scoping it. Core rubrics stay
+  as versioned Python constants; per-tenant domain rubrics may be database rows if they are
+  ever built. The two positions were never in conflict — one phrase was covering two kinds of
+  rubric. Calibration belongs in a commit, configuration belongs in a row. A condition
+  attaches to the second: append-only, version in the row's identity, or a delivery's recorded
+  rubric version stops meaning anything.
 
 - **Kubernetes or not** — closed 2026-08-21, against. Deployment is 12-factor
   containers on a provider-agnostic host, Fly or Railway first and ECS or Cloud Run later.

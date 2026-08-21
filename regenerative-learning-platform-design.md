@@ -195,12 +195,12 @@ ones.** They are listed here rather than merged, because each changes work alrea
    alone. Kubernetes and Helm moved from the deferred list to the ruled-out one, which is a
    stronger statement: not "later" but "no". The architecture section below still carries the old
    position and is annotated where it does.
-2. **Rubrics as data.** Rubrics versioned in the database contradicts the convention that prompts
-   are versioned Python constants in a `prompts` module, and it moves where a version lives. The
-   current arrangement is what makes `depth_rubric_version` on a delivery attributable to a commit;
-   a database-versioned rubric is attributable to a row, which is a different guarantee and needs
-   its own migration and audit story. Worth noting that the reason for rubrics-as-data is
-   per-tenant domain rubrics, which nothing today needs.
+2. ~~**Rubrics as data.**~~ **Settled 2026-08-21, by scoping it.** The principle stands
+   for *domain* rubrics and does not reach the core ones. The depth rubric and the generation
+   prompts stay as versioned Python constants; a per-tenant domain rubric may be a database row
+   when one exists. The two positions were never actually in conflict — one phrase was covering
+   two different kinds of rubric. See the closed item for the reasoning, and for the condition any
+   such row has to meet.
 3. **Concurrent harnesses.** Key flow 3 states that multiple harnesses can run against one
    instance concurrently. That is asserted as a design property and is currently false in the
    code: see [issues #1–#4](https://github.com/Snorn/halflife/issues), which record that there is
@@ -306,14 +306,12 @@ Admin flow (tenant/team/invites) stays manual/scripted for a first deployment. I
 
 1. Micro-learning generation quality — depth rubric wording, continuity mechanism (the week-one make-or-break for any first deployment)
 2. Pressure-test the signal schema against a concrete scenario (e.g. a field engineer's first week on an unfamiliar customer stack)
-3. **Where a rubric version lives.** Rubrics as data in the database, against prompts as
-   versioned Python constants. Today `depth_rubric_version` on a delivery points at a commit;
-   a database rubric points at a row, which is a weaker guarantee unless the row is
-   immutable. The motivation is per-tenant domain rubrics, which nothing needs yet.
-4. **Concurrent harnesses.** The platform assumes many; the code supports one at a time.
+3. **Concurrent harnesses.** The platform assumes many; the code supports one at a time.
    Tracked as [issues #1–#4](https://github.com/Snorn/halflife/issues).
 
 *Closed: product name — settled as **HalfLife**.*
+
+*Closed: where a rubric version lives — settled 2026-08-21 by scoping the question rather than answering it as put. "Rubrics as data" and "prompts as versioned constants" turned out not to be in conflict, because they are about two different kinds of rubric. A **core** rubric is calibration: the depth rubric went from 5/12 to 44/45 over six measured versions, the eval suite only compares runs because it can pin one, and the version recorded on every delivery is worth having because it names a commit somebody can read. That belongs in code. A **domain** rubric — the compliance head is the named case — is configuration: per-tenant, authored by someone with no deploy access, and useless if changing it needs a release. That belongs in data. One condition attaches to the data half: rubric rows must be append-only with the version in the row's identity, never updated in place, or a delivery's recorded version stops meaning anything. Nothing is built either way, and no table is added until there is a second tenant that needs one.*
 
 *Closed: Kubernetes or not — settled 2026-08-21 against. Deployment is 12-factor containers on a provider-agnostic host, Fly or Railway first and ECS or Cloud Run later. The argument that decided it is the complexity-budget one: an orchestrator is a second system to keep alive, and a single-node control plane operated by one person has nothing for it to orchestrate. This removes a local cluster, a chart to maintain and a managed control plane to pay for, and it shortens the build order rather than lengthening it — which is the direction a decision taken before the work is worth taking. Revisit only on evidence of a scaling need, not on the general feeling that real platforms run on Kubernetes.*
 
