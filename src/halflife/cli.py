@@ -11,6 +11,7 @@ import sys
 import typer
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.markup import escape
 from rich.table import Table
 
 from halflife import guide, pricing
@@ -125,8 +126,25 @@ def _short(identifier: str) -> str:
     return identifier[:8]
 
 
+def _esc(value: object) -> str:
+    """Stored text on its way into a styled line.
+
+    Rich reads ``[...]`` as console markup, so a coverage point mentioning
+    ``[break]`` printed it without one, and one mentioning ``[/break]`` raised
+    MarkupError and took the whole command with it — on an append-only ledger,
+    with no supported way to remove the row that did it. Which tokens vanish
+    and which survive depends on whether Rich can parse them as a style name,
+    so the failure is unpredictable from the content rather than uniform.
+
+    Everything a model wrote or a user typed goes through here. Deliberate
+    styling in this module stays outside it, which is the whole distinction:
+    the markup in a line is the code's, never the data's.
+    """
+    return escape(str(value))
+
+
 def _fail(message: str) -> None:
-    console.print(f"[red]{message}[/red]")
+    console.print(f"[red]{_esc(message)}[/red]")
     raise typer.Exit(code=1)
 
 
@@ -158,7 +176,7 @@ def subscribe(
     with session_scope() as session:
         subscription = subscription_repo.create(session, parsed)
         console.print(
-            f"[green]Subscribed[/green] {_short(subscription.id)}  {parsed.topic}  "
+            f"[green]Subscribed[/green] {_short(subscription.id)}  {_esc(parsed.topic)}  "
             f"depth {parsed.depth}  {parsed.duration_minutes}min  "
             f"{parsed.frequency.value}  {parsed.flavour.value}"
         )
@@ -171,12 +189,12 @@ def subscribe(
                     # Planning is optional and needs an API key; the harness can
                     # do it instead. Failing the whole subscribe here would throw
                     # away a subscription that is otherwise perfectly usable.
-                    console.print(f"\n[yellow]Not planned:[/yellow] {exc}")
+                    console.print(f"\n[yellow]Not planned:[/yellow] {_esc(exc)}")
 
         if planned is not None:
-            console.print(f"\n[dim]{planned.arc_summary}[/dim]\n")
+            console.print(f"\n[dim]{_esc(planned.arc_summary)}[/dim]\n")
             for entry in planned.plan:
-                console.print(f"  {entry['index']:>2}. {entry['title']}")
+                console.print(f"  {entry['index']:>2}. {_esc(entry['title'])}")
             console.print(
                 "\n[dim]Next: ask your harness for the first issue, or[/dim] halflife run-due"
             )
@@ -203,7 +221,7 @@ def list_subscriptions() -> None:
             series = sub.series
             table.add_row(
                 _short(sub.id),
-                sub.topic,
+                _esc(sub.topic),
                 str(sub.depth),
                 str(sub.duration_minutes),
                 sub.frequency.value,
@@ -231,22 +249,22 @@ def run_due(
 
         if dry_run:
             for sub in due:
-                console.print(f"  {_short(sub.id)}  {sub.topic}  (due {sub.next_due_at:%Y-%m-%d %H:%M})")
+                console.print(f"  {_short(sub.id)}  {_esc(sub.topic)}  (due {sub.next_due_at:%Y-%m-%d %H:%M})")
             return
 
         generated = 0
         produced: list[Delivery] = []
         for sub in due:
-            with console.status(f"Generating: {sub.topic}"):
+            with console.status(f"Generating: {_esc(sub.topic)}"):
                 try:
                     delivery = engine.generate_next(session=session, subscription=sub)
                 except GenerationError as exc:
-                    console.print(f"[red]{sub.topic}: {exc}[/red]")
+                    console.print(f"[red]{_esc(sub.topic)}: {_esc(exc)}[/red]")
                     continue
             generated += 1
             produced.append(delivery)
             console.print(
-                f"[green]#{delivery.issue_number}[/green] {delivery.title}  "
+                f"[green]#{delivery.issue_number}[/green] {_esc(delivery.title)}  "
                 f"[dim]{_short(delivery.id)} · {pricing.describe(delivery)}[/dim]"
             )
 
@@ -270,7 +288,7 @@ def generate(
         if sub is None:
             _fail(f"No single subscription matches {subscription!r}.")
             return
-        with console.status(f"Generating: {sub.topic}"):
+        with console.status(f"Generating: {_esc(sub.topic)}"):
             try:
                 delivery = engine.generate_next(session=session, subscription=sub)
             except GenerationError as exc:
@@ -290,8 +308,8 @@ def inbox() -> None:
             return
         for delivery in unread:
             console.print(
-                f"  {_short(delivery.id)}  [bold]{delivery.title}[/bold]  "
-                f"[dim]{delivery.subscription.topic} · depth {delivery.depth} · "
+                f"  {_short(delivery.id)}  [bold]{_esc(delivery.title)}[/bold]  "
+                f"[dim]{_esc(delivery.subscription.topic)} · depth {delivery.depth} · "
                 f"#{delivery.issue_number}[/dim]"
             )
 
@@ -377,14 +395,14 @@ def _change(prefix: str, describe, note=None, **updates) -> None:
         after = describe(sub)
 
         if before == after:
-            console.print(f"[green]Unchanged.[/green] {sub.topic} is already {after}.")
+            console.print(f"[green]Unchanged.[/green] {_esc(sub.topic)} is already {after}.")
             return
 
-        console.print(f"[green]{sub.topic}[/green]: {before} -> {after}, from the next issue.")
+        console.print(f"[green]{_esc(sub.topic)}[/green]: {before} -> {after}, from the next issue.")
         if note is not None:
             line = note(sub)
             if line:
-                console.print(f"  {line}")
+                console.print(f"  {_esc(line)}")
 
 
 @app.command()
@@ -512,7 +530,7 @@ def thread(
             console.print("[green]Already noted.[/green] That thread is on the series.")
             return
 
-        console.print(f"[green]Noted for {sub.topic}.[/green] The next issue is told about it.")
+        console.print(f"[green]Noted for {_esc(sub.topic)}.[/green] The next issue is told about it.")
 
 
 @app.command()
@@ -531,15 +549,18 @@ def series(
             _fail("That subscription has no series.")
             return
 
-        console.print(f"[bold]{sub.topic}[/bold]  depth {sub.depth}  {state.issue_count} issues written\n")
+        console.print(f"[bold]{_esc(sub.topic)}[/bold]  depth {sub.depth}  {state.issue_count} issues written\n")
         if state.arc_summary:
-            console.print(f"[dim]{state.arc_summary}[/dim]\n")
+            console.print(f"[dim]{_esc(state.arc_summary)}[/dim]\n")
 
         console.print("[bold]Plan[/bold]")
         for entry in state.plan:
             written = entry["index"] <= state.issue_count
             marker = "[green]x[/green]" if written else " "
-            console.print(f"  [{marker}] {entry['index']:>2}. {entry['title']} — [dim]{entry['focus']}[/dim]")
+            console.print(
+                f"  [{marker}] {entry['index']:>2}. {_esc(entry['title'])} — "
+                f"[dim]{_esc(entry['focus'])}[/dim]"
+            )
 
         points = series_repo.coverage_points(session, state.id)
         active = [p for p in points if p.compacted_at is None]
@@ -550,10 +571,10 @@ def series(
         console.print(header + ")")
         for point in points if full else active:
             if point.compacted_at is not None:
-                console.print(f"  [dim]x {point.point}[/dim]")
+                console.print(f"  [dim]x {_esc(point.point)}[/dim]")
                 continue
             marker = "[cyan]~[/cyan]" if point.kind is CoverageKind.SUMMARY else "-"
-            console.print(f"  {marker} {point.point}")
+            console.print(f"  {marker} {_esc(point.point)}")
         if folded and not full:
             console.print(
                 f"\n  [dim]~ marks a summary. Folded entries are kept, not deleted —[/dim] "
@@ -563,7 +584,7 @@ def series(
         console.print("\n[bold]Open threads[/bold]")
         if state.open_threads:
             for thread in state.open_threads:
-                console.print(f"  - {thread}")
+                console.print(f"  - {_esc(thread)}")
         else:
             console.print("  [dim]none[/dim]")
 
@@ -668,7 +689,7 @@ def unsubscribe(
 
         topic = sub.topic
         subscription_repo.delete(session, sub)
-        console.print(f"[green]Unsubscribed[/green] {topic}")
+        console.print(f"[green]Unsubscribed[/green] {_esc(topic)}")
 
 
 @app.command()
@@ -690,14 +711,14 @@ def _set_status(prefix: str, status: SubscriptionStatus, verb: str) -> None:
             _fail(f"No single subscription matches {prefix!r}.")
             return
         subscription_repo.set_status(session, sub, status)
-        console.print(f"[green]{verb}[/green] {sub.topic}")
+        console.print(f"[green]{verb}[/green] {_esc(sub.topic)}")
 
 
 def _render(delivery: Delivery) -> None:
     console.print()
-    console.print(f"[bold]{delivery.title}[/bold]")
+    console.print(f"[bold]{_esc(delivery.title)}[/bold]")
     console.print(
-        f"[dim]{delivery.subscription.topic} · issue {delivery.issue_number} · "
+        f"[dim]{_esc(delivery.subscription.topic)} · issue {delivery.issue_number} · "
         f"depth {delivery.depth} · {delivery.duration_minutes}min read[/dim]\n"
     )
     console.print(Markdown(delivery.body_markdown))

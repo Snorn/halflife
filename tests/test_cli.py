@@ -381,3 +381,92 @@ def test_force_utf8_asks_for_utf8_and_never_raises(monkeypatch):
     cli._force_utf8()
 
     assert calls == [{"encoding": "utf-8", "errors": "replace"}] * 2
+
+
+# Rich reads square brackets as console markup, so stored text printed into a
+# styled line lost `[break]` and crashed on `[/break]`. These drive every
+# surface that displays stored text, because the defect's whole character is
+# that a missed call site is indistinguishable from a fixed one until the
+# content that triggers it arrives — a per-site assertion is the only thing
+# that catches the site somebody forgets.
+
+SWALLOWED = "[break]"  # parses as a style name and vanishes
+CRASHER = "[/break]"   # unmatched closing tag: MarkupError, command dies
+
+
+def test_esc_keeps_both_kinds_of_bracket(monkeypatch):
+    assert cli._esc(SWALLOWED) != SWALLOWED  # it escapes...
+    assert SWALLOWED in cli.console.render_str(cli._esc(SWALLOWED)).plain  # ...to itself
+    assert CRASHER in cli.console.render_str(cli._esc(CRASHER)).plain
+
+
+@pytest.mark.parametrize("hostile", [SWALLOWED, CRASHER])
+def test_a_bracketed_topic_survives_every_listing(migrated_db, fake_generation, hostile):
+    topic = f"rewrite rules and {hostile} handling"
+    sub_id = _one_subscription(f"{topic}, 3, 5, 1d")
+
+    for command in (("ls",), ("series", sub_id), ("duration", sub_id, "10")):
+        assert hostile in _run(*command), f"lost by: {command[0]}"
+
+
+@pytest.mark.parametrize("hostile", [SWALLOWED, CRASHER])
+def test_a_bracketed_thread_survives_the_series_view(migrated_db, fake_generation, hostile):
+    sub_id = _one_subscription("sap web dispatcher, 3, 5, 1d")
+
+    _run("thread", sub_id, f"how far {hostile} reaches once a rule file is split")
+
+    assert hostile in _run("series", sub_id)
+
+
+@pytest.mark.parametrize("hostile", [SWALLOWED, CRASHER])
+def test_a_bracketed_coverage_point_survives_the_ledger(migrated_db, fake_generation, hostile):
+    """The ledger is append-only, so a row that crashes the view cannot be removed."""
+    from halflife.db import session_scope
+    from halflife.models.base import new_id
+    from halflife.models.series import CoveragePoint
+    from halflife.repository import subscriptions as subscription_repo
+
+    sub_id = _one_subscription("icm parameters, 3, 5, 1d")
+    with session_scope() as session:
+        sub = subscription_repo.get_by_prefix(session, sub_id)
+        session.add(
+            CoveragePoint(
+                id=new_id(),
+                tenant_id=sub.tenant_id,
+                series_id=sub.series.id,
+                position=0,
+                point=f"{hostile} stops rule evaluation",
+            )
+        )
+
+    assert hostile in _run("series", sub_id)
+
+
+@pytest.mark.parametrize("hostile", [SWALLOWED, CRASHER])
+def test_a_bracketed_title_survives_run_due_inbox_and_read(migrated_db, fake_generation, hostile):
+    """run-due rather than generate: generate marks read as it renders."""
+    from halflife.db import session_scope
+    from halflife.repository import deliveries as delivery_repo
+
+    _one_subscription("http headers, 3, 5, 1d")
+    with session_scope() as session:
+        target = delivery_repo.list_recent(session, limit=1)
+        assert not target, "a fresh subscription should have delivered nothing yet"
+
+    assert "#1" in _run("run-due")
+
+    with session_scope() as session:
+        delivery = delivery_repo.list_unread(session)[0]
+        delivery.title = f"What {hostile} Actually Does"
+        delivery_id = delivery.id
+
+    assert hostile in _run("inbox")
+    assert hostile in _run("read", delivery_id[:8])
+
+
+def test_a_bracketed_id_does_not_crash_the_failure_path(migrated_db):
+    """_fail interpolates the argument the user typed into a red line."""
+    result = runner.invoke(cli.app, ["read", CRASHER])
+
+    assert result.exit_code == 1
+    assert "No single delivery matches" in result.output
