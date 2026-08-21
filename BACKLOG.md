@@ -125,6 +125,18 @@ This is the first entry to live in the tracker rather than here. Anything with a
 patch and a discussion belongs there; this file keeps the one-line pointer so the backlog stays
 the single place to look.
 
+### F7 — `read_at` records a fetch rather than a read
+
+[Issue #6](https://github.com/Snorn/halflife/issues/6), opened 2026-08-21. `mark_read` fires
+inside the fetch, and in a harness the thing that fetches is never the thing that reads — so a
+delivery handed to a model that summarises it, or relays it somewhere the human cannot see, is
+recorded as read by somebody who never saw it. Observed the same day on two deliveries.
+
+Small today: `read_at` has one consumer, the inbox filter, so the only consequence is a delivery
+silently leaving the inbox. It matters because reader feedback moves a subscription's depth and
+a rating is only evidence if the rater read the thing — and because a wrong timestamp in that
+column looks exactly like a right one.
+
 ## Deferred by design
 
 Not backlog in the sense of work waiting to start. Listed so that "not built" is never mistaken
