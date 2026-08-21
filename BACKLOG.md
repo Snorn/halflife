@@ -109,6 +109,22 @@ user happens to have.
 This is a known and accepted cost of the harness path, recorded in the README. It is here so it
 is not rediscovered as a defect.
 
+### F6 — nothing coordinates two harnesses against one database
+
+Opened 2026-08-21 as [issues #1–#4](https://github.com/Snorn/halflife/issues), which carry the
+detail. In short: `subscriptions.create` runs no dedupe query, there is no lease or conditional
+write between `halflife_next_brief` and `halflife_record_issue`, no read returns anything a caller
+could use to notice its picture is stale, and datetimes are stored and returned without a zone.
+
+All four are confirmed by reading the code. The concurrency incident they were reported from did
+not reproduce against the database — [#5](https://github.com/Snorn/halflife/issues/5) records what
+was actually there and what is still owed. Treat the gaps as real and the report as unverified;
+they are separate claims.
+
+This is the first entry to live in the tracker rather than here. Anything with a reproduction, a
+patch and a discussion belongs there; this file keeps the one-line pointer so the backlog stays
+the single place to look.
+
 ## Deferred by design
 
 Not backlog in the sense of work waiting to start. Listed so that "not built" is never mistaken
