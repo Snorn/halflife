@@ -179,6 +179,24 @@ Issue 3 of `cf63b087` is the test. It will either go sideways, which is what the
 to do when a level runs out of ground, or come out thin. This is the mirror of **F4**: there a
 level ran out of ground by exhausting it upward, here by having it taken from below.
 
+### F12 — the plan block suggests an entry by position
+
+[Issue #10](https://github.com/Snorn/halflife/issues/10), opened 2026-08-23. `render_plan_block`
+points the arrow at the entry whose number matches the issue number, so every issue that goes
+off-plan leaves a hole nothing points at again.
+
+Observed on SAP Autonomous Enterprise: issues 6 and 7 both reported `plan_index: 0`, issue 8 took
+entry 8 by position, and entries 6 and 7 are now permanently skipped. The reader reported it as
+the subject having drifted — which was the symptom. Entry 7 establishes who is answerable, entry
+8 leans on that, and with 7 unwritten issue 8 had to stand it up itself.
+
+Half of this was already fixed and the docstring says why: the `[already written]` marking was
+made coverage-aware because "the series skipping an entry and covering it are different facts,
+and position cannot tell them apart". The suggestion in the same function was left positional,
+and `written` has been a parameter the whole time.
+
+The `sap web dispatcher` series is in the same position now, with entry 7 as the hole.
+
 ## Deferred by design
 
 Not backlog in the sense of work waiting to start. Listed so that "not built" is never mistaken
