@@ -186,6 +186,33 @@ MAX_DEPTH = 5
 # early loses one orientation piece, while one that stops one issue late
 # delivers a piece at the wrong level, which is the failure the depth rubric
 # exists to prevent.
+class ThreadSource(str, enum.Enum):
+    """Who raised an open thread.
+
+    Stored on the thread rather than inferred from its text. It was a string
+    prefix, and `render_threads_block` decided a thread came from the reader by
+    matching it — which a harness could write itself, promoting its own text
+    into the channel the prompt says outranks the plan. A marker the content
+    supplies about itself is not a marker. Issue #8.
+
+    The harness never sends this field: `record_issue` takes plain strings and
+    the repository stamps ISSUE. There is no request shape that lets a caller
+    claim READER.
+    """
+
+    ISSUE = "issue"
+    READER = "reader"
+
+
+def thread(text: str, source: ThreadSource) -> dict[str, str]:
+    """One stored open thread. A dict because the column is JSON."""
+    return {"text": text, "source": source.value}
+
+
+def is_reader_thread(entry: dict[str, str]) -> bool:
+    return entry.get("source") == ThreadSource.READER.value
+
+
 ISSUE_CAP_BY_DEPTH = {1: 3}
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from halflife.models.base import ThreadSource, thread as make_thread
 from halflife.models.series import CoveragePoint, Series
 
 
@@ -23,7 +24,7 @@ def coverage_points(
 # schema change. Open threads are a list of strings the generator already
 # reads, and it is told to prefer these over the plan; a bare sentence would
 # arrive indistinguishable from something a previous issue deferred.
-READER_THREAD_PREFIX = "Asked for by the reader:"
+
 
 
 def add_thread(session: Session, series: Series, text: str) -> list[str]:
@@ -39,10 +40,10 @@ def add_thread(session: Session, series: Series, text: str) -> list[str]:
     if not text:
         return list(series.open_threads)
 
-    thread = f"{READER_THREAD_PREFIX} {text}"
-    if thread in series.open_threads:
+    if any(t["text"] == text for t in series.open_threads):
         return list(series.open_threads)
 
-    series.open_threads = list(series.open_threads) + [thread]
+    entry = make_thread(text, ThreadSource.READER)
+    series.open_threads = list(series.open_threads) + [entry]
     session.flush()
     return list(series.open_threads)

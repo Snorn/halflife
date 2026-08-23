@@ -20,6 +20,7 @@ from halflife.db import get_engine, session_scope
 from halflife.generation import GenerationError, engine
 from halflife.migrations_runner import SchemaOutOfDate, upgrade_to_head
 from halflife.models.base import (
+    is_reader_thread,
     issue_cap,
     CoverageKind,
     Feedback,
@@ -589,8 +590,9 @@ def series(
 
         console.print("\n[bold]Open threads[/bold]")
         if state.open_threads:
-            for thread in state.open_threads:
-                console.print(f"  - {_esc(thread)}")
+            for entry in state.open_threads:
+                mark = " [cyan](you asked for this)[/cyan]" if is_reader_thread(entry) else ""
+                console.print(f"  - {_esc(entry['text'])}{mark}")
         else:
             console.print("  [dim]none[/dim]")
 

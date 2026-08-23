@@ -6,8 +6,10 @@ Three parts, deliberately structured rather than a prose blob:
   series does not random-walk around the topic.
 * ``CoveragePoint`` — an append-only ledger, one short claim per row. This is
   what makes "do not repeat yourself" checkable instead of aspirational.
-* ``Series.open_threads`` — things a previous issue explicitly deferred. Each
-  generation must pick one up or drop it.
+* ``Series.open_threads`` — things deferred by an issue or asked for by the
+  reader. Each generation must pick one up or drop it. Each entry carries
+  its source, because the reader's threads outrank the plan and a marker
+  inferred from the text could be written by whatever wrote the text.
 """
 
 from __future__ import annotations
@@ -40,7 +42,10 @@ class Series(Base, TenantMixin, TimestampMixin):
     plan: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
     plan_prompt_version: Mapped[str] = mapped_column(String(16), nullable=False, default="")
     # Replaced wholesale by each generation, so a list column rather than rows.
-    open_threads: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    # [{"text": "...", "source": "issue" | "reader"}, ...]
+    open_threads: Mapped[list[dict[str, str]]] = mapped_column(
+        JSON, nullable=False, default=list
+    )
     issue_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     subscription: Mapped["Subscription"] = relationship(back_populates="series")  # noqa: F821

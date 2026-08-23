@@ -21,7 +21,14 @@ from collections.abc import Sequence
 from typing import Any
 
 from halflife.generation.schemas import GeneratedIssue
-from halflife.models.base import CoverageKind, new_id, utcnow
+from halflife.models.base import (
+    CoverageKind,
+    ThreadSource,
+    is_reader_thread,
+    new_id,
+    thread as make_thread,
+    utcnow,
+)
 from halflife.models.series import CoveragePoint, Series
 
 # The most entries that go into a prompt. Compaction keeps the active ledger
@@ -123,22 +130,29 @@ def render_feedback_block(entries: Sequence[tuple[int, str, str, Any]]) -> str:
     return "\n".join(lines)
 
 
-_READER_PREFIX = "Asked for by the reader:"
 
 
-def render_threads_block(threads: list[str]) -> str:
+
+def render_threads_block(threads: list[dict[str, str]]) -> str:
+    """Render open threads, marking the reader's as outranking the plan.
+
+    The mark comes from each entry's stored source. It used to be read off the
+    text, which meant whatever wrote the text could award itself the authority
+    this header grants — see `models.base.ThreadSource`.
+    """
     if not threads:
         return "Open threads: none."
-    reader = [t for t in threads if t.startswith(_READER_PREFIX)]
     header = "Open threads — a previous issue deferred these. Pick one up or drop it:"
-    if reader:
+    if any(is_reader_thread(t) for t in threads):
         header = (
             "Open threads. Ones marked as asked for by the reader outrank the plan — they are "
             "the reader saying the series missed something, which they are better placed to "
             "judge than the plan is. The rest a previous issue deferred; pick one up or drop it:"
         )
     lines = [header]
-    lines.extend(f"  - {t}" for t in threads)
+    for entry in threads:
+        prefix = "Asked for by the reader: " if is_reader_thread(entry) else ""
+        lines.append(f"  - {prefix}{entry['text']}")
     return "\n".join(lines)
 
 
@@ -169,7 +183,11 @@ def apply_issue(
         if text.strip()
     ]
     series.coverage.extend(new_points)
-    series.open_threads = [t.strip() for t in issue.open_threads if t.strip()]
+    # The generator supplies text; the source is stamped here and is not
+    # something it can set. See models.base.ThreadSource.
+    series.open_threads = [
+        make_thread(t.strip(), ThreadSource.ISSUE) for t in issue.open_threads if t.strip()
+    ]
     series.issue_count = max(series.issue_count, 0) + 1
     return new_points
 

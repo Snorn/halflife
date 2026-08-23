@@ -310,7 +310,9 @@ def test_thread_tells_the_next_issue_what_was_missed(migrated_db, fake_generatio
         sub = subscription_repo.get_by_prefix(session, sub_id)
         threads = series_repo.get_for_subscription(session, sub.id).open_threads
 
-    assert threads == [f"{series_repo.READER_THREAD_PREFIX} the semantic layer"]
+    # The source is a stored field, not a prefix on the text: a harness supplies
+    # no source and so cannot claim to be the reader. Issue #8.
+    assert threads == [{"text": "the semantic layer", "source": "reader"}]
 
 
 def test_the_same_thread_twice_is_noted_once(migrated_db, fake_generation):
