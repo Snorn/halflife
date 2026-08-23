@@ -143,3 +143,54 @@ def test_a_real_reader_thread_does_reach_that_header():
 
     assert "outrank the plan" in block
     assert "Asked for by the reader: cover the semantic layer" in block
+
+
+# Issue #10: the arrow pointed at the entry matching the issue number, so an
+# issue that went off-plan left a hole nothing pointed at again. Two entries
+# were lost that way on a real series, and it surfaced as the next issue's
+# subject drifting, because the entry it leaned on had never been written.
+
+_PLAN = [
+    {"index": n, "title": f"Entry {n}", "focus": f"focus {n}"} for n in range(1, 6)
+]
+
+
+def _arrowed(block: str) -> list[int]:
+    return [
+        int(line.split(".")[0].split()[-1])
+        for line in block.splitlines()
+        if line.startswith("  ->")
+    ]
+
+
+def test_the_arrow_points_at_the_lowest_uncovered_entry_not_the_issue_number():
+    block = continuity.render_plan_block(
+        _PLAN, "arc", issue_number=5, written={1, 2, 5}
+    )
+
+    assert _arrowed(block) == [3], "entries 3 and 4 were skipped; 3 is next"
+
+
+def test_a_struck_out_entry_is_not_suggested_again():
+    """already_knew / wrong_subject mean the reader rejected that ground."""
+    block = continuity.render_plan_block(
+        _PLAN, "arc", issue_number=4, written={1, 2}, rejected={3: "already_knew"}
+    )
+
+    assert _arrowed(block) == [4]
+
+
+def test_an_exhausted_plan_arrows_nothing_and_says_so():
+    block = continuity.render_plan_block(
+        _PLAN, "arc", issue_number=6, written={1, 2, 3, 4, 5}
+    )
+
+    assert _arrowed(block) == []
+    assert "Every planned entry is covered" in block
+
+
+def test_without_a_written_set_the_positional_rule_still_holds():
+    """The default keeps the function readable on its own."""
+    block = continuity.render_plan_block(_PLAN, "arc", issue_number=3)
+
+    assert _arrowed(block) == [3]

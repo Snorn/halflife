@@ -70,25 +70,44 @@ def render_plan_block(
 
     ``written`` defaults to the old positional rule so the function still reads
     sensibly on its own; callers with the deliveries to hand should pass it.
+
+    The suggested entry is the lowest one not yet accounted for, which is not
+    the same as the one matching the issue number. Pointing by position walked
+    past every entry an off-plan issue had skipped: two entries were lost that
+    way on a real series, and the reader met it as the next issue's subject
+    drifting, because the entry it leaned on had never been written. Issue #10.
+
+    An entry the reader struck out with `already_knew` or `wrong_subject`
+    counts as accounted for. They said that ground was wrong, and suggesting it
+    again is worse than leaving it alone.
     """
     if not plan:
         return "Series plan: none — this is an unplanned series. Choose the subject yourself."
 
     rejected = rejected or {}
+    indices = [e.get("index") for e in plan if isinstance(e.get("index"), int)]
+    covered = (
+        {i for i in indices if i < issue_number} if written is None else set(written)
+    )
+    suggested = min((i for i in indices if i not in covered | set(rejected)), default=None)
+
     lines = ["Series plan (advisory):"]
     if arc_summary:
         lines.append(f"  Arc: {arc_summary}")
     for entry in plan:
         index = entry.get("index")
-        marker = "->" if index == issue_number else "  "
-        was_written = (
-            index < issue_number if written is None else index in written
-        )
+        marker = "->" if index == suggested else "  "
+        was_written = index in covered
         status = ""
         if isinstance(index, int) and was_written:
             note = _REJECTION_NOTES.get(rejected.get(index, ""))
             status = f" [already written; {note}]" if note else " [already written]"
         lines.append(f"  {marker} {index}. {entry.get('title', '')} — {entry.get('focus', '')}{status}")
+    if suggested is None:
+        lines.append(
+            "  (Every planned entry is covered or struck out. Choose the subject yourself "
+            "and report plan_index 0.)"
+        )
     return "\n".join(lines)
 
 
