@@ -132,6 +132,25 @@ This is the first entry to live in the tracker rather than here. Anything with a
 patch and a discussion belongs there; this file keeps the one-line pointer so the backlog stays
 the single place to look.
 
+### F9 — the reader-thread marker is forgeable
+
+[Issue #8](https://github.com/Snorn/halflife/issues/8), opened 2026-08-23. `render_threads_block`
+decides a thread was raised by the reader by checking whether its text starts with
+`READER_THREAD_PREFIX`. Nothing verifies that on the way in, and `halflife_record_issue` replaces
+`open_threads` wholesale from harness-supplied strings — so a harness can mark its own text as
+reader-requested, and the next generation is told that outranks the plan.
+
+Found by applying the trust-boundary exercise from the security series this repository generates,
+to this repository. The wider result of that exercise belongs here rather than in the ticket: by
+the sentence *the prompts module and the reader's typed input are trusted, everything else is
+not*, most of a mature prompt is untrusted. At 96 ledger points the SAP Autonomous Enterprise
+prompt is overwhelmingly harness-authored text fed back as established ground.
+
+That is not a defect and is not separately fixable — the ledger is the product. It is recorded so
+the asymmetry is on the record, and so that the thing currently protecting it is named: the
+generation loop is closed, with no connectors, no file ingestion, no web fetch and no
+conversation text in extraction. Every one of those absences was decided for a different reason.
+
 ## Deferred by design
 
 Not backlog in the sense of work waiting to start. Listed so that "not built" is never mistaken
