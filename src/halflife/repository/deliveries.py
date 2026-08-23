@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, datetime, timezone, tzinfo
 from typing import NamedTuple
 
 from sqlalchemy import select
@@ -151,3 +152,61 @@ def set_feedback(session: Session, delivery: Delivery, feedback: Feedback) -> De
         delivery.read_at = utcnow()
     session.flush()
     return delivery
+
+
+class UsageDays(NamedTuple):
+    """Distinct local dates on which the tool was used, by kind of use."""
+
+    written: frozenset[date]
+    fetched: frozenset[date]
+    rated: frozenset[date]
+
+    @property
+    def any_use(self) -> frozenset[date]:
+        return self.written | self.fetched | self.rated
+
+    @property
+    def read_only(self) -> frozenset[date]:
+        """Days something was read or rated but nothing was generated.
+
+        The gate asks whether the tool is opened on a day when nothing is being
+        built for it. A day that only appears here is the closest evidence of
+        that the data holds.
+        """
+        return (self.fetched | self.rated) - self.written
+
+
+def usage_days(
+    session: Session, *, tz: tzinfo | None = None, tenant_id: str = LOCAL_TENANT_ID
+) -> UsageDays:
+    """Which days the reader used HalfLife, in the reader's own timezone.
+
+    Timestamps are stored as UTC and SQLite hands them back naive, so grouping
+    them by ``.date()`` counts UTC days. For a reader at UTC+10 that silently
+    files everything before 10am local under the previous day, and the count
+    comes out short without ever looking wrong. That is not hypothetical: it
+    under-reported the daily-use gate by a day for as long as the gate was
+    measured by hand.
+
+    ``tz`` defaults to the machine's local zone, which is correct while there
+    is one reader on one machine. When there is a server this needs a stored
+    per-user zone instead, and the default here becomes wrong rather than
+    merely approximate.
+    """
+    zone = tz or datetime.now().astimezone().tzinfo
+
+    def local_dates(values) -> frozenset[date]:
+        return frozenset(
+            v.replace(tzinfo=timezone.utc).astimezone(zone).date()
+            for v in values
+            if v is not None
+        )
+
+    rows = list(
+        session.scalars(select(Delivery).where(Delivery.tenant_id == tenant_id)).all()
+    )
+    return UsageDays(
+        written=local_dates(d.created_at for d in rows),
+        fetched=local_dates(d.fetched_at for d in rows),
+        rated=local_dates(d.read_at for d in rows),
+    )

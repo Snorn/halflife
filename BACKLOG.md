@@ -27,13 +27,19 @@ These block a step by the project's own rules. They are not ranked with the rest
 
 ### G1 — "usable daily for a week first" (blocks step 3)
 
-Measured 2026-08-21: issues were written and read on 4 days (16, 19, 20, 21 August), 13 issues,
-all 13 read and all 13 rated — 12 `just_right`, 1 `too_basic`. Four days out of six, with a
-three-day gap in the middle and the first consecutive pair on the 20th and 21st.
+**Stop measuring this by hand.** `python scripts/gate.py` reports it against the live database.
+Every figure quoted here before 2026-08-23 was computed ad hoc and was wrong: days were grouped
+by the stored UTC date rather than the reader's local one, so at UTC+10 everything done before
+10am local was filed under the previous day. The count came out short and never looked it. Fixed
+in `repository.deliveries.usage_days`, with the boundary case pinned in
+`tests/test_usage_days.py`.
 
-The gap is the part that matters. The gate does not ask whether the tool works; it asks whether
-it is opened on a day when nothing is being built for it. That question is still unanswered,
-because every day of use so far has been a day something was also being built.
+Measured 2026-08-23: 6 days with any use (16, 19, 20, 21, 22, 23 August), longest run 5.
+
+The run is not the number that settles this. The gate does not ask whether the tool works; it
+asks whether it is opened on a day when **nothing is being built for it** — so the line to read
+is `read but not built`, which stands at **1** (23 August). Every other day of use was also a day
+something was generated, which is the case the gate exists to exclude.
 
 Step 2 was already brought forward past this gate once, for a stated reason recorded in
 `CLAUDE.md` — the deployment environment forbids API spend without procurement, so the harness
