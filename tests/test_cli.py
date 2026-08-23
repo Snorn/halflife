@@ -551,3 +551,61 @@ def test_an_unfetched_issue_is_not_labelled_rate_it(migrated_db, fake_generation
     _run("run-due")
 
     assert "rate it" not in _run("inbox")
+
+
+# Issue #10, second call site. `halflife series` computed coverage as
+# `entry index <= issue_count`, a private copy of the positional rule the engine
+# had already stopped trusting. On a series where two issues went off-plan it
+# ticked entries nothing had covered, so the hole the engine fix exists to
+# surface was invisible in the one place a reader would look for it.
+
+
+def _plan_line(output: str, index: int) -> str:
+    return next(l for l in output.splitlines() if l.strip().startswith(f"[") and f"] {index:>2}." in l)
+
+
+def test_the_plan_display_marks_coverage_from_what_issues_reported(
+    migrated_db, fake_generation
+):
+    from halflife.db import session_scope
+    from halflife.models.delivery import Delivery
+    from halflife.repository import subscriptions as subscription_repo
+    from sqlalchemy import select
+
+    sub_id = _one_subscription("agent architecture, 3, 5, 1d")
+    _run("generate", sub_id)
+    _run("generate", sub_id)
+
+    # The second issue went its own way, as a real one did twice on a live
+    # series. Entry 2 is therefore uncovered however many issues exist.
+    with session_scope() as session:
+        sub = subscription_repo.get_by_prefix(session, sub_id)
+        rows = session.scalars(
+            select(Delivery).where(Delivery.subscription_id == sub.id)
+        ).all()
+        for row in sorted(rows, key=lambda d: d.issue_number):
+            row.plan_index = 1 if row.issue_number == 1 else 0
+
+    output = _run("series", sub_id)
+
+    assert "[x]" in _plan_line(output, 1)
+    assert "[x]" not in _plan_line(output, 2), "nothing covered entry 2"
+    assert "(next)" in _plan_line(output, 2)
+
+
+def test_the_plan_display_marks_an_entry_the_reader_rejected(migrated_db, fake_generation):
+    from halflife.db import session_scope
+    from halflife.repository import deliveries as delivery_repo
+
+    sub_id = _one_subscription("agent architecture, 3, 5, 1d")
+    _run("generate", sub_id)
+    with session_scope() as session:
+        delivery = delivery_repo.list_recent(session, limit=1)[0]
+        delivery.plan_index = 1  # the issue reported it took entry 1
+        delivery_id = delivery.id
+    _run("feedback", delivery_id[:8], "already-knew")
+
+    output = _run("series", sub_id)
+
+    assert "you rejected this" in _plan_line(output, 1)
+    assert "(next)" in _plan_line(output, 2), "a rejected entry is not suggested again"

@@ -560,13 +560,36 @@ def series(
         if state.arc_summary:
             console.print(f"[dim]{_esc(state.arc_summary)}[/dim]\n")
 
+        # Coverage comes from what each issue reported it took, never from its
+        # position. This line used to read `entry["index"] <= issue_count`, a
+        # second implementation of a rule the engine had already stopped
+        # trusting — so the display ticked two entries the series had skipped
+        # and the reader had no way to see the hole. Issue #10.
+        covered = delivery_repo.plan_entries_written(session, sub.id)
+        rejected = {
+            f.plan_index: f.verdict
+            for f in delivery_repo.subject_feedback(session, sub.id)
+            if f.plan_index is not None
+        }
+        accounted = covered | set(rejected)
+        suggested = min(
+            (e["index"] for e in state.plan if e["index"] not in accounted), default=None
+        )
+
         console.print("[bold]Plan[/bold]")
         for entry in state.plan:
-            written = entry["index"] <= state.issue_count
-            marker = "[green]x[/green]" if written else " "
+            index = entry["index"]
+            if index in rejected:
+                marker, note = "[yellow]~[/yellow]", "  [yellow](you rejected this)[/yellow]"
+            elif index in covered:
+                marker, note = "[green]x[/green]", ""
+            elif index == suggested:
+                marker, note = "[cyan]>[/cyan]", "  [cyan](next)[/cyan]"
+            else:
+                marker, note = " ", ""
             console.print(
-                f"  [{marker}] {entry['index']:>2}. {_esc(entry['title'])} — "
-                f"[dim]{_esc(entry['focus'])}[/dim]"
+                f"  [{marker}] {index:>2}. {_esc(entry['title'])} — "
+                f"[dim]{_esc(entry['focus'])}[/dim]{note}"
             )
 
         points = series_repo.coverage_points(session, state.id)
