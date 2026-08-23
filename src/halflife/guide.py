@@ -29,6 +29,10 @@ Your harness writes the issues using its own model. No API key is needed.
    *subject*: the level was right and the ground was wrong. Those leave depth alone and steer
    the next few issues somewhere else. This is the main way it learns to pitch itself for you.
 
+   It is also what clears the issue from your inbox. Reading it does not, because nothing the
+   tool can observe separates text being fetched from a person having read it — so the rating
+   is the acknowledgement, and `just_right` is the honest one for "nothing to change".
+
 Steps 3-5 are the daily habit. Steps 1-2 happen once per topic.
 
 ## Logging what you worked on
@@ -108,7 +112,7 @@ Run from a terminal. These need no API key.
 | `halflife help` | this guide |
 | `halflife subscribe "<topic>, <depth>, <mins>, <freq>"` | create a subscription from the terminal instead of asking your harness |
 | `halflife ls` | subscriptions, issue counts, next due time |
-| `halflife inbox` | issues written but not yet read |
+| `halflife inbox` | issues waiting on you: unseen, or seen and not yet rated |
 | `halflife read [id\\|latest]` | read an issue. Rating it, not reading it, clears the inbox |
 | `halflife feedback <id> <verdict>` | `too-basic`, `just-right`, `too-advanced` move depth; `already-knew`, `wrong-subject` move the subject |
 | `halflife flavour <sub> learning\|maintaining` | switch between building a skill up and keeping one alive |
