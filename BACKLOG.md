@@ -151,6 +151,34 @@ the asymmetry is on the record, and so that the thing currently protecting it is
 generation loop is closed, with no connectors, no file ingestion, no web fetch and no
 conversation text in extraction. Every one of those absences was decided for a different reason.
 
+### F10 — depth feedback double-counts across a backlog
+
+[Issue #9](https://github.com/Snorn/halflife/issues/9), opened 2026-08-23.
+`apply_feedback_to_depth` moves one step per rating and never reads
+`Delivery.depth`, so rating several unread issues that were all written at the same depth moves
+the depth once per rating. The reader answers one question and the system counts each answer as a
+separate instruction.
+
+Observed the same day: `77909d63` rated `too_advanced` took the Messages API series from depth 3
+to 2, leaving `da93a46c` unread in the inbox still written at 3. Rating it honestly would reach
+depth 1 on the strength of one judgement.
+
+Unreachable under the daily cadence the product assumes — it needs a backlog, and a backlog needs
+generation to have run ahead of reading. It appeared because seven issues were written in one
+sitting. Anyone catching up after a week away is in the same position.
+
+### F11 — lowering a depth collides with the ledger
+
+Recorded 2026-08-23 as a prediction, before the outcome exists. Raising a depth is harmless: the
+ledger holds less than the new level assumes. Lowering it is not symmetric, because the ledger has
+already taken the ground the new level owns — the Messages API series now holds 29 points
+established at depth 3, including `stop_reason` semantics, block types and statelessness, which is
+depth 2's own material and is therefore marked covered and forbidden.
+
+Issue 3 of `cf63b087` is the test. It will either go sideways, which is what the prompt tells it
+to do when a level runs out of ground, or come out thin. This is the mirror of **F4**: there a
+level ran out of ground by exhausting it upward, here by having it taken from below.
+
 ## Deferred by design
 
 Not backlog in the sense of work waiting to start. Listed so that "not built" is never mistaken
