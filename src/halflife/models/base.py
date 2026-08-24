@@ -11,8 +11,51 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import DateTime, String, TypeDecorator
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+class UtcDateTime(TypeDecorator):
+    """A datetime column that always hands back an aware UTC value.
+
+    SQLite has no timezone-aware type. `UtcDateTime` is honoured on
+    Postgres and silently inert here, so every value written by `utcnow()` came
+    back naive and every caller had to remember it meant UTC. Nobody remembers:
+    a harness converted due times to local and was a day out, and the
+    daily-use gate under-counted for as long as it was measured, because
+    grouping naive values by `.date()` groups them by UTC day. Issue #4.
+
+    Fixing this at the serialisation boundary would have fixed the one surface
+    that was noticed. Fixing it here fixes every read — the CLI, the MCP tools,
+    the gate script and anything written later — because there is no route from
+    the database that does not pass through it.
+
+    It also removes a step-3 landmine rather than deferring it. On Postgres these
+    columns start returning aware values on their own, and any comparison
+    against a naive datetime raises `TypeError`. After this, SQLite and Postgres
+    behave the same and that migration changes nothing.
+
+    A naive value on the way *in* is assumed to be UTC rather than rejected.
+    Everything in this codebase writes `utcnow()`, which is aware; the tolerance
+    is for fixtures and for rows written before this existed.
+    """
+
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value: datetime | None, dialect) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
+    def process_result_value(self, value: datetime | None, dialect) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
 
 
 def utcnow() -> datetime:
@@ -29,10 +72,10 @@ class Base(DeclarativeBase):
 
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, nullable=False
+        UtcDateTime, default=utcnow, nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
+        UtcDateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
 
 

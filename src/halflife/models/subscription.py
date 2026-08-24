@@ -6,6 +6,7 @@ from sqlalchemy import CheckConstraint, DateTime, Enum, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from halflife.models.base import (
+    UtcDateTime,
     MAX_DEPTH,
     MIN_DEPTH,
     Base,
@@ -61,10 +62,10 @@ class Subscription(Base, TenantMixin, TimestampMixin):
     )
 
     next_due_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, index=True, nullable=False
+        UtcDateTime, default=utcnow, index=True, nullable=False
     )
     last_delivered_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        UtcDateTime, nullable=True
     )
 
     series: Mapped["Series"] = relationship(  # noqa: F821

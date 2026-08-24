@@ -21,6 +21,7 @@ Run it with ``halflife-mcp`` (stdio transport).
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from typing import Any
 
 from mcp.server.mcpserver import MCPServer
@@ -62,8 +63,21 @@ server = MCPServer(
 )
 
 
+def _encode(value: Any) -> str:
+    """Datetimes leave as ISO-8601 with an offset, everything else as str.
+
+    `str(datetime)` uses a space separator, which no JSON consumer parses
+    without being told to. `isoformat` gives a harness something it can hand
+    to its own date library — and the offset is there because the column type
+    guarantees an aware value. Issue #4.
+    """
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value)
+
+
 def _ok(payload: Any) -> str:
-    return json.dumps(payload, indent=2, default=str)
+    return json.dumps(payload, indent=2, default=_encode)
 
 
 @server.tool()

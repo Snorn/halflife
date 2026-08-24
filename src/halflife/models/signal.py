@@ -28,6 +28,7 @@ from sqlalchemy import JSON, DateTime, Enum, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from halflife.models.base import (
+    UtcDateTime,
     Base,
     Confidence,
     ContextCategory,
@@ -54,7 +55,7 @@ class Signal(Base, TenantMixin, TimestampMixin):
 
     # When the interaction happened, as reported by the agent — distinct from
     # created_at, which is when this row was written.
-    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(UtcDateTime, nullable=False)
 
     # A digest. Never the value it came from.
     session_id: Mapped[str] = mapped_column(String(64), nullable=False)

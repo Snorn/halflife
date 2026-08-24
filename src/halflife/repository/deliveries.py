@@ -196,11 +196,10 @@ def usage_days(
     zone = tz or datetime.now().astimezone().tzinfo
 
     def local_dates(values) -> frozenset[date]:
-        return frozenset(
-            v.replace(tzinfo=timezone.utc).astimezone(zone).date()
-            for v in values
-            if v is not None
-        )
+        # Values arrive aware: UtcDateTime guarantees it. This used to attach
+        # UTC itself, which was correct and is now a lie about where the
+        # guarantee lives.
+        return frozenset(v.astimezone(zone).date() for v in values if v is not None)
 
     rows = list(
         session.scalars(select(Delivery).where(Delivery.tenant_id == tenant_id)).all()

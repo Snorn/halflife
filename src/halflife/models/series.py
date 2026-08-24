@@ -21,6 +21,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from halflife.models.base import (
+    UtcDateTime,
     Base,
     CoverageKind,
     TenantMixin,
@@ -88,7 +89,7 @@ class CoveragePoint(Base, TenantMixin, TimestampMixin):
     # Set when this row has been folded into a summary. Excluded from the
     # prompt from then on, but never removed.
     compacted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        UtcDateTime, nullable=True
     )
 
     series: Mapped["Series"] = relationship(back_populates="coverage")

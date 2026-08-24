@@ -6,6 +6,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, Unique
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from halflife.models.base import (
+    UtcDateTime,
     Base,
     Feedback,
     GenerationSource,
@@ -76,8 +77,8 @@ class Delivery(Base, TenantMixin, TimestampMixin):
     # for one CLI command: it recorded reads nobody had, when a harness fetched
     # the text into a channel the reader could not see, and missed reads that
     # happened, when the text reached them by any other route. Issue #6.
-    fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    fetched_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
     feedback: Mapped[Feedback | None] = mapped_column(
         Enum(Feedback, native_enum=False, length=16, values_callable=lambda e: [m.value for m in e]),
         nullable=True,
