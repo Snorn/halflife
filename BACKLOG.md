@@ -217,10 +217,19 @@ Skill graph, dashboards, connectors, decay detection proper, auto-pause of maint
 subscriptions on `applied` signals. `CLAUDE.md` forbids scaffolding, stubbing or adding config
 for any of these, including as a placeholder.
 
-Since 2026-08-21 the design doc also carries a platform architecture — Rutherfords, with HalfLife
-and Geiger as heads on a shared rubric engine, plus an LLM gateway, Redis and async workers, and a
-hosted remote MCP server. Same rule: recorded, not started. The forbidden list is not extended by
-it, because everything new in it is further away than the things already on the list.
+Since 2026-08-21 the design doc also carries a platform architecture — Rutherfords, with an LLM
+gateway, Redis and async workers, and a hosted remote MCP server. Same rule: recorded, not
+started. The forbidden list is not extended by it, because everything new in it is further away
+than the things already on the list.
+
+**Geiger is the exception, as of 2026-08-24.** It was in this list as a second head on a shared
+rubric engine, which put it behind the engine and therefore behind step 4. It is now recorded as
+a sensor feeding HalfLife: it measures, emits signals, and a wrong answer suggests a
+subscription. As a sensor it needs the signal table, the depth rubric and a way to write items —
+no control plane, no engine extraction, no server. That makes it reachable well before step 4 and
+makes it the strongest available answer to **F1** and **F2**, because an assessment failure is a
+measurement rather than self-report. Still nothing scheduled and nothing scaffolded; what changed
+is that it is no longer waiting on something unbuilt.
 
 ### D3 — the platform doc's two reopened decisions
 

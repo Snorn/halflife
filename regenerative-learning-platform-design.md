@@ -30,13 +30,15 @@ is one product. Nothing in it is built, and nothing in it changes the build orde
 [CLAUDE.md](CLAUDE.md) — see "What this changed, and what it did not" at the end of the section.*
 
 Rutherfords is the lab; the products are its instruments. **HalfLife** delivers regenerative
-micro-learning where you work. **Geiger** detects skill decay through lightweight assessment. Both
-are heads on a shared **rubric engine**.
+micro-learning where you work. **Geiger** detects skill decay through lightweight assessment.
 
-Geiger is new here and has no code, no schema and no design beyond the paragraph above. It is
-recorded because it changes what the core has to be — a core serving one head is just that head's
-internals, and the engine/head split below only earns its complexity if there is genuinely a
-second consumer.
+The original sketch had both as heads on a shared **rubric engine** — parallel products, coupled
+by a core. That is superseded: they are a **pipeline**. Geiger measures and emits signals;
+HalfLife consumes them and treats. See "Geiger is the sensor, HalfLife is the treatment" below,
+which is the settled position and changes where Geiger sits in the build order.
+
+Geiger still has no code and no schema. What it now has is an output contract — the signal — and
+that contract already exists in HalfLife.
 
 ### Design principles
 
@@ -175,6 +177,52 @@ FUT["Coming: voice · AR glasses ·<br/>continuous compliance"]
 PRODUCTS -.-> FUT
 ```
 
+### Geiger is the sensor, HalfLife is the treatment
+
+Settled 2026-08-24. Geiger's output is a **signal**, and HalfLife is its consumer: a
+self-assessment answered wrongly produces a suggested subscription. The two instruments are a
+pipeline rather than two heads on a core, and the coupling between them is the signal schema that
+already exists.
+
+Three things follow, and the first is the reason to prefer this reading.
+
+**It supplies the independent evidence nothing else can.** `depth_rubric.py` records that every
+reader rating so far is *non-independent*: the rater curated the rubric through six versions, so
+a run of "just right" cannot validate it. That note names two things that would be independent —
+ambient signals, and other readers. An assessment failure is better than either, because it is
+neither self-report nor opinion but a measurement against a known answer. It also sidesteps the
+selection bias in **F2**: a reader can decline to log a session that went badly, and cannot
+decline to have got a question wrong. This is the strongest available answer to **F1**, and it
+arrives from the instrument that was supposed to be second in line.
+
+**An item carries a depth, so a failure names a level as well as a subject.** Geiger items are
+written against the same depth rubric, so failing one at depth 3 is not a topic hint — it is a
+complete subscription spec, `topic, depth, minutes, cadence`, with the depth measured rather than
+guessed. The calibrated asset does double duty, and the suggestion stops being "you might like to
+read about this".
+
+**`signal_type` needs an eighth verb, not a reused one.** `struggled` is the near miss: struggling
+in conversation and failing a probe with a known correct answer are different observations, and
+collapsing them discards the one that carries a measurement. Whatever it is called, it is the
+only verb in the vocabulary whose truth does not depend on an agent's judgement of a
+conversation.
+
+One constraint has to be designed for rather than discovered. CLAUDE.md forbids a per-signal read
+path, and a suggestion derived from a stored wrong answer is exactly that. The distinction that
+keeps the rule intact is the one extraction already uses: **the recommendation comes from the
+assessment just completed, in front of the reader — the signal is written for the record, not
+read back to produce the advice.** Built that way the boundary holds. Built the obvious way it
+becomes the per-signal read path this design forbids, arriving justified by the most sympathetic
+case, which is how that path always arrives.
+
+**Where this puts Geiger in the order.** As a sensor it needs no control plane, no engine
+extraction and no server — a signal table, the depth rubric and a way to write items, all of
+which exist or are one module away. That makes it reachable well before step 4, and the smallest
+honest test of the whole idea is generating items from a series' existing coverage ledger: those
+are claims a reader was told, at a known depth, on a known date, which is a position no standalone
+assessment tool is in. Nothing is scheduled and nothing is scaffolded; what has changed is that
+Geiger is no longer waiting on the engine/head split.
+
 ### What this changed, and what it did not
 
 Consistent with what is already built or already written down: the thick local agent, content-free
@@ -183,7 +231,9 @@ a deferred v2 surface, and topics normalised centrally rather than shipped to th
 RLS is a refinement of the tenancy rule rather than a change to it.
 
 New, and unbuilt: Geiger, the engine/head split, the LLM gateway, Redis and async workers, the
-hosted remote MCP server, and the domain-rubric plug-in point.
+hosted remote MCP server, and the domain-rubric plug-in point. Geiger's *relationship* to HalfLife
+was revised on 2026-08-24 — see the section above — which moves it earlier without moving anything
+else.
 
 **Three things contradict what is currently written, and are open decisions rather than settled
 ones.** They are listed here rather than merged, because each changes work already planned.

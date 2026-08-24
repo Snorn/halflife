@@ -277,7 +277,8 @@ plain 12-factor containers on a provider-agnostic host, decided 2026-08-21.
 
 **HalfLife is one instrument of a platform that does not exist yet.** The
 [design doc](regenerative-learning-platform-design.md) describes Rutherfords — HalfLife for
-delivery, Geiger for assessment, both heads on a shared rubric engine. None of it is built, Geiger
+delivery, Geiger for assessment — a pipeline, where Geiger measures and HalfLife treats what it
+finds. None of it is built, Geiger
 has no code at all, and the document is there to record intent rather than to describe this
 repository. Read it for the "why"; read [CLAUDE.md](CLAUDE.md) for what actually holds.
 

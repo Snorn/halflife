@@ -4,10 +4,15 @@ Professional skill *maintenance* platform. Source of truth for product intent:
 [regenerative-learning-platform-design.md](regenerative-learning-platform-design.md). This file captures the
 constraints that must hold in code; read the design doc for the "why".
 
-HalfLife is one instrument of a platform called **Rutherfords**, alongside **Geiger** (assessment,
-which detects decay rather than treating it). The design doc carries the platform architecture as
-of 2026-08-21. **None of it is built**, and nothing in it may be scaffolded — the do-not-scaffold
-list and the privacy boundary stand exactly as written. What a design doc *can* do is change a
+HalfLife is one instrument of a platform called **Rutherfords**, alongside **Geiger**, which
+detects decay rather than treating it. Settled 2026-08-24: they are a pipeline, not parallel
+heads on a core — Geiger measures and emits signals, HalfLife consumes them and treats. That
+gives assessment an output contract HalfLife already has a schema for, and it is why a failed
+item names a depth as well as a subject.
+
+The design doc carries the platform architecture, as of 2026-08-24. **None of it is built**, and
+nothing in it may be scaffolded — the do-not-scaffold list and the privacy boundary stand exactly
+as written. What a design doc *can* do is change a
 decision, and one of its positions was adopted: no Kubernetes, which step 4 below now reads.
 
 Its "rubrics as data" position was scoped rather than adopted or rejected, also on 2026-08-21:
@@ -97,6 +102,13 @@ is deferred; those two are ruled out, so "we will need it eventually" is not an 
 - **Aggregation rule:** raw signals are write-only inputs. Every human-visible surface is built from
   time-windowed aggregates. Nobody browses individual signals — including org admins. Don't build a
   signal-detail read path "for debugging".
+
+  This is the rule Geiger will press on, so the boundary is stated before it is built. A wrong
+  answer suggesting a subscription is legitimate; *querying the signal table to find wrong answers*
+  is the forbidden read path wearing a helpful face. The recommendation comes from the assessment
+  just completed, in front of the reader — the signal is written for the record, not read back to
+  produce the advice. Same shape as extraction, where the harness classifies what it just saw and
+  only the classification is stored.
 - **The exception is the person the signals are about.** They may read their own, and today that needs
   no feature: the rows are in their own SQLite file and `sqlite3` reads them. Owning your own data is
   not the same as the product offering a way to browse it, and this note exists to keep the two apart
