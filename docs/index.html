@@ -67,8 +67,21 @@
   .lede { font-size: clamp(1.1rem, 2.2vw, 1.3rem); color: var(--ink-soft); }
   .note { font-size: 0.9rem; color: var(--ink-faint); }
 
+  /* org masthead — one line above the hero, deliberately quiet. The page is
+     about HalfLife; Rutherfords is the name over the door, not the subject. */
+  .masthead {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    /* padding-top only: .wrap owns the 24px gutter and a shorthand here would
+       reset it, putting the wordmark flush against the viewport edge. */
+    padding-top: 26px; margin: 0;
+    font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em;
+  }
+  .masthead .org { color: var(--ink); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+  .masthead .sep { color: var(--line); }
+  .masthead .of { color: var(--ink-faint); }
+
   /* hero */
-  header { padding: 88px 0 64px; }
+  header { padding: 46px 0 64px; }
   header h1 span { color: var(--accent); }
   .curve { margin: 44px 0 8px; width: 100%; height: auto; display: block; }
   .curve-key {
@@ -150,6 +163,12 @@
 </style>
 </head>
 <body>
+
+<p class="masthead wrap">
+  <span class="org">Rutherfords</span>
+  <span class="sep">/</span>
+  <span class="of">HalfLife &middot; <a href="#instruments">Geiger</a></span>
+</p>
 
 <header class="wrap">
   <p class="eyebrow">Professional skill maintenance</p>
@@ -356,6 +375,50 @@
   </p>
 </section>
 
+<section class="wrap" id="instruments">
+  <p class="eyebrow">Rutherfords</p>
+  <h2>Two instruments. One detects decay, the other treats it</h2>
+  <p class="lede">
+    Rutherfords is the organisation. HalfLife is the instrument you are reading about, and it has
+    a sibling — but they are not two products beside each other. They are a pipeline, and only one
+    end of it exists.
+  </p>
+  <div class="grid">
+    <div class="card">
+      <h3>HalfLife &mdash; maintenance</h3>
+      <p>
+        Keeps a skill you already have from fading. Short depth-controlled reads on a schedule,
+        each one forbidden from re-explaining what the last one covered. This is the built one:
+        everything else on this page describes it.
+      </p>
+    </div>
+    <div class="card">
+      <h3>Geiger &mdash; assessment</h3>
+      <p>
+        Detects decay rather than treating it. You answer questions about something you already
+        learned; getting one wrong is a measurement, and it names both the subject and the level
+        at which you lost it. That becomes a suggested HalfLife subscription.
+      </p>
+    </div>
+  </div>
+  <p style="margin-top:28px">
+    The reason for two names rather than one feature is what a wrong answer is worth. Everything
+    HalfLife knows about how you are doing today, you told it — you rate an issue too basic or too
+    advanced, or you ask it to log what you worked on. Self-report has a floor it cannot get under:
+    you can decline to log the session that went badly, and you cannot decline to have got a
+    question wrong. Geiger exists to produce the one signal HalfLife cannot ask you for.
+  </p>
+  <p class="caveat" style="margin-top:24px">
+    <strong>Geiger is not built.</strong> There is no code, no schedule and no date &mdash; it is a
+    decision on the record, and the honest reason it is named here at all is that the decision
+    changes what HalfLife is for. The first piece of it that could be tested has been:
+    <a href="https://github.com/Snorn/halflife/blob/main/evals/geiger_probe.py">an experiment</a>
+    that turns a series' own coverage ledger into questions. It found that the questions were too
+    easy to answer without knowing the subject &mdash; the right option gives itself away by how
+    it is written &mdash; which is a real obstacle and is written up rather than filed away.
+  </p>
+</section>
+
 <section class="wrap">
   <p class="eyebrow">Status</p>
   <h2>Early, and specific about it</h2>
@@ -379,7 +442,8 @@
         count over a time window, no control plane, no dashboard — so everything the design
         says about org admins and aggregation describes what must hold when there is one, not what
         holds today. No server, no accounts, no multi-user, no deployment story. Single machine,
-        single reader, SQLite.</li>
+        single reader, SQLite. <a href="#instruments">Geiger</a> is not built either: one
+        experiment, no code that ships.</li>
   </ul>
   <p style="margin-top:24px">
     Useful today if you want a daily read on something you are keeping alive. Not yet a product.
@@ -392,7 +456,7 @@
 
 <footer class="wrap">
   <p>
-    HalfLife — Apache&#8209;2.0. Built in the open at
+    HalfLife — a Rutherfords instrument. Apache&#8209;2.0, built in the open at
     <a href="https://github.com/Snorn/halflife">github.com/Snorn/halflife</a>.
   </p>
 </footer>
