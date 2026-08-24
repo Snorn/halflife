@@ -37,8 +37,10 @@ Step 2 was brought forward, ahead of the "usable daily for a week first" gate, b
 deployment environment turned out to forbid API spend without procurement. In-harness generation
 is not a workaround for that: it removes the carve-out below by which generation used the API
 while extraction used the harness's model, so the "thick agent uses the harness's own model" rule
-now holds for both. The cost is real and is recorded in the README — no unattended delivery, and
-no pinned model, therefore no comparable quality measurement on the harness path.
+now holds for both. The cost is real and is recorded in the README — no pinned model, therefore no
+comparable quality measurement on the harness path. Unattended delivery stopped being on that
+list on 2026-08-24: scheduled harness sessions run the loop via the `halflife-deliver` skill,
+with the boundaries (no extraction, no reading, no unattended migration) in the skill itself.
 
 **Two generation backends, one set of prompts.** `engine.build_brief` / `engine.record_issue` are
 the seam. The API path (`generate_next`) stays for evals and prompt tuning, where a pinned model

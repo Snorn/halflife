@@ -56,7 +56,13 @@ def main() -> int:
     print(f"  longest run         {_run(any_use):>2}")
     print(f"  written             {len(usage.written):>2}")
     print(f"  fetched             {len(usage.fetched):>2}")
-    print(f"  rated               {len(usage.rated):>2}")
+    # With scheduled delivery on, written-days mean the product ran rather than
+    # the maintainer built, so rated days are the line that answers the gate's
+    # actual question — see the note under G1 in BACKLOG.md.
+    print(
+        f"  rated               {len(usage.rated):>2}"
+        f"   {', '.join(str(d) for d in sorted(usage.rated))}"
+    )
 
     read_only = usage.read_only
     print(

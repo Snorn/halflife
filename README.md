@@ -151,11 +151,36 @@ Nothing here spends anything with Anthropic: the model is the one your harness a
 `halflife init` is the only step that has to come from the CLI, because it runs schema migrations
 — which is not something a model-invoked tool should be able to do.
 
-**What that costs you.** Nothing generates unless a session is open — there is no unattended
-delivery. And the model is whatever your harness runs, so quality is neither pinned nor comparable
-between installs. Every delivery records a `source` of `api` or `harness`, and `model_id` is left
+**What that costs you.** The model is whatever your harness runs, so quality is neither pinned
+nor comparable between installs. (Generation does still need a session — but a scheduled one
+counts, so "unattended" is solved and "pinned" is not. See Scheduled delivery.) Every delivery records a `source` of `api` or `harness`, and `model_id` is left
 null rather than guessed when the harness does not report one, so the distinction survives into
 any later analysis.
+
+## Scheduled delivery
+
+Issues can be waiting in your inbox each morning without an API key and without opening a
+session yourself: schedule a session in your harness that runs the delivery loop.
+
+The loop is packaged as a skill, [`halflife-deliver`](.claude/skills/halflife-deliver/SKILL.md),
+so a scheduled session has one instruction to follow rather than a prompt somebody has to keep
+correct. In Claude Code, create a scheduled task in this project with a prompt like:
+
+> Use the `halflife-deliver` skill to write every due HalfLife issue. If nothing is due, end
+> quietly.
+
+Daily at a fixed time is the natural cadence, and the slot holds: `advance_schedule` anchors the
+next due time to the previous one rather than to the moment of writing, precisely so a fixed-time
+scheduler does not creep past its own slot and skip days.
+
+Three boundaries are built into the skill rather than left to good intentions. A scheduled
+session never runs extraction, because extraction runs only when the reader asks and a schedule
+is not the reader asking. It never reads or rates, so issues land in the inbox untouched and the
+rating stays yours. And it never migrates the database — a stale schema stops the run with the
+message, because unattended migration is how a backup discipline dies.
+
+The cost is a short session against your existing plan each day, most of them ending at "nothing
+due". What this path still cannot give you is a pinned model — see Appendix A.
 
 ## Managing subscriptions from the CLI
 
@@ -296,11 +321,15 @@ Issues and pull requests welcome. Two things to know:
 # Appendix A: generating via the API
 
 The harness path above is the default. HalfLife can also generate issues itself by calling the
-Anthropic API directly, which buys two things the harness path cannot give you:
+Anthropic API directly, which buys one thing the harness path cannot give you:
 
-- **Unattended delivery.** `run-due` generates on a schedule with nobody present.
 - **A pinned model and effort**, which is the only way output is comparable across deliveries —
   and therefore the only path on which the evals mean anything.
+
+Unattended delivery used to be the second thing on this list. It is not any more — a scheduled
+harness session delivers with nobody present on your existing plan, no key required. See
+**Scheduled delivery** above. `run-due` remains the unattended path for people who want the
+pinned model as well.
 
 This is how the prompts are tuned. It requires an API key with credit; an API key is separate
 from a Claude.ai subscription, which does **not** include API access.

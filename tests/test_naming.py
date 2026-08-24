@@ -30,6 +30,7 @@ DOCS = [
     "README.md",
     "CLAUDE.md",
     "BACKLOG.md",
+    ".claude/skills/halflife-deliver/SKILL.md",
     "NOTICE",
     "docs/index.html",
     "evals/README.md",
@@ -43,6 +44,9 @@ DOCS = [
 # last four of these earned their place by producing a false positive on the
 # first run against the real documents.
 _STRIP = [
+    # YAML frontmatter is machine configuration: a skill's `name:` is an
+    # identifier the harness requires literal, the same way an HTML tag is.
+    re.compile(r"\A---\n.*?\n---\n", re.S),
     re.compile(r"<script\b.*?</script>", re.S | re.I),
     re.compile(r"<style\b.*?</style>", re.S | re.I),
     re.compile(r"<pre\b.*?</pre>", re.S | re.I),

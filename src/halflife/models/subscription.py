@@ -82,11 +82,21 @@ class Subscription(Base, TenantMixin, TimestampMixin):
     def advance_schedule(self, now: datetime) -> None:
         """Move the subscription to its next slot.
 
-        Anchored to *now* rather than to the previous due time so that a machine
-        that was off for three days does not immediately fire three issues.
+        Anchored to the *previous due time* while the subscription is on
+        schedule, so the slot stays put. `now + interval` looked equivalent and
+        was not: a scheduled session runs at a fixed time and writes a few
+        minutes after it starts, so each write pushed the next due time a few
+        minutes past the next day's run — which then found nothing due, and
+        delivery skipped every other day. Cadence creep, caused by the
+        scheduler that exists to keep the cadence.
+
+        A lapsed subscription still re-anchors to now: a machine that was off
+        for three days does not fire three issues, and the slot it re-anchors
+        to is when delivery actually resumed.
         """
         self.last_delivered_at = now
-        self.next_due_at = now + self.interval
+        anchored = self.next_due_at + self.interval
+        self.next_due_at = anchored if anchored > now else now + self.interval
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
         return (

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from halflife.generation import engine
 from halflife.generation.prompts.depth_rubric import DEPTH_RUBRIC_VERSION
 from halflife.generation.prompts.microlearning import GENERATION_PROMPT_VERSION
@@ -125,8 +127,10 @@ def test_generating_advances_the_schedule(session):
     engine.generate_next(session=session, subscription=sub, client=client)
 
     assert sub.last_delivered_at is not None
-    assert sub.next_due_at > before
-    assert (sub.next_due_at - sub.last_delivered_at).days == 1
+    # Anchored to the previous slot, not to the write time — the difference is
+    # the minutes a scheduled run takes, and those minutes were the creep that
+    # made a fixed-time scheduler skip every other day.
+    assert sub.next_due_at == before + timedelta(days=1)
 
 
 def test_generation_works_without_a_plan(session):

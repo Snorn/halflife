@@ -87,7 +87,7 @@ def test_lookup_by_prefix(session):
     assert subscription_repo.get_by_prefix(session, "zzzzzzzz") is None
 
 
-def test_advance_schedule_anchors_to_now_not_to_the_missed_slot(session):
+def test_advance_schedule_anchors_to_now_when_the_slot_lapsed(session):
     """A machine that was off for three days should not fire three issues."""
     sub = _subscribe(session, "x, 3, 5, 1d")
     sub.next_due_at = utcnow() - timedelta(days=3)
@@ -98,6 +98,37 @@ def test_advance_schedule_anchors_to_now_not_to_the_missed_slot(session):
 
     assert sub.next_due_at == now + timedelta(days=1)
     assert subscription_repo.list_due(session) == []
+
+
+def test_advance_schedule_keeps_the_slot_when_on_schedule(session):
+    """The cadence-creep case scheduled delivery exposed.
+
+    A fixed-time daily task writes a few minutes after the due time. Anchoring
+    to `now` pushed the next slot past the next day's run, which then found
+    nothing due — so delivery skipped every other day, forever, caused by the
+    scheduler that exists to keep the cadence.
+    """
+    sub = _subscribe(session, "x, 3, 5, 1d")
+    slot = utcnow() - timedelta(minutes=5)
+    sub.next_due_at = slot
+    session.flush()
+
+    sub.advance_schedule(utcnow())  # written five minutes late, as a real run is
+
+    assert sub.next_due_at == slot + timedelta(days=1), "the slot must not drift"
+
+
+def test_advance_schedule_never_yields_a_slot_already_due(session):
+    """The boundary between the two rules: a slot exactly one interval stale
+    re-anchors, because keeping it would make the subscription due immediately."""
+    sub = _subscribe(session, "x, 3, 5, 1d")
+    sub.next_due_at = utcnow() - timedelta(days=1)
+    session.flush()
+
+    now = utcnow()
+    sub.advance_schedule(now)
+
+    assert sub.next_due_at > now
 
 
 # ------------------------------------------------------------------ tenancy

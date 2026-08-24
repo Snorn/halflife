@@ -41,6 +41,15 @@ asks whether it is opened on a day when **nothing is being built for it** — so
 is `read but not built`, which stands at **1** (23 August). Every other day of use was also a day
 something was generated, which is the case the gate exists to exclude.
 
+**Scheduled delivery (2026-08-24) changes what `written` means.** A daily scheduled session
+now writes issues with nobody present, so a written-day no longer implies the maintainer was
+building — it implies the product was working. Once the schedule has fired, `read but not built`
+under-reports by construction, and the line that answers the gate's question becomes **days with
+a rating**, which only a person can produce. The pass condition has not been redefined —
+rewriting one's own gate the day it becomes inconvenient is how gates die — but any citation of
+the old line after this date has to carry this note, and the decision of which line the gate
+reads is the maintainer's to take, on the record.
+
 Step 2 was already brought forward past this gate once, for a stated reason recorded in
 `CLAUDE.md` — the deployment environment forbids API spend without procurement, so the harness
 path could not wait. No equivalent reason applies to step 3.

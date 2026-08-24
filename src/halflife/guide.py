@@ -22,7 +22,9 @@ Your harness writes the issues using its own model. No API key is needed.
 1. **Subscribe** to a topic, choosing a depth (1-5), a length in minutes, and a cadence.
 2. **Plan** the series once — an advisory arc, so it does not wander around the topic.
 3. **Write** whatever is due. The tool hands over the prompt, the depth rubric, and everything
-   already covered; your harness writes the issue and hands it back.
+   already covered; your harness writes the issue and hands it back. A scheduled session can do
+   this step for you — ask your harness to run the `halflife-deliver` skill daily, and issues
+   wait in your inbox with no API key involved.
 4. **Read** it.
 5. **Give feedback** — on either of two axes. `too_basic` and `too_advanced` are about the
    *level*, and move the subscription's depth. `already_knew` and `wrong_subject` are about the
@@ -131,10 +133,10 @@ reversible, and nothing needs a model able to delete your reading history.
 
 ## If you have an Anthropic API key
 
-Optional, and only worth it for two things: `halflife run-due` generates unattended, without a
-session open; and generation runs on a pinned model, which is what makes output comparable
-between issues and is required for the evals in `evals/`. Without a key, everything above still
-works — your harness does the generating.
+Optional, and only worth it for one thing: generation on a pinned model, which is what makes
+output comparable between issues and is required for the evals in `evals/`. (`halflife run-due`
+also generates unattended, but a scheduled harness session does that too, without a key.) Without
+a key, everything above still works — your harness does the generating.
 """
 
 
