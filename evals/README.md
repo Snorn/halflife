@@ -94,6 +94,34 @@ difference of a few tenths between runs is noise.
 Runs record a `run.json` naming the prompt and rubric versions that produced them. Directories
 predating that say so rather than guessing.
 
+## geiger-probe
+
+Not a suite — a one-off experiment, run separately, against the live ledger rather than
+`cases.yaml`.
+
+```bash
+python evals/geiger_probe.py --list
+python evals/geiger_probe.py 9917e7f5 --items 10 --dry-run
+python evals/geiger_probe.py 9917e7f5 --items 10
+```
+
+It tests the two claims the [Geiger decision](../regenerative-learning-platform-design.md) rests
+on: that a coverage point is enough to write a discriminating assessment item from, and that
+failing one names a subscription you would actually want. Ten items sampled evenly across the
+ledger, each written at the depth its point was covered at, each then attempted cold by a second
+call as a control. `--dry-run` screens item quality without asking you to sit the test; run it
+first, because a score measured on bad items means nothing.
+
+It writes no signals, creates no subscriptions and adds no tables. **Geiger is not built and this
+is not the start of building it** — if the result is good the next artefact is a decision record,
+not more of this script.
+
+First result, 2026-08-24: position bias was real and is fixed by assigning the answer slot; the
+blind control then flagged a tell in nine items out of nine, surviving two prompt revisions by
+changing form rather than going away. The reading is that one-shot item generation from a ledger
+point does not yet produce an instrument that measures decay. The file's docstring carries the
+detail and the caveat about trusting a same-model detector.
+
 ## What is deliberately not measured
 
 Whether the content is *correct*. A judge model is not a subject-matter expert on SAP Web

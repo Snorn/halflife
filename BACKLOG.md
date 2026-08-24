@@ -231,6 +231,17 @@ makes it the strongest available answer to **F1** and **F2**, because an assessm
 measurement rather than self-report. Still nothing scheduled and nothing scaffolded; what changed
 is that it is no longer waiting on something unbuilt.
 
+The cheapest of its assumptions has since been tested. `evals/geiger_probe.py` turns coverage
+points into multiple-choice items and screens them with a blind control. Position bias was real
+and yielded to assigning the answer slot; the tell did not. Across nine items the correct option
+was identifiable from its form alone every time — first by length and hedging, then, once the
+prompt forbade those, by being the only option carrying a reason clause. **A ledger point is
+enough to write an item from; it is not enough to write a fair one.** That does not overturn the
+sensor decision, and it is not a reason to bring Geiger forward again: it says the item pipeline
+needs distractors written by something not trying to be right, or a free-response format with no
+options to leak through. Decide that when building it. The detector is the same model and is
+uncalibrated, so treat nine-for-nine as evidence rather than a rate.
+
 ### D3 — the platform doc's two reopened decisions
 
 Both settled on 2026-08-21 and moved to Closed. The entry stays so the identifier keeps
