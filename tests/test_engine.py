@@ -182,13 +182,17 @@ def test_a_complete_series_refuses_to_brief(session):
     from halflife.models.base import issue_cap
 
     sub = _subscribe(session, "x, 1, 5, 1d")
+    last = None
     for n in range(1, issue_cap(1) + 1):
-        engine.record_issue(session=session, subscription=sub, issue=make_issue(n),
-                            source=GenerationSource.HARNESS)
+        last = engine.record_issue(session=session, subscription=sub, issue=make_issue(n),
+                                   source=GenerationSource.HARNESS)
 
     with pytest.raises(engine.SeriesComplete, match="depth 2"):
         engine.build_brief(session=session, subscription=sub)
 
-    subscription_repo.apply_feedback_to_depth(session, sub, __import__(
-        "halflife.models.base", fromlist=["Feedback"]).Feedback.TOO_BASIC)
+    subscription_repo.apply_feedback_to_depth(
+        session, sub,
+        __import__("halflife.models.base", fromlist=["Feedback"]).Feedback.TOO_BASIC,
+        rated=last,
+    )
     assert engine.build_brief(session=session, subscription=sub).issue_number == issue_cap(1) + 1

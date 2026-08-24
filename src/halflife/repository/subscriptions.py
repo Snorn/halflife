@@ -23,6 +23,7 @@ from halflife.models.base import (
     new_id,
     utcnow,
 )
+from halflife.models.delivery import Delivery
 from halflife.models.subscription import Subscription
 from halflife.repository._prefix import prefix_match
 from halflife.shorthand import ParsedSubscription
@@ -164,12 +165,26 @@ def set_status(
 
 
 def apply_feedback_to_depth(
-    session: Session, subscription: Subscription, feedback: Feedback
+    session: Session, subscription: Subscription, feedback: Feedback, *, rated: Delivery
 ) -> int:
-    """Nudge the subscription's depth in response to reader feedback.
+    """Move the subscription's depth in response to reader feedback.
 
-    One step at a time, clamped. Feedback is the reader saying the *level* was
-    wrong, so it moves depth and nothing else.
+    The rating is a claim about the depth of the issue in front of the reader,
+    not about the subscription's current depth. `too_advanced` on a depth-3
+    issue says *3 was too high*, so the answer is at most 2 — whether the
+    subscription is still at 3 or has already moved.
+
+    That makes it a clamp rather than a step, and the difference matters as
+    soon as there is a backlog. Stepping meant rating several unread issues
+    that were all written at one depth moved the depth once per rating: the
+    reader answers a single question and the system counts each answer as a
+    fresh instruction. Two issues written at depth 3 and rated honestly reached
+    depth 1. Clamping is idempotent for same-depth issues and still progresses
+    for successively deeper ones. Issue #9.
+
+    `rated` is keyword-only and is the delivery, not a number, because the
+    number this wants is `rated.depth` and the number that caused the bug is
+    `subscription.depth`.
     """
     before = subscription.depth
     if not feedback.is_about_depth:
@@ -178,9 +193,9 @@ def apply_feedback_to_depth(
         # ask; the generator is told about these instead.
         return before
     if feedback is Feedback.TOO_BASIC:
-        subscription.depth = min(MAX_DEPTH, before + 1)
+        subscription.depth = max(before, min(MAX_DEPTH, rated.depth + 1))
     elif feedback is Feedback.TOO_ADVANCED:
-        subscription.depth = max(MIN_DEPTH, before - 1)
+        subscription.depth = min(before, max(MIN_DEPTH, rated.depth - 1))
     session.flush()
     return subscription.depth
 

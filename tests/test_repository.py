@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from types import SimpleNamespace
+
 import pytest
 
 from halflife import LOCAL_TENANT_ID
@@ -12,6 +14,11 @@ from halflife.shorthand import parse_shorthand
 
 def _subscribe(session, spec="x, 3, 5, 1d"):
     return subscription_repo.create(session, parse_shorthand(spec))
+
+
+def _rated(depth: int):
+    """Stand-in for the delivery a rating is about; only its depth is read."""
+    return SimpleNamespace(depth=depth)
 
 
 def test_tenant_id_is_set_on_every_row(session):
@@ -49,9 +56,15 @@ def test_not_yet_due_is_excluded(session):
         (1, Feedback.TOO_ADVANCED, 1),  # clamped at the bottom
     ],
 )
-def test_feedback_nudges_depth_one_step_and_clamps(session, start, verdict, expected):
+def test_feedback_moves_depth_and_clamps(session, start, verdict, expected):
+    """Rating an issue written at the subscription's own depth, the common case."""
     sub = _subscribe(session, f"x, {start}, 5, 1d")
-    assert subscription_repo.apply_feedback_to_depth(session, sub, verdict) == expected
+    assert (
+        subscription_repo.apply_feedback_to_depth(
+            session, sub, verdict, rated=_rated(start)
+        )
+        == expected
+    )
 
 
 @pytest.mark.parametrize(
@@ -61,7 +74,10 @@ def test_subject_feedback_leaves_depth_alone(session, verdict):
     """These say the level was right and the ground was wrong. Moving depth
     would answer a question the reader did not ask."""
     sub = _subscribe(session, "x, 3, 5, 1d")
-    assert subscription_repo.apply_feedback_to_depth(session, sub, verdict) == 3
+    assert (
+        subscription_repo.apply_feedback_to_depth(session, sub, verdict, rated=_rated(3))
+        == 3
+    )
     assert sub.depth == 3
 
 
@@ -205,11 +221,79 @@ def test_raising_the_depth_lets_a_complete_series_continue(session):
     from halflife.models.base import issue_cap
 
     sub = _subscribe(session, "x, 1, 5, 1d")
+    last = None
     for n in range(1, issue_cap(1) + 1):
-        _deliver(session, sub, n)
+        last = _deliver(session, sub, n)
     assert subscription_repo.is_complete(sub) is True
 
-    subscription_repo.apply_feedback_to_depth(session, sub, Feedback.TOO_BASIC)
+    subscription_repo.apply_feedback_to_depth(
+        session, sub, Feedback.TOO_BASIC, rated=last
+    )
 
     assert sub.depth == 2
     assert subscription_repo.is_complete(sub) is False
+
+
+# Issue #9: depth moved one step per rating and never read the rated delivery's
+# depth. With a backlog of unread issues all written at one depth, rating them
+# honestly moved the depth once per rating — the reader answers a single
+# question and the system counts each answer as a fresh instruction. Live: two
+# issues written at depth 3 would have reached depth 1.
+
+
+def test_rating_two_issues_of_the_same_depth_moves_the_depth_once(session):
+    sub = _subscribe(session, "x, 3, 5, 1d")
+
+    first = subscription_repo.apply_feedback_to_depth(
+        session, sub, Feedback.TOO_ADVANCED, rated=_rated(3)
+    )
+    second = subscription_repo.apply_feedback_to_depth(
+        session, sub, Feedback.TOO_ADVANCED, rated=_rated(3)
+    )
+
+    assert first == 2
+    assert second == 2, "the second rating is about the same depth decision"
+
+
+def test_the_same_holds_when_the_backlog_is_too_basic(session):
+    sub = _subscribe(session, "x, 2, 5, 1d")
+
+    for _ in range(3):
+        depth = subscription_repo.apply_feedback_to_depth(
+            session, sub, Feedback.TOO_BASIC, rated=_rated(2)
+        )
+
+    assert depth == 3
+
+
+def test_successively_deeper_issues_still_progress(session):
+    """Idempotence must not cost the ability to climb a level at a time."""
+    sub = _subscribe(session, "x, 2, 5, 1d")
+
+    subscription_repo.apply_feedback_to_depth(
+        session, sub, Feedback.TOO_BASIC, rated=_rated(2)
+    )
+    assert sub.depth == 3
+
+    # The next issue is written at 3, and is still too basic.
+    subscription_repo.apply_feedback_to_depth(
+        session, sub, Feedback.TOO_BASIC, rated=_rated(3)
+    )
+    assert sub.depth == 4
+
+
+def test_a_rating_on_a_stale_issue_does_not_undo_a_later_correction(session):
+    """Reading the backlog out of order must not walk the depth backwards."""
+    sub = _subscribe(session, "x, 4, 5, 1d")
+
+    subscription_repo.apply_feedback_to_depth(
+        session, sub, Feedback.TOO_ADVANCED, rated=_rated(4)
+    )
+    assert sub.depth == 3
+
+    # An older issue, written at 2, rated too_basic. It says "2 was too low",
+    # which 3 already satisfies.
+    subscription_repo.apply_feedback_to_depth(
+        session, sub, Feedback.TOO_BASIC, rated=_rated(2)
+    )
+    assert sub.depth == 3

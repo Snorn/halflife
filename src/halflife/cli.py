@@ -371,7 +371,9 @@ def feedback(
         delivery_repo.set_feedback(session, target, parsed)
         subscription = target.subscription
         before = subscription.depth
-        after = subscription_repo.apply_feedback_to_depth(session, subscription, parsed)
+        after = subscription_repo.apply_feedback_to_depth(
+            session, subscription, parsed, rated=target
+        )
         if not parsed.is_about_depth:
             console.print(
                 f"[green]Noted.[/green] Depth stays at {after}; the next issues will "

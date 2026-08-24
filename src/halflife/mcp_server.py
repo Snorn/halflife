@@ -438,7 +438,9 @@ def halflife_feedback(delivery_id: str, verdict: str) -> str:
         delivery_repo.set_feedback(session, delivery, parsed)
         subscription = delivery.subscription
         before = subscription.depth
-        after = subscription_repo.apply_feedback_to_depth(session, subscription, parsed)
+        after = subscription_repo.apply_feedback_to_depth(
+            session, subscription, parsed, rated=delivery
+        )
         return _ok(
             {
                 "topic": subscription.topic,
