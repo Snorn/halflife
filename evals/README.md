@@ -133,8 +133,16 @@ where form alone singles an option out, it singles out the right one. The leak i
 detector's own 93% overstates it against the stricter judge's 59%.
 
 The direction is what matters for reading a score: a tell points *at* the answer, so it inflates.
-A low score on leaky items is a floor on decay, not an artefact. The file's docstring carries the
-numbers and the reason the planned calibration against real exam items was dropped.
+A low score on leaky items is a floor on decay, not an artefact.
+
+Item prompt **v2** then fixed the length half of it, by changing how options are built rather than
+asking a third time for parity: each distractor is the keyed sentence with one load-bearing part
+changed, inside a hard 18-26 word band. Measured on the same ledger points, the key goes from
+longest in 78% of items to 30% (chance 25%), the length ratio from 1.15 to 1.03, and the form
+judge from finding the key in 59% to 20% — while saying nothing stands out in 70%. The tell
+detector still reports 10 of 10, which is the plainest sign yet that its rate is not worth
+reading. The file's docstring carries the full table, the caveats on n=10, and the reason the
+planned calibration against real exam items was dropped.
 
 ## What is deliberately not measured
 

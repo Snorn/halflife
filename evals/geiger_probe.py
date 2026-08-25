@@ -145,6 +145,43 @@ The form judge is not truly blind — a strong model cannot unsee which option i
 true, and its agreement is an upper bound. That is why disagreement would have
 been the decisive outcome: the confound can manufacture agreement and cannot
 manufacture chance. Control 1 has no such weakness and points the same way.
+
+## Fixing the length tell — item prompt v2, 2026-08-24
+
+v1 asked twice, in plain words, for options of similar length and hedging, and
+the key still came out longest in 25 items of 32. Asking a third time was not
+going to work, because the instruction was never the problem: the model writes
+the true claim, then writes three lesser ones, and the true one keeps the reason
+clause and the second half of the sentence. Length is a symptom of the order of
+construction.
+
+v2 changes the construction. Distractors are made by taking the keyed sentence
+and changing exactly one load-bearing part — the mechanism, the ordering, the
+precondition, who is responsible — leaving clause structure and level of detail
+alone. A distractor derived from the true sentence inherits its shape. A hard
+18-26 word band backs it up, and both are now measured on every run rather than
+only under ``--calibrate``.
+
+Ten items, same ledger points as the seed-7 paper, so the comparison is like for
+like:
+
+    key is longest        25/32 (78%)  ->   3/10 (30%)     chance 25%
+    key/distractor chars  1.15 median  ->   1.03 median
+    key length rank       25/2/1/4     ->   3/3/3/1        i.e. flat
+    options out of band   42/128       ->   6/40
+    form judge finds key  19/32 (59%)  ->   2/10 (20%)     chance 25%
+    form judge: no tell   13/32 (41%)  ->   7/10 (70%)
+
+The tell is gone by every measure that does not involve the tell detector — and
+the detector still reports 10 of 10, which is the clearest evidence yet that it
+is close to useless as a rate. The screening path should probably use the form
+judge instead; that is a change to make deliberately, not in passing.
+
+Two caveats that stay attached to these numbers. n=10 cannot separate 20% from
+25% on its own, and it is the model-free length count that carries the result.
+And "at chance" only means clean items because the same judge found a real leak
+in the v1 set — on its own it is equally consistent with a judge that cannot
+see. Both facts are needed; neither run means much alone.
 """
 
 from __future__ import annotations
@@ -183,7 +220,10 @@ OUTPUT = Path(__file__).parent / "output"
 # Versioned like every other prompt in the codebase. It lives here rather than
 # in a prompts module because it belongs to an experiment, not to the product —
 # see the note about not growing this file.
-ITEM_PROMPT_VERSION = "1"
+# v2 (2026-08-24): distractors are minimal edits of the keyed claim rather than
+# separately written weaker claims, plus a hard 18-26 word band. v1 asked twice
+# for "similar length and hedging" and measured 25/32 with the key longest.
+ITEM_PROMPT_VERSION = "2"
 BLIND_PROMPT_VERSION = "1"
 
 LETTERS = "ABCD"
@@ -272,17 +312,27 @@ from documentation, a colleague or a production incident. Never refer to "the \
 series", "the issue", "as covered", "the reading" or anything similar. If the \
 question cannot be answered by someone who learned the subject elsewhere, it is \
 testing recall of a source rather than knowledge of a field, and it is wrong.
-* Write the four options as four competing claims before deciding which is \
-true. Every wrong option must be wrong *in fact* — something a competent person \
-has actually believed, stated with the same confidence as the true one. A \
-distractor that is vague, self-contradictory, an obvious strawman, or a \
-caricature nobody holds is not a distractor; it is scenery, and it hands the \
-answer to a reader who knows nothing.
-* All four options must be within a few words of the same length and carry the \
-same amount of hedging. If the true option is the balanced, careful, qualified \
-one and the other three are blunt, the item is answerable on register alone by \
-someone who has never heard of the subject. This is the single most common way \
-these items fail, and length is the tell that gives it away.
+* Build the options by this procedure, not by writing a good one and three \
+worse ones. Write the true claim first. Then make each distractor by taking \
+that sentence and changing exactly one load-bearing part of it — the mechanism, \
+the ordering, the precondition, who is responsible, what is being traded off — \
+leaving the clause structure, the qualifiers and the level of detail alone. A \
+distractor is the same sentence with a different claim inside it.
+* That is not a style preference, it is the only thing that stops the answer \
+leaking. Two earlier versions of these instructions asked for options "of \
+similar length and hedging". The correct option still came out longest in 25 \
+items out of 32, and a judge shown nothing but the wording picked it every \
+single time it thought any option stood out. A writer who knows which claim is \
+true cannot stop himself giving that one the reason clause, the second half of \
+the sentence and the careful qualification — and someone who knows nothing \
+about the subject can see that from across the room. A distractor derived from \
+the true sentence inherits its shape and cannot be picked out by shape.
+* Every option must be between 18 and 26 words. Count them before you answer. \
+An option outside that range is a defect regardless of how well it reads.
+* Each wrong option must be wrong *in fact* — something a competent person has \
+actually believed. Wrong because it is vague, self-contradictory or a caricature \
+nobody holds is not a distractor; it is scenery, and it hands the answer to a \
+reader who knows nothing.
 * No "all of the above", "none of the above", "both A and B".
 * One defensible answer. If two options are arguably right, the item is broken.
 * Turn on a distinction that decays: a boundary, an ordering, a precondition, a \
@@ -555,6 +605,36 @@ def run(sub_prefix: str, *, count: int, dry_run: bool, seed: int, reveal: bool) 
 
 # ------------------------------------------------------------------ reporting
 
+WORD_BAND = (18, 26)
+
+
+def key_longest(rows: list[dict]) -> int:
+    """How many items have the correct option as the longest of the four.
+
+    Free, deterministic, and the one number in this file that no model has a
+    hand in — which is why it is printed on every run rather than only under
+    --calibrate. It is also the fastest way to tell whether a change to the item
+    prompt did anything: the leak was found here first, and two revisions that
+    read like fixes moved it not at all.
+    """
+    count = 0
+    for row in rows:
+        item = Item.model_validate(row["item"])
+        lengths = [len(o) for o in item.options]
+        if LETTERS[lengths.index(max(lengths))] == item.correct:
+            count += 1
+    return count
+
+
+def words_out_of_band(rows: list[dict]) -> int:
+    low, high = WORD_BAND
+    return sum(
+        1
+        for row in rows
+        for option in Item.model_validate(row["item"]).options
+        if not low <= len(option.split()) <= high
+    )
+
 
 def report(
     rows: list[dict], *, topic: str, minutes: int, dry_run: bool, reveal: bool = False
@@ -575,6 +655,10 @@ def report(
     print(f"    of which 'knew'         {len(known)}")
     print(f"    of which eliminated     {len(weak)}")
     print(f"  correct option has a tell {len(tells)}/{len(rows)}")
+    print(f"  key is the longest option {key_longest(rows)}/{len(rows)}   (chance 1 in 4)")
+    outside = words_out_of_band(rows)
+    if outside:
+        print(f"  options outside 18-26 wds {outside}")
     spread = "".join(sorted(r["item"]["correct"] for r in rows))
     drifted = [r for r in rows if not r["keyed_as_asked"]]
     print(f"  answer keys               {spread or '—'}"
@@ -801,22 +885,35 @@ def calibrate(paths: list[Path]) -> int:
         if judged:
             print(f"  detector said tell   {len(agreed)}/{len(judged)}"
                   f"  ({100 * len(agreed) / len(judged):.0f}%)")
+        # Two questions share this output and must not share a verdict: "do
+        # these items leak" and "does the detector work". Chance agreement means
+        # the first is no — but it only means the second is no if the item set
+        # is known to leak. The first version of this text asserted the second
+        # unconditionally, and duly announced that the detector was noise when
+        # handed a set of items that had just been fixed.
+        rate = len(hits) / len(picks)
         print(f"\n{'-' * 68}")
-        if len(hits) / len(picks) > 0.5:
-            print("  The form judge lands on the key well above chance without being")
-            print("  shown it. The leak is real and the detector was reporting it.")
+        if rate > 0.5:
+            print("  Form alone lands on the key well above chance. These items leak, and")
+            print("  the leak is real rather than the detector rationalising its answer.")
             if judged and len(agreed) / len(judged) > len(stood) / len(picks) + 0.15:
-                print("\n  But the detector fires more often than form alone justifies, so its")
-                print("  own rate overstates how many items leak. Use this column, not that.")
+                print("\n  The detector fires more often than form alone justifies, so its own")
+                print("  rate overstates how many leak. Use this column, not that.")
             print("\n  Note the direction: a tell points AT the correct answer, so it can")
             print("  only inflate a score. A low score on leaky items is a floor.")
-        elif len(hits) / len(picks) < 0.35:
-            print("  The form judge lands on the key at about chance. The detector was")
-            print("  describing whichever option it believed — the tell count is not")
-            print("  evidence, and any conclusion resting on it should be withdrawn.")
+        elif rate < 0.35:
+            print("  Form alone lands on the key at about chance, so nothing in the wording")
+            print("  gives the answer away. Two readings, and this run cannot separate")
+            print("  them on its own:")
+            print("    - these items are clean, if the judge has found leaks elsewhere;")
+            print("    - the judge is blind, if it has never found one.")
+            print("  Compare against a pooled run over items already known to leak.")
         else:
             print("  Between chance and clear. Neither reading is supported; more items")
             print("  or a better control is needed before this decides anything.")
+        if len(picks) < 20:
+            print(f"\n  n={len(picks)}. Too few to separate {100 * rate:.0f}% from 25% by itself —")
+            print("  read it alongside the length count above, which needs no model.")
 
     client.report()
     return 0
