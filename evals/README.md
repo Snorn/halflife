@@ -140,9 +140,23 @@ asking a third time for parity: each distractor is the keyed sentence with one l
 changed, inside a hard 18-26 word band. Measured on the same ledger points, the key goes from
 longest in 78% of items to 30% (chance 25%), the length ratio from 1.15 to 1.03, and the form
 judge from finding the key in 59% to 20% — while saying nothing stands out in 70%. The tell
-detector still reports 10 of 10, which is the plainest sign yet that its rate is not worth
-reading. The file's docstring carries the full table, the caveats on n=10, and the reason the
-planned calibration against real exam items was dropped.
+detector still reported 10 of 10, which was the plainest sign yet that its rate was not worth
+reading.
+
+Screening now uses the form judge for that call, in place of the field on the blind control. One
+call that answers an item and then says whether the answer was signposted reasons from truth to
+form; a call that never sees the key cannot. Three calls per item instead of two, and the third
+is the cheap one. The first run after the swap, on a different ledger, reveals the key in 2 items
+of 8 — chance — where the old detector would have said eight. Runs saved beforehand still load,
+with their column labelled as the legacy detector rather than pooled with the new one.
+
+The judge separates two faults. A standout that *is* the key inflates a score, so a low score on
+those items is a floor on decay. A standout that is *not* the key is worse: it pulls the reader
+toward a wrong answer and manufactures failures, and a pipeline built on it would prescribe
+refreshers for decay that never happened.
+
+The file's docstring carries the full table, the caveats on n=10, and the reason the planned
+calibration against real exam items was dropped.
 
 ## What is deliberately not measured
 

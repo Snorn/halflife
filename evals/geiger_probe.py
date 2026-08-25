@@ -52,8 +52,8 @@ someone who learned it elsewhere, and forbids referring to the series. That
 narrows the gap. It does not close it, because the subject the model reaches
 for is still the one it chose to write about.
 
-**The blind control.** Every item is then attempted by a second call that has
-never seen the ledger point, and which reports whether it *knew* the answer,
+**The blind control.** Every item is attempted by a second call that has never
+seen the ledger point, and which reports whether it *knew* the answer,
 *eliminated* its way there, or *guessed*. Two different faults show up here.
 An item eliminated or guessed correctly has bad distractors and measures
 test-craft. An item genuinely known cold is a fair question about the field,
@@ -61,13 +61,30 @@ but it is not measuring the decay of this series — a well-read generalist
 would pass it without ever having read an issue. Both are reported; only the
 first is a defect.
 
-That control is not enough on its own, which the first run showed within two
-items: both were answered "knew", and one of them had the correct option as the
-longest and most hedged of the four — the oldest tell in multiple choice, and
-the one the item prompt explicitly forbids. A solver that knows the subject
-reports "knew" honestly and never has to notice the tell. So the tell is asked
-about separately, and judged for a reader who does *not* know the subject,
-because that reader is the only one an item detecting decay is built for.
+Read that second number with the topic in mind. The generalist here is a model,
+and on subjects it is unusually expert in — the Claude API above all — it will
+know essentially every item cold, so the count stops discriminating and says
+more about the proxy than the paper.
+
+**The form judge.** A third call, which never answers the item, is shown only
+the wording and asked which option stands out: longest, most hedged, most
+specific, the one that reads like a textbook. It may answer that none does, and
+for a well-built item that is the expected answer.
+
+This used to be a field on the blind control, and it was wrong to put it there.
+One call that answers the item and then reports whether the answer was
+signposted will reason from truth to form: it worked out which option was true
+and described that one as the standout, firing on 93% of items where this judge
+finds 59%, and on 100% of a set that had just been fixed. Separation is not
+tidiness. It is the only reason the number can be believed, so do not fold the
+two calls back together to save a call.
+
+The judge distinguishes two faults that are not the same. A standout that *is*
+the key hands the answer over, which inflates a score — so a low score on such
+items is a floor on decay rather than an artefact. A standout that is *not* the
+key is worse: it drags the reader toward a wrong answer, manufacturing failures
+rather than hiding them, and a pipeline built on those would prescribe
+refreshers for decay that never happened.
 
 **What is left uncontrolled.** You are one rater, you curated the rubric these
 items are written against, and you know you are being tested on material you
@@ -173,9 +190,16 @@ like:
     form judge: no tell   13/32 (41%)  ->   7/10 (70%)
 
 The tell is gone by every measure that does not involve the tell detector — and
-the detector still reports 10 of 10, which is the clearest evidence yet that it
-is close to useless as a rate. The screening path should probably use the form
-judge instead; that is a change to make deliberately, not in passing.
+the detector still reported 10 of 10, which was the clearest evidence yet that
+its rate was worthless. The screening path now uses the form judge instead, and
+the old field is gone rather than deprecated: a discredited number left in the
+output is a number somebody reads. Runs saved before the swap still load, and
+their column is labelled as the legacy detector rather than pooled with the new
+one.
+
+First run after the swap, on a different ledger — Claude Agent SDK, depth 3,
+eight items: the key is revealed in 2 of 8, which is chance, and is the longest
+option in 0 of 8. The old detector would have said eight.
 
 Two caveats that stay attached to these numbers. n=10 cannot separate 20% from
 25% on its own, and it is the model-free length count that carries the result.
@@ -224,7 +248,9 @@ OUTPUT = Path(__file__).parent / "output"
 # separately written weaker claims, plus a hard 18-26 word band. v1 asked twice
 # for "similar length and hedging" and measured 25/32 with the key longest.
 ITEM_PROMPT_VERSION = "2"
-BLIND_PROMPT_VERSION = "1"
+# v2 (2026-08-24): the tell judgement moved out to FORM_SYSTEM and its own call.
+BLIND_PROMPT_VERSION = "2"
+FORM_PROMPT_VERSION = "1"
 
 LETTERS = "ABCD"
 
@@ -275,18 +301,23 @@ class Attempt(BaseModel):
         "or internal inconsistency. guessed: neither."
     )
     note: str = Field(description="One sentence on what decided it.")
-    # Asked separately from basis, because the two come apart and the first run
-    # showed it inside two items: a solver that knows the subject answers "knew"
-    # and never notices that the correct option was also the longest and most
-    # qualified. The tell is still there for a reader who has lost the subject,
-    # and that reader is the only one the item exists for.
-    tell: bool = Field(
-        description="True if the correct option is identifiable from surface form alone: "
-        "longest, most hedged, most specific, or the only one written in the register of a "
-        "textbook answer. Judge this independently of whether you knew the subject — answer "
-        "True if someone with no knowledge of the field could pick it out."
+    # This model used to carry `tell` and `tell_note` as well. Asking one call to
+    # answer the item and then say whether the answer was signposted put the two
+    # jobs in the wrong order: it worked out which option was true, then
+    # described that option as the standout. Calibration caught it — the field
+    # fired on 93% of items where a judge shown nothing but the wording found a
+    # standout in 59%, and on 100% of a set that had just been fixed. The
+    # judgement now belongs to FormPick, in its own call, which never answers
+    # the item. Separation is the fix, so do not fold them back together.
+
+
+class FormPick(BaseModel):
+    stands_out: bool = Field(
+        description="False if the four options are comparable in form and none is "
+        "distinguishable without considering what they claim."
     )
-    tell_note: str = Field(description="If tell is true, what gives it away. Otherwise empty.")
+    pick: Choice = Field(description="The option that stands out. Ignored if stands_out is false.")
+    reason: str = Field(description="One sentence, about the writing only.")
 
 
 # ------------------------------------------------------------------ prompts
@@ -371,19 +402,31 @@ Do not flatter the item and do not flatter yourself. "eliminated" and "guessed" 
 are the useful answers: they are how a badly built item is caught. If you \
 recognised the answer only because one option was written more carefully than \
 the others, that is "eliminated", not "knew".
-
-Then, separately and regardless of how you answered, judge whether the correct
-option is identifiable from its surface form: the longest, the most hedged, the
-most specific, the only one that reads like a textbook. Knowing the subject does
-not excuse the item. Report the tell even when you answered from knowledge — the
-reader this item is built for is the one who has lost the knowledge, and a tell
-hands them the answer.
 """
 
 BLIND_USER = """\
 {stem}
 
 {options}
+"""
+
+
+FORM_SYSTEM = """\
+You are copy-editing a multiple-choice question, not answering it.
+
+Four options. Judge only how they are *written*: length, hedging, specificity, \
+whether one reads like a textbook while the others read like remarks. Which one \
+stands out by form?
+
+You are not being asked which is true and the answer is not wanted. If the \
+option you would pick as true is also the one that stands out, that is a fact \
+about the item and it is what this is measuring — but do not reason from truth \
+to form. Judge the sentences.
+
+If no option stands out — the four are comparable in length, register and \
+qualification — say so by setting `stands_out` to false. That is a real and \
+common answer for a well-built item, and a forced pick when nothing stands out \
+would corrupt what this measures.
 """
 
 
@@ -474,6 +517,23 @@ def write_item(client, *, topic: str, depth: int, point: str, letter: str) -> It
             topic=topic, depth=depth, label=depth_label(depth), point=point, letter=letter
         ),
         output_model=Item,
+    )
+    return result.parsed
+
+
+def form_pick(client, item: Item) -> FormPick:
+    """Judge the wording, in a call that never answers the item.
+
+    This is the screening path's tell detector. It replaced a field on the blind
+    control, which asked one call to answer the item and then say whether the
+    answer had been signposted — and which therefore reasoned from truth to
+    form and flagged almost everything. Keeping the two calls apart is not
+    tidiness; it is the entire reason this number can be believed.
+    """
+    result = client.generate(
+        system=FORM_SYSTEM,
+        user=BLIND_USER.format(stem=item.stem, options=render_options(item.options)),
+        output_model=FormPick,
     )
     return result.parsed
 
@@ -575,6 +635,7 @@ def run(sub_prefix: str, *, count: int, dry_run: bool, seed: int, reveal: bool) 
                     letter=probe["key"],
                 )
                 control = blind_attempt(client, item)
+                form = form_pick(client, item)
             except GenerationError as exc:
                 print(f"    skipped — {exc}")
                 continue
@@ -584,6 +645,15 @@ def run(sub_prefix: str, *, count: int, dry_run: bool, seed: int, reveal: bool) 
                     "item": item.model_dump(),
                     "blind": control.model_dump(),
                     "blind_correct": control.choice == item.correct,
+                    "form": form.model_dump(),
+                    # Two distinct defects, and they are not the same fault. A
+                    # standout that IS the key hands the answer over. A standout
+                    # that is not the key drags the reader toward a wrong one,
+                    # which is worse: it manufactures failures rather than
+                    # hiding them, and a Geiger built on it would prescribe
+                    # subscriptions for decay that never happened.
+                    "leaks": form.stands_out and form.pick == item.correct,
+                    "misleads": form.stands_out and form.pick != item.correct,
                     "keyed_as_asked": item.correct == probe["key"],
                 }
             )
@@ -646,23 +716,42 @@ def report(
     scored_any = any(r.get("answer") is not None for r in rows)
     withhold_notes = not (reveal or scored_any)
 
-    print(f"\n{'=' * 68}\n  Item quality — the blind control\n{'=' * 68}\n")
+    print(f"\n{'=' * 68}\n  Item quality — two controls\n{'=' * 68}\n")
     weak = [r for r in rows if r["blind_correct"] and r["blind"]["basis"] != "knew"]
     known = [r for r in rows if r["blind_correct"] and r["blind"]["basis"] == "knew"]
-    tells = [r for r in rows if r["blind"]["tell"]]
+    # Legacy rows recorded the judgement as blind.tell. Those runs are still
+    # readable, but the number they carry is the discredited one, so it is
+    # labelled rather than silently pooled with the form judge's.
+    legacy = [r for r in rows if "form" not in r]
+    tells = [r for r in rows if r.get("leaks") or (("form" not in r) and r["blind"].get("tell"))]
+    misleads = [r for r in rows if r.get("misleads")]
     cold = sum(1 for r in rows if r["blind_correct"])
-    print(f"  answered cold             {cold}/{len(rows)}")
-    print(f"    of which 'knew'         {len(known)}")
-    print(f"    of which eliminated     {len(weak)}")
-    print(f"  correct option has a tell {len(tells)}/{len(rows)}")
-    print(f"  key is the longest option {key_longest(rows)}/{len(rows)}   (chance 1 in 4)")
+    n = len(rows)
+
+    def line(label: str, value: str, note: str = "") -> None:
+        print(f"  {label:<27} {value}{'   ' + note if note else ''}")
+
+    line("answered cold", f"{cold}/{n}")
+    line("  of which 'knew'", str(len(known)))
+    line("  of which eliminated", str(len(weak)))
+    line(
+        "tell (legacy detector)" if legacy else "wording reveals the key",
+        f"{len(tells)}/{n}",
+    )
+    if misleads:
+        line("wording points elsewhere", f"{len(misleads)}/{n}", "(worse — see below)")
+    line("key is the longest option", f"{key_longest(rows)}/{n}", "(chance 1 in 4)")
     outside = words_out_of_band(rows)
     if outside:
-        print(f"  options outside 18-26 wds {outside}")
+        low, high = WORD_BAND
+        line(f"options outside {low}-{high} words", f"{outside}/{n * 4}")
     spread = "".join(sorted(r["item"]["correct"] for r in rows))
     drifted = [r for r in rows if not r["keyed_as_asked"]]
-    print(f"  answer keys               {spread or '—'}"
-          + (f"   ({len(drifted)} ignored the assigned slot)" if drifted else ""))
+    line(
+        "answer keys",
+        spread or "—",
+        f"({len(drifted)} ignored the assigned slot)" if drifted else "",
+    )
     # The notes name the letter they are about — "B is the only option that..."
     # — so printing them before the paper is sat hands over the key. --dry-run
     # is precisely the mode you run *before* sitting it, which made this the
@@ -673,17 +762,27 @@ def report(
         print(f"      [{r['blind']['basis']}] {r['item']['stem'][:56]}...")
         if not withhold_notes:
             print(f"        {r['blind']['note'][:64]}")
-    for r in tells:
-        print(f"      [tell] {r['item']['stem'][:56]}...")
+    for r in tells + misleads:
+        kind = "leak" if r in tells else "misleads"
+        print(f"      [{kind}] {r['item']['stem'][:56]}...")
         if not withhold_notes:
-            print(f"        {r['blind']['tell_note'][:64]}")
-    if withhold_notes and (weak or tells):
-        print("\n  (notes withheld — they name the correct option. They are in the saved\n"
-              "  JSON, and printed once the paper is scored.)")
+            note = r["form"]["reason"] if "form" in r else r["blind"].get("tell_note", "")
+            print(f"        {note[:64]}")
+    if withhold_notes and (weak or tells or misleads):
+        print("\n  (notes withheld — they name the option they are about. They are in the\n"
+              "  saved JSON, and printed once the paper is scored.)")
     if weak or tells:
         print(
             "\n  Those items are defective: they can be answered without the knowledge\n"
-            "  they claim to probe, so a failure rate measured on them means nothing."
+            "  they claim to probe. A tell points AT the key, so it inflates a score —\n"
+            "  a low score on them is a floor on decay rather than an artefact."
+        )
+    if misleads:
+        print(
+            f"\n  {len(misleads)} item(s) have a distractor that stands out instead of the key.\n"
+            "  That is the worse fault: it drags a reader toward a wrong answer, so it\n"
+            "  manufactures failures rather than hiding them. A pipeline built on these\n"
+            "  would prescribe refreshers for decay that never happened."
         )
     if known:
         print(
@@ -749,33 +848,6 @@ def save(rows: list[dict], *, sub_id: str, topic: str, seed: int, minutes: int,
     )
     return path
 
-
-FORM_SYSTEM = """\
-You are copy-editing a multiple-choice question, not answering it.
-
-Four options. Judge only how they are *written*: length, hedging, specificity, \
-whether one reads like a textbook while the others read like remarks. Which one \
-stands out by form?
-
-You are not being asked which is true and the answer is not wanted. If the \
-option you would pick as true is also the one that stands out, that is a fact \
-about the item and it is what this is measuring — but do not reason from truth \
-to form. Judge the sentences.
-
-If no option stands out — the four are comparable in length, register and \
-qualification — say so by setting `stands_out` to false. That is a real and \
-common answer for a well-built item, and a forced pick when nothing stands out \
-would corrupt what this measures.
-"""
-
-
-class FormPick(BaseModel):
-    stands_out: bool = Field(
-        description="False if the four options are comparable in form and none is "
-        "distinguishable without considering what they claim."
-    )
-    pick: Choice = Field(description="The option that stands out. Ignored if stands_out is false.")
-    reason: str = Field(description="One sentence, about the writing only.")
 
 
 def calibrate(paths: list[Path]) -> int:
@@ -858,8 +930,14 @@ def calibrate(paths: list[Path]) -> int:
                     "pick": pick.pick,
                     "hit": pick.stands_out and pick.pick == item.correct,
                     "reason": pick.reason,
-                    # .get: the first two runs predate the tell field entirely.
-                    "detector_said_tell": r["blind"].get("tell"),
+                    # What the run itself recorded, for comparison against this
+                    # fresh judgement. Newer runs screen with the form judge, so
+                    # this is a reproducibility check on the same instrument;
+                    # older ones carry the discredited detector, where it is the
+                    # calibration proper. The first two runs predate both.
+                    "detector_said_tell": (
+                        r["form"]["stands_out"] if "form" in r else r["blind"].get("tell")
+                    ),
                 }
             )
     except KeyboardInterrupt:
