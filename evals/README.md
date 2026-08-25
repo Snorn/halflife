@@ -119,8 +119,22 @@ not more of this script.
 First result, 2026-08-24: position bias was real and is fixed by assigning the answer slot; the
 blind control then flagged a tell in nine items out of nine, surviving two prompt revisions by
 changing form rather than going away. The reading is that one-shot item generation from a ledger
-point does not yet produce an instrument that measures decay. The file's docstring carries the
-detail and the caveat about trusting a same-model detector.
+point does not yet produce an instrument that measures decay.
+
+```bash
+python evals/geiger_probe.py --calibrate evals/output/geiger-probe-*.json
+```
+
+`--calibrate` answers the obvious objection to that, which is that a same-model detector asked
+whether a tell exists has every reason to find one. Two controls over the pooled runs. Counting
+characters, with no model involved, the correct option is the longest in 25 items of 32 against a
+25% baseline. A form-only judge never shown the key picks it in 19 of 32 — and in all 19 items
+where form alone singles an option out, it singles out the right one. The leak is real; the
+detector's own 93% overstates it against the stricter judge's 59%.
+
+The direction is what matters for reading a score: a tell points *at* the answer, so it inflates.
+A low score on leaky items is a floor on decay, not an artefact. The file's docstring carries the
+numbers and the reason the planned calibration against real exam items was dropped.
 
 ## What is deliberately not measured
 

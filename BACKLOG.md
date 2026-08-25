@@ -239,8 +239,19 @@ prompt forbade those, by being the only option carrying a reason clause. **A led
 enough to write an item from; it is not enough to write a fair one.** That does not overturn the
 sensor decision, and it is not a reason to bring Geiger forward again: it says the item pipeline
 needs distractors written by something not trying to be right, or a free-response format with no
-options to leak through. Decide that when building it. The detector is the same model and is
-uncalibrated, so treat nine-for-nine as evidence rather than a rate.
+options to leak through. Decide that when building it.
+
+The detector has since been calibrated (`--calibrate`, 32 items pooled). Counting characters —
+no model — the key is the longest option in 25 of 32, against a 25% chance baseline. A form-only
+judge never shown the key picks it in 19 of 32, and in **every one of the 19 items where form
+alone singles an option out, that option is the correct one**. So the leak is real rather than
+the detector rationalising. But the detector fires at 93% where the stricter judge finds 59%,
+so it overstates the rate and roughly two items in five are clean.
+
+**The direction is the part that changes a decision.** A tell points *at* the answer, so it can
+only inflate a score. A poor score on leaky items was achieved with help, which makes it a floor
+on decay rather than an artefact — the opposite of how a leaky instrument usually reads. First
+sitting: 4/10 on the SAP Autonomous Enterprise ledger.
 
 ### D3 — the platform doc's two reopened decisions
 

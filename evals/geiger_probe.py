@@ -26,6 +26,18 @@ not more of this script.
 test. Run it first: item quality is the cheaper of the two claims to falsify,
 and if the items are bad, your score would not mean anything anyway.
 
+Generating and sitting can also be separated, which is what ``--score`` is for
+and is the better test — a paper sat a week after it was written measures decay
+rather than short-term recall:
+
+    .venv/Scripts/python evals/geiger_probe.py --score evals/output/<file>.json \
+        --answers BDACBACDBA
+
+Screening deliberately withholds the blind control's notes, because they name
+the option they are about and ``--dry-run`` is the mode you run *before* sitting
+the paper. Seven of ten answers went up on screen that way once. ``--reveal``
+prints them anyway, for a paper nobody is going to sit.
+
 ## What this can and cannot show
 
 The reason it needs saying up front is that the obvious version of this
@@ -96,14 +108,43 @@ the item should be free response scored against the point, where there is no
 option set to leak through. Either is a real piece of work, and it lands on the
 Geiger side of the boundary, not here.
 
-**Do not trust the tell detector further than this.** It is the same model, and
-a detector asked whether a tell exists has every reason to find one; nine for
-nine is as consistent with an over-firing detector as with uniformly defective
-items. The notes it gives are specific and check out on inspection, which is
-why the finding is stated at all. Calibrating it properly means running it over
-items from a real certification exam, which are known-good, and seeing what it
-flags there. Until that is done, the tell count is evidence and not a
-measurement, and the difference should not be quietly dropped.
+**The tell detector was uncalibrated, and has now been calibrated.** It is the
+same model, and a detector asked whether a tell exists has every reason to find
+one — nine for nine fits an over-firing detector as well as it fits bad items.
+The plan was to compare against items from a real certification exam. That was
+dropped: it means reproducing published exam content into this repository, and
+there is a sharper test that needs no outside material. Run ``--calibrate`` over
+saved runs.
+
+## What the calibration found — 2026-08-24, 32 items pooled from six runs
+
+**The key is measurably the longest option, 25 times in 32 (78%, chance 25%).**
+No model is involved in that number — it counts characters. The length tell the
+item prompt forbids in as many words is simply present, and the prompt revision
+that was supposed to remove it did not.
+
+**A form-only judge, never shown the key, picks it 19 times in 32 (59%, chance
+25%).** It is asked which option stands out by how it is written and is allowed
+to answer that none does, which it did 13 times. The conditional rate is the
+striking one: **of the 19 items where form alone singles an option out, the
+option it singles out is the correct one 19 times out of 19.** When these items
+leak they leak completely.
+
+**The detector over-fires, so its own rate was wrong.** It reported a tell in 25
+of 27 (93%) where the stricter form judge finds one in 59%. "Ten out of ten" was
+inflated; about two items in five are clean. Both facts survive: the leak is
+real, and the detector overstates how much of it there is.
+
+**The direction matters more than the rate.** A tell points *at* the correct
+answer, so it can only push a score up. A reader who scores badly on leaky items
+scored badly with help, which makes a low score a floor on decay rather than an
+artefact of bad items. This inverts the obvious reading, and the obvious reading
+was in this file until the controls were run.
+
+The form judge is not truly blind — a strong model cannot unsee which option is
+true, and its agreement is an upper bound. That is why disagreement would have
+been the decisive outcome: the confound can manufacture agreement and cannot
+manufacture chance. Control 1 has no such weakness and points the same way.
 """
 
 from __future__ import annotations
@@ -425,7 +466,7 @@ def suggest(item: Item, depth: int, minutes: int) -> str:
     return f"{item.subject}, {depth}, {minutes}, 3d, maintaining"
 
 
-def run(sub_prefix: str, *, count: int, dry_run: bool, seed: int) -> int:
+def run(sub_prefix: str, *, count: int, dry_run: bool, seed: int, reveal: bool) -> int:
     settings = get_settings()
     if not settings.anthropic_api_key:
         print("This experiment uses the API path deliberately: a pinned model is what makes")
@@ -505,8 +546,8 @@ def run(sub_prefix: str, *, count: int, dry_run: bool, seed: int) -> int:
     except KeyboardInterrupt:
         print("\n  stopped.")
 
-    report(rows, topic=topic, minutes=minutes, dry_run=dry_run)
-    path = save(rows, sub_id=sub_id, topic=topic, seed=seed)
+    report(rows, topic=topic, minutes=minutes, dry_run=dry_run, reveal=reveal)
+    path = save(rows, sub_id=sub_id, topic=topic, seed=seed, minutes=minutes)
     print(f"\nwritten to {path}")
     client.report()
     return 0
@@ -515,10 +556,15 @@ def run(sub_prefix: str, *, count: int, dry_run: bool, seed: int) -> int:
 # ------------------------------------------------------------------ reporting
 
 
-def report(rows: list[dict], *, topic: str, minutes: int, dry_run: bool) -> None:
+def report(
+    rows: list[dict], *, topic: str, minutes: int, dry_run: bool, reveal: bool = False
+) -> None:
     if not rows:
         print("\nNo items were written.")
         return
+
+    scored_any = any(r.get("answer") is not None for r in rows)
+    withhold_notes = not (reveal or scored_any)
 
     print(f"\n{'=' * 68}\n  Item quality — the blind control\n{'=' * 68}\n")
     weak = [r for r in rows if r["blind_correct"] and r["blind"]["basis"] != "knew"]
@@ -533,12 +579,23 @@ def report(rows: list[dict], *, topic: str, minutes: int, dry_run: bool) -> None
     drifted = [r for r in rows if not r["keyed_as_asked"]]
     print(f"  answer keys               {spread or '—'}"
           + (f"   ({len(drifted)} ignored the assigned slot)" if drifted else ""))
+    # The notes name the letter they are about — "B is the only option that..."
+    # — so printing them before the paper is sat hands over the key. --dry-run
+    # is precisely the mode you run *before* sitting it, which made this the
+    # default behaviour rather than an edge case. Found the first time a paper
+    # was screened and then offered to a reader: seven of ten answers were
+    # already on screen. Counts and stems are safe; notes wait until scoring.
     for r in weak:
         print(f"      [{r['blind']['basis']}] {r['item']['stem'][:56]}...")
-        print(f"        {r['blind']['note'][:64]}")
+        if not withhold_notes:
+            print(f"        {r['blind']['note'][:64]}")
     for r in tells:
         print(f"      [tell] {r['item']['stem'][:56]}...")
-        print(f"        {r['blind']['tell_note'][:64]}")
+        if not withhold_notes:
+            print(f"        {r['blind']['tell_note'][:64]}")
+    if withhold_notes and (weak or tells):
+        print("\n  (notes withheld — they name the correct option. They are in the saved\n"
+              "  JSON, and printed once the paper is scored.)")
     if weak or tells:
         print(
             "\n  Those items are defective: they can be answered without the knowledge\n"
@@ -583,16 +640,18 @@ def report(rows: list[dict], *, topic: str, minutes: int, dry_run: bool) -> None
     )
 
 
-def save(rows: list[dict], *, sub_id: str, topic: str, seed: int) -> Path:
+def save(rows: list[dict], *, sub_id: str, topic: str, seed: int, minutes: int,
+         path: Path | None = None) -> Path:
     OUTPUT.mkdir(exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    path = OUTPUT / f"geiger-probe-{sub_id[:8]}-{stamp}.json"
+    path = path or OUTPUT / f"geiger-probe-{sub_id[:8]}-{stamp}.json"
     path.write_text(
         json.dumps(
             {
                 "subscription_id": sub_id,
                 "topic": topic,
                 "seed": seed,
+                "duration_minutes": minutes,
                 "depth_rubric_version": DEPTH_RUBRIC_VERSION,
                 "item_prompt_version": ITEM_PROMPT_VERSION,
                 "blind_prompt_version": BLIND_PROMPT_VERSION,
@@ -605,6 +664,205 @@ def save(rows: list[dict], *, sub_id: str, topic: str, seed: int) -> Path:
         encoding="utf-8",
     )
     return path
+
+
+FORM_SYSTEM = """\
+You are copy-editing a multiple-choice question, not answering it.
+
+Four options. Judge only how they are *written*: length, hedging, specificity, \
+whether one reads like a textbook while the others read like remarks. Which one \
+stands out by form?
+
+You are not being asked which is true and the answer is not wanted. If the \
+option you would pick as true is also the one that stands out, that is a fact \
+about the item and it is what this is measuring — but do not reason from truth \
+to form. Judge the sentences.
+
+If no option stands out — the four are comparable in length, register and \
+qualification — say so by setting `stands_out` to false. That is a real and \
+common answer for a well-built item, and a forced pick when nothing stands out \
+would corrupt what this measures.
+"""
+
+
+class FormPick(BaseModel):
+    stands_out: bool = Field(
+        description="False if the four options are comparable in form and none is "
+        "distinguishable without considering what they claim."
+    )
+    pick: Choice = Field(description="The option that stands out. Ignored if stands_out is false.")
+    reason: str = Field(description="One sentence, about the writing only.")
+
+
+def calibrate(paths: list[Path]) -> int:
+    """Does the tell detector track form, or is it rationalising the answer?
+
+    The detector flagged a tell in every item of every run, which is as
+    consistent with a detector that always says yes as with uniformly leaky
+    items. It cannot tell those apart on its own, because it answers the item
+    first and then reports whether "the correct option" stands out — so a model
+    that reasons from truth to form would produce exactly this record.
+
+    Two controls, both against chance at 25%:
+
+    **Length, measured not judged.** How often is the key simply the longest
+    option? No model involved, nothing to rationalise, and it is the specific
+    tell the item prompt was revised to forbid. If this sits at 25% the length
+    complaint was wrong regardless of what any judge says.
+
+    **A form-only judge that never sees the key.** It is asked which option
+    stands out by how it is written, and may answer that none does. If its pick
+    lands on the key far above chance, the leak is real and the detector was
+    reporting it. If it lands at chance, the detector was describing whichever
+    option it believed, and the tell count means nothing.
+
+    The honest limit: a strong model cannot unsee which option is true, so the
+    form judge is not truly blind and its agreement is an upper bound. Chance
+    disagreement is therefore the informative outcome — it cannot be produced by
+    the confound, while high agreement can.
+    """
+    settings = get_settings()
+    if not settings.anthropic_api_key:
+        print("Needs API access. Set ANTHROPIC_API_KEY.")
+        return 2
+
+    rows: list[dict] = []
+    for path in paths:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        for row in data["items"]:
+            rows.append({**row, "source": path.name})
+    if not rows:
+        print("No items found in those files.")
+        return 2
+
+    print(f"\n{len(rows)} items pooled from {len(paths)} run(s)\n")
+
+    keyed = [r for r in rows if r["item"]["correct"]]
+    longest = 0
+    for r in keyed:
+        item = Item.model_validate(r["item"])
+        lengths = {LETTERS[i]: len(o) for i, o in enumerate(item.options)}
+        if max(lengths, key=lambda k: lengths[k]) == item.correct:
+            longest += 1
+    pct = 100 * longest / len(keyed)
+    print(f"{'=' * 68}\n  Control 1 — is the key the longest option? (no model)\n{'=' * 68}\n")
+    print(f"  key is longest   {longest}/{len(keyed)}  ({pct:.0f}%, chance 25%)")
+
+    client = Meter(GenerationClient(settings))
+    picks: list[dict] = []
+    print(f"\n{'=' * 68}\n  Control 2 — form-only judge, never shown the key\n{'=' * 68}\n")
+    try:
+        for n, r in enumerate(rows, start=1):
+            item = Item.model_validate(r["item"])
+            print(f"  judging {n}/{len(rows)}...")
+            try:
+                result = client.generate(
+                    system=FORM_SYSTEM,
+                    user=BLIND_USER.format(
+                        stem=item.stem, options=render_options(item.options)
+                    ),
+                    output_model=FormPick,
+                )
+            except GenerationError as exc:
+                print(f"    skipped — {exc}")
+                continue
+            pick = result.parsed
+            picks.append(
+                {
+                    "correct": item.correct,
+                    "stands_out": pick.stands_out,
+                    "pick": pick.pick,
+                    "hit": pick.stands_out and pick.pick == item.correct,
+                    "reason": pick.reason,
+                    # .get: the first two runs predate the tell field entirely.
+                    "detector_said_tell": r["blind"].get("tell"),
+                }
+            )
+    except KeyboardInterrupt:
+        print("\n  stopped.")
+
+    if picks:
+        flat = [p for p in picks if not p["stands_out"]]
+        hits = [p for p in picks if p["hit"]]
+        judged = [p for p in picks if p["detector_said_tell"] is not None]
+        agreed = [p for p in judged if p["detector_said_tell"]]
+        stood = [p for p in picks if p["stands_out"]]
+        print(f"\n  nothing stands out   {len(flat)}/{len(picks)}"
+              f"  ({100 * len(flat) / len(picks):.0f}% clean)")
+        print(f"  stands out, is key   {len(hits)}/{len(picks)}"
+              f"  ({100 * len(hits) / len(picks):.0f}%, chance 25%)")
+        # The conditional rate is the one that answers the question. Whether an
+        # item leaks and whether the leak points at the answer are different
+        # facts, and pooling them understates both.
+        if stood:
+            print(f"  ...of those that do   {len(hits)}/{len(stood)}"
+                  f"  ({100 * len(hits) / len(stood):.0f}% — when form singles one out,")
+            print("                        how often is it the right one)")
+        if judged:
+            print(f"  detector said tell   {len(agreed)}/{len(judged)}"
+                  f"  ({100 * len(agreed) / len(judged):.0f}%)")
+        print(f"\n{'-' * 68}")
+        if len(hits) / len(picks) > 0.5:
+            print("  The form judge lands on the key well above chance without being")
+            print("  shown it. The leak is real and the detector was reporting it.")
+            if judged and len(agreed) / len(judged) > len(stood) / len(picks) + 0.15:
+                print("\n  But the detector fires more often than form alone justifies, so its")
+                print("  own rate overstates how many items leak. Use this column, not that.")
+            print("\n  Note the direction: a tell points AT the correct answer, so it can")
+            print("  only inflate a score. A low score on leaky items is a floor.")
+        elif len(hits) / len(picks) < 0.35:
+            print("  The form judge lands on the key at about chance. The detector was")
+            print("  describing whichever option it believed — the tell count is not")
+            print("  evidence, and any conclusion resting on it should be withdrawn.")
+        else:
+            print("  Between chance and clear. Neither reading is supported; more items")
+            print("  or a better control is needed before this decides anything.")
+
+    client.report()
+    return 0
+
+
+def score_saved(path: Path, answers: str) -> int:
+    """Score a run that was generated earlier, from answers given as a string.
+
+    Generating and sitting are separate acts, and forcing them into one session
+    rules out the case this was written for: a reader answering somewhere the
+    script's stdin does not reach. It also means a run can be generated now and
+    sat cold in a week, which is a better test of decay than sitting it thirty
+    seconds after the items were written.
+
+    One letter per item, in order. ``-`` skips.
+    """
+    data = json.loads(path.read_text(encoding="utf-8"))
+    rows = data["items"]
+    given = [c for c in answers.upper() if not c.isspace()]
+    if len(given) != len(rows):
+        print(f"{len(rows)} items but {len(given)} answers. One letter each, '-' to skip.")
+        return 2
+    bad = [c for c in given if c not in LETTERS and c != "-"]
+    if bad:
+        print(f"Not answers: {', '.join(sorted(set(bad)))}. Use A-D, or '-' to skip.")
+        return 2
+
+    for row, choice in zip(rows, given):
+        row["answer"] = None if choice == "-" else choice
+
+    report(
+        rows,
+        topic=data["topic"],
+        minutes=data.get("duration_minutes", 5),
+        dry_run=False,
+    )
+    save(
+        rows,
+        sub_id=data["subscription_id"],
+        topic=data["topic"],
+        seed=data["seed"],
+        minutes=data.get("duration_minutes", 5),
+        path=path,
+    )
+    print(f"\nanswers written back to {path}")
+    return 0
 
 
 def list_subscriptions() -> int:
@@ -636,12 +894,38 @@ def main() -> int:
         "--seed", type=int, default=1,
         help="sampling seed — fixed so a rerun probes the same ground (default 1)",
     )
+    parser.add_argument(
+        "--score", metavar="FILE",
+        help="score a saved run instead of generating one; needs --answers",
+    )
+    parser.add_argument(
+        "--answers", metavar="ABCD...",
+        help="one letter per item, in order, '-' to skip",
+    )
+    parser.add_argument(
+        "--calibrate", nargs="+", metavar="FILE",
+        help="pool saved runs and test whether the tell detector tracks form or is "
+             "rationalising the answer",
+    )
+    parser.add_argument(
+        "--reveal", action="store_true",
+        help="print the blind control's notes during screening — they name the correct "
+             "option, so only use this on a paper nobody is going to sit",
+    )
     args = parser.parse_args()
 
+    if args.calibrate:
+        return calibrate([Path(p) for p in args.calibrate])
+    if args.score:
+        if not args.answers:
+            print("--score needs --answers, one letter per item.")
+            return 2
+        return score_saved(Path(args.score), args.answers)
     if args.list or not args.subscription:
         return list_subscriptions()
     return run(
-        args.subscription, count=args.items, dry_run=args.dry_run, seed=args.seed
+        args.subscription, count=args.items, dry_run=args.dry_run, seed=args.seed,
+        reveal=args.reveal,
     )
 
 
