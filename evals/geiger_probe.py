@@ -163,6 +163,44 @@ true, and its agreement is an upper bound. That is why disagreement would have
 been the decisive outcome: the confound can manufacture agreement and cannot
 manufacture chance. Control 1 has no such weakness and points the same way.
 
+## The attention control — set up 2026-08-25, reads out 2026-08-27
+
+The first sitting found 3 of 8 retained on `6a2ead85` at roughly 39-51 hours,
+and the obvious reading — that the reader's capacity or the volume per issue is
+the problem — has a competitor that costs nothing to exclude. Both baseline
+issues were read inside sessions where the reader was also building this
+repository. Reading while doing something else is a different act from reading
+attentively, and it has a different fix: delivery context, not a depth scale.
+
+So: issue 3 of the same series, same path, same depth 3, same five minutes, and
+deliberately the *same volume* — 15 coverage points against the baseline's 14
+and 16. Writing a lighter issue would have moved two variables and measured
+neither. ``--issue 3`` restricts the probe to the ground that issue laid down;
+sampling the whole ledger would mix it with material read under the other
+condition. The paper was generated before the reader saw the issue, so nothing
+about it can be shaped by the reading, and it is sat cold at ~48 hours to land
+inside the baseline's interval rather than beside it.
+
+**Registered before the result, because that is the only time it is worth
+writing down.** ~3/7 means the reading condition is not the story. ~6/7 means it
+is, and that delivery context outranks the depth scale.
+
+**What the rating already showed, ahead of the probe.** The reader rated issue 3
+``too_advanced``, where issues 1 and 2 — same depth, same length, same subject —
+were both ``just_right``. That is a result the probe cannot take away, and it
+adds a third explanation to the two above: the depth was wrong all along and the
+feedback loop reported the opposite. It also predicts a poor control score for a
+reason that is neither attention nor volume, so the readings above now
+discriminate differently: a low score indicts the depth loop rather than
+exonerating attention. Recorded as **F13**.
+
+The confound that survives: the reader knew a probe was coming, which is not how
+the baseline was read. Expectancy may have landed on the rating rather than on
+the retention — judging one's own grip more harshly, rather than reading more
+closely. Separating those needs a fourth arm, read attentively with no test
+announced, and the subscription has since dropped to depth 2, so that arm would
+have to pin depth back to 3 to be comparable at all.
+
 ## Fixing the length tell — item prompt v2, 2026-08-24
 
 v1 asked twice, in plain words, for options of similar length and hedging, and
@@ -576,7 +614,8 @@ def suggest(item: Item, depth: int, minutes: int) -> str:
     return f"{item.subject}, {depth}, {minutes}, 3d, maintaining"
 
 
-def run(sub_prefix: str, *, count: int, dry_run: bool, seed: int, reveal: bool) -> int:
+def run(sub_prefix: str, *, count: int, dry_run: bool, seed: int, reveal: bool,
+        issue: int | None = None) -> int:
     settings = get_settings()
     if not settings.anthropic_api_key:
         print("This experiment uses the API path deliberately: a pinned model is what makes")
@@ -596,8 +635,24 @@ def run(sub_prefix: str, *, count: int, dry_run: bool, seed: int, reveal: bool) 
             print(f"{sub.topic} has no coverage ledger yet — nothing to ask about.")
             return 2
 
+        coverage = sub.series.coverage
+        if issue is not None:
+            # Restricting to one issue is what makes a controlled comparison
+            # possible: hold subject, depth and length fixed, vary how the issue
+            # was read, and probe only the ground that issue laid down. Sampling
+            # the whole ledger would mix it with material read under other
+            # conditions and measure nothing in particular.
+            wanted = {
+                d.id for d in sub.deliveries if d.issue_number == issue
+            }
+            coverage = [p for p in coverage if p.delivery_id in wanted]
+            if not coverage:
+                print(f"Issue {issue} has no coverage points on this series.")
+                return 2
+            print(f"  restricted to issue #{issue}: {len(coverage)} points")
+
         rng = random.Random(seed)
-        chosen = sample_points(sub.series.coverage, count, rng)
+        chosen = sample_points(coverage, count, rng)
         # Round-robin the answer key, then shuffle, so the keys are balanced by
         # construction rather than by luck and still unguessable in order.
         keys = [LETTERS[i % 4] for i in range(len(chosen))]
@@ -1083,6 +1138,11 @@ def main() -> int:
              "rationalising the answer",
     )
     parser.add_argument(
+        "--issue", type=int, metavar="N",
+        help="probe only the ground issue N laid down, for a controlled comparison "
+             "between issues read under different conditions",
+    )
+    parser.add_argument(
         "--reveal", action="store_true",
         help="print the blind control's notes during screening — they name the correct "
              "option, so only use this on a paper nobody is going to sit",
@@ -1100,7 +1160,7 @@ def main() -> int:
         return list_subscriptions()
     return run(
         args.subscription, count=args.items, dry_run=args.dry_run, seed=args.seed,
-        reveal=args.reveal,
+        reveal=args.reveal, issue=args.issue,
     )
 
 

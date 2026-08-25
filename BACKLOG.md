@@ -176,6 +176,29 @@ Unreachable under the daily cadence the product assumes — it needs a backlog, 
 generation to have run ahead of reading. It appeared because seven issues were written in one
 sitting. Anyone catching up after a week away is in the same position.
 
+### F13 — the depth verdict depends on how the issue was read
+
+Observed 2026-08-25 on `6a2ead85` (Claude Agent SDK, depth 3, 5 minutes). Three issues written by
+the same path at the same depth and comparable volume — 14, 16 and 15 coverage points. Issues 1
+and 2, read inside working sessions, were both rated `just_right`. Issue 3, read deliberately and
+in the knowledge that a probe was coming, was rated **`too_advanced`** and took the subscription
+to depth 2.
+
+`Feedback` is the only control loop on depth in the product. This says it is not merely a weak
+predictor of retention — it is unstable as self-report, returning opposite verdicts on equivalent
+material according to the conditions of the reading. A loop whose input moves with attention
+cannot calibrate the thing it exists to calibrate.
+
+Distinct from **F10**, which is about one rating being counted several times. This is about a
+single rating being wrong, and wrong in the direction that hides the problem: the two readings
+that felt fine are the two that produced 3/8 under probe.
+
+Not actionable yet, and deliberately so — n is one reader, three issues, one flip, and the
+expectancy effect is an unexcluded alternative (knowing a test was coming plausibly made the
+reader judge their own grip more harshly rather than read more closely). What it does is raise the
+prior that depth wants validating by assessment rather than by asking. Do not change
+`apply_feedback_to_depth` on the strength of this.
+
 ### F11 — lowering a depth collides with the ledger
 
 Recorded 2026-08-23 as a prediction, before the outcome exists. Raising a depth is harmless: the
